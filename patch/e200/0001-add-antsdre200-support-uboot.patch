@@ -1,0 +1,304 @@
+From e3c0711aed634170a5931a76f4c67a1e99d5ab1b Mon Sep 17 00:00:00 2001
+From: jcc <995586238@qq.com>
+Date: Tue, 22 Nov 2022 15:43:58 +0800
+Subject: [PATCH] add antsdre200 support uboot
+
+---
+ arch/arm/dts/Makefile             |   3 +-
+ arch/arm/dts/zynq-antsdre200.dts  | 103 ++++++++++++++++++++++++++++++
+ board/xilinx/zynq/board.c         |   4 +-
+ configs/zynq_antsdre200_defconfig |  65 +++++++++++++++++++
+ include/configs/zynq-common.h     |  42 +++++++-----
+ 5 files changed, 199 insertions(+), 18 deletions(-)
+ create mode 100644 arch/arm/dts/zynq-antsdre200.dts
+ create mode 100644 configs/zynq_antsdre200_defconfig
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index 7b19efc9b8..c6c9a88ca8 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -101,7 +101,8 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
+ 	zynq-zc770-xm010.dtb \
+ 	zynq-zc770-xm011.dtb \
+ 	zynq-zc770-xm012.dtb \
+-	zynq-zc770-xm013.dtb
++	zynq-zc770-xm013.dtb \
++	zynq-antsdre200.dtb 
+ dtb-$(CONFIG_ARCH_ZYNQMP) += \
+ 	zynqmp-ep108.dtb			\
+ 	zynqmp-zcu100.dtb			\
+diff --git a/arch/arm/dts/zynq-antsdre200.dts b/arch/arm/dts/zynq-antsdre200.dts
+new file mode 100644
+index 0000000000..cb0c047f57
+--- /dev/null
++++ b/arch/arm/dts/zynq-antsdre200.dts
+@@ -0,0 +1,103 @@
++/*
++ * MicroPhase Inc. ANTSDR board DTS
++ *
++ * Copyright (C) 2015-2018 MicroPhase Inc.
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++/dts-v1/;
++#include "zynq-7000.dtsi"
++
++/ {
++	model = "MicroPhase, ANTSDR-E200";
++	compatible = "xlnx,zynq-7000";
++
++	aliases {
++		ethernet0 = &gem0;
++		serial0 = &uart0;
++		spi0 = &qspi;
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x0 0x20000000>;
++	};
++
++	chosen {
++		bootargs = "earlyprintk";
++		linux,stdout-path = &uart0;
++		stdout-path = &uart0;
++	};
++
++	usb_phy0: phy0 {
++		compatible = "usb-nop-xceiv";
++		#phy-cells = <0>;
++	};
++	
++};
++
++&qspi {
++	status = "okay";
++	is-dual = <0>;
++	num-cs = <1>;
++	flash@0 {
++		compatible = "n25q512a","micron,m25p80";
++		reg = <0x0>;
++		spi-tx-bus-width = <1>;
++		spi-rx-bus-width = <4>;
++		spi-max-frequency = <50000000>;
++		#address-cells = <1>;
++		#size-cells = <1>;
++		partition@qspi-fsbl-uboot {
++			label = "qspi-fsbl-uboot";
++			reg = <0x0 0x100000>; /* 1M */
++		};
++		partition@qspi-uboot-env {
++			label = "qspi-uboot-env";
++			reg = <0x100000 0x20000>; /* 128k */
++		};
++		partition@qspi-nvmfs {
++			label = "qspi-nvmfs";
++			reg = <0x120000 0xE0000>; /* 1M */
++		};
++		partition@qspi-linux {
++			label = "qspi-linux";
++			reg = <0x200000 0x1E00000>; /* 30M */
++		};
++	};
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&usb0 {
++	status = "okay";
++	dr_mode = "host";
++	usb-phy = <&usb_phy0>;
++};
++&sdhci0 {
++	u-boot,dm-pre-reloc;
++	status = "okay";
++	
++};
++
++&gem0 {
++	status = "okay";
++
++	phy-handle = <&phy0>;
++	phy-mode = "rgmii-rxid";
++
++	phy0: phy@0 {
++		device_type = "ethernet-phy";
++		reg = <0x0>;
++		// marvell,reg-init = <3 16 0xff00 0x1e 3 17 0xfff0 0x00>;
++	};
++
++	gmiitorgmii: gmiitorgmii@8 {
++		compatible = "xlnx,gmii-to-rgmii-1.0";
++		reg = <0x8>;
++		phy-handle = <&phy0>;
++	};
++
++};
+\ No newline at end of file
+diff --git a/board/xilinx/zynq/board.c b/board/xilinx/zynq/board.c
+index 2b23baf83c..621791f05f 100644
+--- a/board/xilinx/zynq/board.c
++++ b/board/xilinx/zynq/board.c
+@@ -118,8 +118,8 @@ int misc_init_r(void)
+ 	gpio_request(BUTTON_GPIO, "SWITCH");
+ 	gpio_direction_input(BUTTON_GPIO);
+ 
+-	if (!gpio_get_value(BUTTON_GPIO))
+-		set_default_env("Button pressed: Using default environment\n");
++	//if (!gpio_get_value(BUTTON_GPIO))
++	//	set_default_env("Button pressed: Using default environment\n");
+ 
+ 	return 0;
+ }
+diff --git a/configs/zynq_antsdre200_defconfig b/configs/zynq_antsdre200_defconfig
+new file mode 100644
+index 0000000000..442921182e
+--- /dev/null
++++ b/configs/zynq_antsdre200_defconfig
+@@ -0,0 +1,65 @@
++CONFIG_ARM=y
++CONFIG_SYS_CONFIG_NAME="zynq_zc70x"
++CONFIG_ARCH_ZYNQ=y
++CONFIG_SYS_MALLOC_F_LEN=0x800
++CONFIG_DEFAULT_DEVICE_TREE="zynq-antsdre200"
++CONFIG_SPL=y
++CONFIG_FIT=y
++CONFIG_FIT_VERBOSE=y
++CONFIG_FIT_SIGNATURE=y
++CONFIG_BOOTDELAY=0
++CONFIG_SYS_NO_FLASH=y
++CONFIG_HUSH_PARSER=y
++CONFIG_SYS_PROMPT="ANTSDR> "
++# CONFIG_CMD_IMLS is not set
++# CONFIG_CMD_XIMG is not set
++# CONFIG_CMD_FLASH is not set
++
++CONFIG_ZYNQ_SDHCI=y
++CONFIG_CMD_MMC=y
++
++CONFIG_MMC_SDHCI=y
++CONFIG_MMC_SDHCI_ZYNQ=y
++
++CONFIG_SD_BOOT=y
++
++CONFIG_CMD_SF=y
++CONFIG_CMD_SPI=y
++CONFIG_CMD_USB=y
++CONFIG_CMD_DFU=y
++CONFIG_CMD_GPIO=y
++# CONFIG_CMD_SETEXPR is not set
++# CONFIG_CMD_NET is not set
++# CONFIG_CMD_NFS is not set
++CONFIG_CMD_CACHE=y
++CONFIG_CMD_EXT2=y
++CONFIG_CMD_EXT4=y
++CONFIG_CMD_EXT4_WRITE=y
++CONFIG_CMD_FAT=y
++CONFIG_CMD_FS_GENERIC=y
++CONFIG_OF_EMBED=y
++CONFIG_SPL_DM_SEQ_ALIAS=y
++CONFIG_LED=y
++CONFIG_LED_GPIO=y
++CONFIG_SPI_FLASH=y
++CONFIG_SPI_FLASH_BAR=y
++CONFIG_SPI_FLASH_ISSI=y
++CONFIG_SPI_FLASH_MACRONIX=y
++CONFIG_SPI_FLASH_SPANSION=y
++CONFIG_SPI_FLASH_STMICRO=y
++CONFIG_SPI_FLASH_WINBOND=y
++CONFIG_ZYNQ_QSPI=y
++CONFIG_USB=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_ULPI_VIEWPORT=y
++CONFIG_USB_ULPI=y
++CONFIG_USB_STORAGE=y
++CONFIG_USB_GADGET=y
++CONFIG_CI_UDC=y
++CONFIG_USB_GADGET_VBUS_DRAW=500
++CONFIG_USB_GADGET_DOWNLOAD=y
++CONFIG_G_DNL_MANUFACTURER="Analog Devices Inc."
++CONFIG_G_DNL_VENDOR_NUM=0x0456
++CONFIG_G_DNL_PRODUCT_NUM=0xb674
++CONFIG_REGEX=y
++CONFIG_LIB_RAND=y
+diff --git a/include/configs/zynq-common.h b/include/configs/zynq-common.h
+index c0e9a47b2b..8525a678c4 100644
+--- a/include/configs/zynq-common.h
++++ b/include/configs/zynq-common.h
+@@ -82,8 +82,8 @@
+ "uboot-extra-env.dfu raw 0xFF000 0x1000\\\\;" \
+ "uboot-env.dfu raw 0x100000 0x20000\\\\;" \
+ "spare.dfu raw 0x120000 0xE0000\0" \
+-"dfu_sf=gpio set 15;set stdout serial@e0001000;echo Entering DFU SF mode ... && run dfu_sf_info && dfu 0 sf 0:0:40000000:0 && if test -n ${dfu_alt_num} && test ${dfu_alt_num} = 1; "\
+-"then set fit_size ${filesize} && set dfu_alt_num && env save; fi;gpio clear 15;\0"
++"dfu_sf=gpio set 0;set stdout serial@e0000000;echo Entering DFU SF mode ... && run dfu_sf_info && dfu 0 sf 0:0:40000000:0 && if test -n ${dfu_alt_num} && test ${dfu_alt_num} = 1; "\
++"then set fit_size ${filesize} && set dfu_alt_num && env save; fi;gpio clear 0;\0"
+ 
+ 
+ /* NOR */
+@@ -322,10 +322,10 @@
+ 		"if test \"${model}\" \> \"Analog Devices Pluto\"; then " \
+ 			"run adi_loadvals_pluto; " \
+ 		"fi; \0" \
+-	"qspiboot_extraenv=sf read ${extraenv_load_address} 0xFF000 0x1000 && " \
+-		"env import -c ${extraenv_load_address} 0x1000 || true \0" \
++	"qspiboot_extraenv=sf read ${extraenv_load_address} 0x100000 0x1000 ;" \
++		" \0" \
+ 	"read_sf=sf probe 0:0 50000000 0 && run qspiboot_extraenv &&" \
+-		"sf read ${fit_load_address} 0x200000 ${fit_size} && " \
++		"sf read ${fit_load_address} 0x200000 0x1E00000 && " \
+ 		"iminfo ${fit_load_address} || " \
+ 		"sf read ${fit_load_address} 0x200000  0x1E00000; \0" \
+ 	"ramboot_verbose=adi_hwref;echo Copying Linux from DFU to RAM... && " \
+@@ -341,17 +341,13 @@
+ 		"echo Loaded AD936x refclk frequency and model into devicetree; " \
+ 		"fi; " \
+ 		"envversion;setenv bootargs console=ttyPS0,115200 maxcpus=${maxcpus} rootfstype=ramfs root=/dev/ram0 rw earlyprintk uboot=\"${uboot-version}\" && " \
+-		"bootm ${fit_load_address}#${fit_config} || echo BOOT failed entering DFU mode ... && run dfu_sf \0" \
+-	"qspiboot=set stdout nulldev;adi_hwref;test -n $PlutoRevA || gpio input 14 && set stdout serial@e0001000 && sf probe && sf protect lock 0 100000 && run dfu_sf;  " \
+-		"set stdout serial@e0001000;" \
+-		"itest *f8000258 == 480003 && run clear_reset_cause && run dfu_sf; " \
+-		"itest *f8000258 == 480007 && run clear_reset_cause && run ramboot_verbose; " \
+-		"itest *f8000258 == 480006 && run clear_reset_cause && run qspiboot_verbose; " \
+-		"itest *f8000258 == 480002 && run clear_reset_cause && exit; " \
+-		"echo Booting silently && set stdout nulldev; " \
+-		"run read_sf && run adi_loadvals; " \
++		"bootm ${fit_load_address}#${fit_config} || echo BOOT failed entering DFU mode ...  \0" \
++	"qspiboot=set stdout serial@e0000000 && sf probe;  " \
++		"echo Booting silently; " \
++		"set stdout nulldev; " \
++		"run read_sf ; run adi_loadvals ; run qspiboot_extraenv; " \
+ 		"envversion;setenv bootargs console=ttyPS0,115200 maxcpus=${maxcpus} rootfstype=ramfs root=/dev/ram0 rw quiet loglevel=4 uboot=\"${uboot-version}\" && " \
+-		"bootm ${fit_load_address}#${fit_config} || set stdout serial@e0001000;echo BOOT failed entering DFU mode ... && sf protect lock 0 100000 && run dfu_sf \0" \
++		"bootm ${fit_load_address}#${fit_config} || set stdout serial@e0000000; \0" \
+ 	"jtagboot=env default -a;sf probe && sf protect unlock 0 100000 && run dfu_sf; \0" \
+ 	"uenvboot=" \
+ 		"if run loadbootenv; then " \
+@@ -362,6 +358,22 @@
+ 			"echo Running uenvcmd ...; " \
+ 			"run uenvcmd; " \
+ 		"fi\0" \
++	"loaddfu=if mmc rescan; then " \
++		"fatload mmc 0 ${fit_load_address} antsdre200.dfu; " \
++		"sf probe; " \
++		"sf update ${fit_load_address} 0x200000 0x1E00000; " \
++		"fatload mmc 0 0x20000 uboot-env.dfu; " \
++		"sf update 0x20000 0x100000 0x20000; " \
++		"bootm ${fit_load_address}#${fit_config};" \
++		"fi\0" \
++	"sdboot=if mmcinfo; then " \
++			"run uenvboot; " \
++			"echo Copying Linux from SD to RAM... && " \
++			"load mmc 0 ${fit_load_address} ${kernel_image} && " \
++			"load mmc 0 ${devicetree_load_address} ${devicetree_image} && " \
++			"load mmc 0 ${ramdisk_load_address} ${ramdisk_image} && " \
++			"bootm ${fit_load_address} ${ramdisk_load_address} ${devicetree_load_address}; " \
++		"fi\0" \
+ 	"usbboot=if usb start; then " \
+ 			"run uenvboot; " \
+ 			"echo Copying Linux from USB to RAM... && " \
+-- 
+2.17.1
+
