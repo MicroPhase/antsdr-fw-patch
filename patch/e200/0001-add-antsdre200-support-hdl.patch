@@ -1,10 +1,9 @@
-From 9c1da756a3656e1aa22892cf8fbbfb292fff1313 Mon Sep 17 00:00:00 2001
+From e796d9e7f9a10e72775cb84607efa5159c289d60 Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Tue, 22 Nov 2022 15:09:28 +0800
+Date: Tue, 22 Nov 2022 17:21:02 +0800
 Subject: [PATCH] add antsdre200 support hdl
 
 ---
- library/axi_ad9361/bd/bd.tcl                  |  47 +
  projects/antsdre200/Makefile                  |  21 +
  projects/antsdre200/b205_ref_pll.v            | 279 ++++++
  projects/antsdre200/ip/gen_clks/gen_clks.v    |  96 ++
@@ -28,8 +27,7 @@ Subject: [PATCH] add antsdre200 support hdl
  projects/antsdre200/system_constr.xdc         | 121 +++
  projects/antsdre200/system_project.tcl        |  20 +
  projects/antsdre200/system_top.v              | 246 +++++
- 24 files changed, 6698 insertions(+)
- create mode 100644 library/axi_ad9361/bd/bd.tcl
+ 23 files changed, 6651 insertions(+)
  create mode 100644 projects/antsdre200/Makefile
  create mode 100644 projects/antsdre200/b205_ref_pll.v
  create mode 100644 projects/antsdre200/ip/gen_clks/gen_clks.v
@@ -54,59 +52,6 @@ Subject: [PATCH] add antsdre200 support hdl
  create mode 100644 projects/antsdre200/system_project.tcl
  create mode 100644 projects/antsdre200/system_top.v
 
-diff --git a/library/axi_ad9361/bd/bd.tcl b/library/axi_ad9361/bd/bd.tcl
-new file mode 100644
-index 000000000..dceb94981
---- /dev/null
-+++ b/library/axi_ad9361/bd/bd.tcl
-@@ -0,0 +1,47 @@
-+# SCRIPT AUTO-GENERATED AT BUILD, DO NOT MODIFY!
-+proc init {cellpath otherInfo} {
-+  set ip [get_bd_cells $cellpath]
-+
-+  bd::mark_propagate_only $ip " \
-+    DEV_PACKAGE \
-+    SPEED_GRADE \
-+    FPGA_FAMILY \
-+    FPGA_TECHNOLOGY"
-+
-+  adi_auto_assign_device_spec $cellpath
-+}
-+
-+# auto set parameters defined in auto_set_param_list (adi_xilinx_device_info_enc.tcl)
-+proc adi_auto_assign_device_spec {cellpath} {
-+
-+  set ip [get_bd_cells $cellpath]
-+  set ip_param_list [list_property $ip]
-+  set ip_path [bd::get_vlnv_dir [get_property VLNV $ip]]
-+
-+  set parent_dir "../"
-+  for {set x 1} {$x<=4} {incr x} {
-+    set linkname ${ip_path}${parent_dir}scripts/adi_xilinx_device_info_enc.tcl
-+    if { [file exists $linkname] } {
-+      source ${ip_path}${parent_dir}/scripts/adi_xilinx_device_info_enc.tcl
-+      break
-+    }
-+    append parent_dir "../"
-+  }
-+
-+  # Find predefindes auto assignable parameters
-+  foreach i $auto_set_param_list {
-+    if { [lsearch $ip_param_list "CONFIG.$i"] > 0 } {
-+      set val [adi_device_spec $cellpath $i]
-+      set_property CONFIG.$i $val $ip
-+    }
-+  }
-+
-+  # Find predefindes auto assignable/overwritable parameters
-+  foreach i $auto_set_param_list_overwritable {
-+    if { [lsearch $ip_param_list "CONFIG.$i"] > 0 } {
-+      set val [adi_device_spec $cellpath $i]
-+      set_property CONFIG.$i $val $ip
-+    }
-+  }
-+}
-+
 diff --git a/projects/antsdre200/Makefile b/projects/antsdre200/Makefile
 new file mode 100644
 index 000000000..cb65082c8

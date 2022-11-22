@@ -1,76 +1,21 @@
-From fa5d0398a2f913d20886ebeefea5a9976377af64 Mon Sep 17 00:00:00 2001
+From dc1716ae5e84684b4855aff545247ec472537935 Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Sat, 19 Nov 2022 11:26:49 +0800
+Date: Tue, 22 Nov 2022 17:17:27 +0800
 Subject: [PATCH] add ant support hdl
 
 ---
- library/axi_ad9361/bd/bd.tcl    |  47 +++++
  projects/ant/Makefile           |  21 ++
  projects/ant/system_bd.tcl      | 353 ++++++++++++++++++++++++++++++++
  projects/ant/system_constr.xdc  | 145 +++++++++++++
  projects/ant/system_project.tcl |  17 ++
  projects/ant/system_top.v       | 196 ++++++++++++++++++
- 6 files changed, 779 insertions(+)
- create mode 100644 library/axi_ad9361/bd/bd.tcl
+ 5 files changed, 732 insertions(+)
  create mode 100644 projects/ant/Makefile
  create mode 100644 projects/ant/system_bd.tcl
  create mode 100644 projects/ant/system_constr.xdc
  create mode 100644 projects/ant/system_project.tcl
  create mode 100644 projects/ant/system_top.v
 
-diff --git a/library/axi_ad9361/bd/bd.tcl b/library/axi_ad9361/bd/bd.tcl
-new file mode 100644
-index 000000000..dceb94981
---- /dev/null
-+++ b/library/axi_ad9361/bd/bd.tcl
-@@ -0,0 +1,47 @@
-+# SCRIPT AUTO-GENERATED AT BUILD, DO NOT MODIFY!
-+proc init {cellpath otherInfo} {
-+  set ip [get_bd_cells $cellpath]
-+
-+  bd::mark_propagate_only $ip " \
-+    DEV_PACKAGE \
-+    SPEED_GRADE \
-+    FPGA_FAMILY \
-+    FPGA_TECHNOLOGY"
-+
-+  adi_auto_assign_device_spec $cellpath
-+}
-+
-+# auto set parameters defined in auto_set_param_list (adi_xilinx_device_info_enc.tcl)
-+proc adi_auto_assign_device_spec {cellpath} {
-+
-+  set ip [get_bd_cells $cellpath]
-+  set ip_param_list [list_property $ip]
-+  set ip_path [bd::get_vlnv_dir [get_property VLNV $ip]]
-+
-+  set parent_dir "../"
-+  for {set x 1} {$x<=4} {incr x} {
-+    set linkname ${ip_path}${parent_dir}scripts/adi_xilinx_device_info_enc.tcl
-+    if { [file exists $linkname] } {
-+      source ${ip_path}${parent_dir}/scripts/adi_xilinx_device_info_enc.tcl
-+      break
-+    }
-+    append parent_dir "../"
-+  }
-+
-+  # Find predefindes auto assignable parameters
-+  foreach i $auto_set_param_list {
-+    if { [lsearch $ip_param_list "CONFIG.$i"] > 0 } {
-+      set val [adi_device_spec $cellpath $i]
-+      set_property CONFIG.$i $val $ip
-+    }
-+  }
-+
-+  # Find predefindes auto assignable/overwritable parameters
-+  foreach i $auto_set_param_list_overwritable {
-+    if { [lsearch $ip_param_list "CONFIG.$i"] > 0 } {
-+      set val [adi_device_spec $cellpath $i]
-+      set_property CONFIG.$i $val $ip
-+    }
-+  }
-+}
-+
 diff --git a/projects/ant/Makefile b/projects/ant/Makefile
 new file mode 100644
 index 000000000..56e02e671

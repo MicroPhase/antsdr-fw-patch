@@ -34,23 +34,28 @@ cd ../
 
 echo "Patch..."
 cd ./plutosdr-fw/hdl
-git am *.patch
+git apply *.patch
+rm -rf *.patch
 cd ../..
 
 cd ./plutosdr-fw/u-boot-xlnx
-git am *.patch
+git apply *.patch
+rm -rf *.patch
 cd ../..
 
 cd ./plutosdr-fw/linux
-git am *.patch
+git apply *.patch
+rm -rf *.patch
 cd ../..
 
 cd ./plutosdr-fw/buildroot
-git am *.patch
+git apply *.patch
+rm -rf *.patch
 cd ../..
 
 cd ./plutosdr-fw/
-git am *.patch
+git apply *.patch
+rm -rf *.patch
 cd ../
 
 echo "patch finish"
