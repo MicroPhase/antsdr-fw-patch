@@ -1,4 +1,4 @@
 [submodule "plutosdr-fw"]
 	path = plutosdr-fw
 	url = https://github.com/analogdevicesinc/plutosdr-fw
-	branch = "v0.34"
+	branch = "v0.35"
