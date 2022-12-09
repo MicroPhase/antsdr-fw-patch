@@ -2,7 +2,7 @@ echo "Reset git "
 
 
 cd plutosdr-fw
-git reset --hard 714cd8aaeadfa30aecd6d8235d5076a3f7b8e5e3
+git reset --hard d9f8f24a28212b9e1e523d277820093301cea1a0
 git clean -xf
 git clean -df
 cd ..
@@ -14,7 +14,7 @@ git clean -df
 cd ../..
 
 cd plutosdr-fw/linux
-git reset --hard 9dfba10b795d0004ae90f2ab29dac0197c8a3b3e
+git reset --hard b0ed105e9ab6c60ffd2ddafdfff6890b5cc46ed8
 git clean -xf
 git clean -df
 cd ../..
@@ -26,7 +26,7 @@ git clean -df
 cd ../..
 
 cd plutosdr-fw/buildroot
-git reset --hard 6d681cb26d2722608e8d90c9a530b518a90a502c
+git reset --hard b0ed105e9ab6c60ffd2ddafdfff6890b5cc46ed8
 git clean -xf
 git clean -df
 cd ../..
