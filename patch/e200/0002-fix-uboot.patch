@@ -1,0 +1,38 @@
+From b56da6ba249534169d0aa303c865ad610c3992b4 Mon Sep 17 00:00:00 2001
+From: jcc <995586238@qq.com>
+Date: Thu, 29 Dec 2022 15:07:39 +0800
+Subject: [PATCH 2/2] fix uboot
+
+---
+ arch/arm/dts/Makefile       | 1 +
+ configs/zynq_e200_defconfig | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index 7b19efc9b8..6bad832c4d 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -96,6 +96,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
+ 	zynq-picozed.dtb \
+ 	zynq-picozed-sdr2.dtb \
+ 	zynq-pluto-sdr.dtb \
++	zynq-e200.dtb \
+ 	zynq-m2k.dtb \
+ 	zynq-sidekiqz2.dtb \
+ 	zynq-zc770-xm010.dtb \
+diff --git a/configs/zynq_e200_defconfig b/configs/zynq_e200_defconfig
+index 442921182e..93aa0164b6 100644
+--- a/configs/zynq_e200_defconfig
++++ b/configs/zynq_e200_defconfig
+@@ -2,7 +2,7 @@ CONFIG_ARM=y
+ CONFIG_SYS_CONFIG_NAME="zynq_zc70x"
+ CONFIG_ARCH_ZYNQ=y
+ CONFIG_SYS_MALLOC_F_LEN=0x800
+-CONFIG_DEFAULT_DEVICE_TREE="zynq-antsdre200"
++CONFIG_DEFAULT_DEVICE_TREE="zynq-e200"
+ CONFIG_SPL=y
+ CONFIG_FIT=y
+ CONFIG_FIT_VERBOSE=y
+-- 
+2.25.1
+
