@@ -61,6 +61,13 @@ sudo apt-get remove libfdt-de
 	export TARGET=antsdre200
 	```
 	
+3. ant e310v2
+
+  ```sh
+  export TARGET=e310v2
+  ```
+
+  
 
 ### Patch
 
@@ -81,6 +88,14 @@ cd antsdr-fw-patch
    ```sh
    sh patch.sh e200
    ```
+   
+3. ant e310v2
+
+   ```sh
+   sh patch.sh e310v2
+   ```
+
+   
 
 If you patch is successfully applied, you can see the following information.
 
