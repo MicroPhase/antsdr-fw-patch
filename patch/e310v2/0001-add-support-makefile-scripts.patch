@@ -1,0 +1,284 @@
+From d7754ec109af4f9b66ca0a361360a5d1ad29e884 Mon Sep 17 00:00:00 2001
+From: jcc <995586238@qq.com>
+Date: Thu, 2 Feb 2023 13:24:16 +0800
+Subject: [PATCH] add support makefile scripts
+
+---
+ Makefile           |  33 ++++++++-
+ scripts/e310v2.its | 174 +++++++++++++++++++++++++++++++++++++++++++++
+ scripts/e310v2.mk  |  10 +++
+ 3 files changed, 215 insertions(+), 2 deletions(-)
+ create mode 100644 scripts/e310v2.its
+ create mode 100644 scripts/e310v2.mk
+
+diff --git a/Makefile b/Makefile
+index c0bb761..57c4fd9 100644
+--- a/Makefile
++++ b/Makefile
+@@ -38,7 +38,7 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
+ endif
+ 
+ TARGET ?= pluto
+-SUPPORTED_TARGETS:=pluto sidekiqz2
++SUPPORTED_TARGETS:=pluto sidekiqz2 e310v2
+ 
+ # Include target specific constants
+ include scripts/$(TARGET).mk
+@@ -96,6 +96,7 @@ build/uboot-env.bin: build/uboot-env.txt
+ linux/arch/arm/boot/zImage:
+ 	make -C linux ARCH=arm zynq_$(TARGET)_defconfig
+ 	make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zImage UIMAGE_LOADADDR=0x8000
++	make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) uImage UIMAGE_LOADADDR=0x8000
+ 
+ .PHONY: linux/arch/arm/boot/zImage
+ 
+@@ -103,6 +104,12 @@ linux/arch/arm/boot/zImage:
+ build/zImage: linux/arch/arm/boot/zImage  | build
+ 	cp $< $@
+ 
++.PHONY: linux/arch/arm/boot/uImage
++
++
++build/uImage: linux/arch/arm/boot/uImage  | build
++	cp $< $@
++
+ ### Device Tree ###
+ 
+ linux/arch/arm/boot/dts/%.dtb: linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
+@@ -131,6 +138,8 @@ build/$(TARGET).itb: u-boot-xlnx/tools/mkimage build/zImage build/rootfs.cpio.gz
+ 	u-boot-xlnx/tools/mkimage -f scripts/$(TARGET).its $@
+ 
+ build/system_top.hdf:  | build
++# cp hdl/system_top.hdf $@
++# cp hdl/ps7_init/* build/
+ ifeq (1, ${HAVE_VIVADO})
+ 	bash -c "source $(VIVADO_SETTINGS) && make -C hdl/projects/$(TARGET) && cp hdl/projects/$(TARGET)/$(TARGET).sdk/system_top.hdf $@"
+ 	unzip -l $@ | grep -q ps7_init || cp hdl/projects/$(TARGET)/$(TARGET).srcs/sources_1/bd/system/ip/system_sys_ps7_0/ps7_init* build/
+@@ -190,7 +199,27 @@ clean:
+ 	make -C hdl clean
+ 	rm -f $(notdir $(wildcard build/*))
+ 	rm -rf build/*
+-
++	rm -rf build_sdimg
++
++SDIMGDIR = $(CURDIR)/build_sdimg
++sdimg: build/
++	mkdir $(SDIMGDIR)
++	cp build/sdk/fsbl/Release/fsbl.elf 	$(SDIMGDIR)/fsbl.elf  
++	cp build/system_top.bit 	$(SDIMGDIR)/system_top.bit
++	cp build/u-boot.elf 			$(SDIMGDIR)/u-boot.elf
++	cp $(CURDIR)/linux/arch/arm/boot/uImage	$(SDIMGDIR)/uImage
++	cp build/zynq-$(TARGET).dtb 	$(SDIMGDIR)/devicetree.dtb
++	cp build/uboot-env.txt  		$(SDIMGDIR)/uEnv.txt
++	cp build/rootfs.cpio.gz  		$(SDIMGDIR)/ramdisk.image.gz
++	mkimage -A arm -T ramdisk -C gzip -d $(SDIMGDIR)/ramdisk.image.gz $(SDIMGDIR)/uramdisk.image.gz
++	touch 	$(SDIMGDIR)/boot.bif
++	echo "image : {[bootloader] $(SDIMGDIR)/fsbl.elf  $(SDIMGDIR)/system_top.bit  $(SDIMGDIR)/u-boot.elf}" >  $(SDIMGDIR)/boot.bif
++	bash -c "source $(VIVADO_SETTINGS) && bootgen -image $(SDIMGDIR)/boot.bif -o i $(SDIMGDIR)/BOOT.bin"
++	rm $(SDIMGDIR)/fsbl.elf
++	rm $(SDIMGDIR)/system_top.bit
++	rm $(SDIMGDIR)/u-boot.elf
++	rm $(SDIMGDIR)/ramdisk.image.gz 
++	rm $(SDIMGDIR)/boot.bif
+ zip-all: $(TARGETS)
+ 	zip -j build/$(ZIP_ARCHIVE_PREFIX)-fw-$(VERSION).zip $^
+ 
+diff --git a/scripts/e310v2.its b/scripts/e310v2.its
+new file mode 100644
+index 0000000..9ca1eeb
+--- /dev/null
++++ b/scripts/e310v2.its
+@@ -0,0 +1,174 @@
++/*
++ * U-Boot uImage source file with multiple kernels, ramdisks and FDT blobs
++ * This example makes use of the 'loadables' field
++ */
++
++/*
++ * fdt get addr foo /images/fdt@1 data
++ */
++
++/dts-v1/;
++
++/ {
++	description = "Configuration to load fpga before Kernel";
++	magic = "ITB PlutoSDR (ADALM-PLUTO)";
++	#address-cells = <1>;
++	images {
++
++		fdt@1 {
++			description = "zynq-pluto-sdr";
++			data = /incbin/("../build/zynq-e310v2.dtb");
++			type = "flat_dt";
++			arch = "arm";
++			compression = "none";
++		};
++
++		fdt@2 {
++			description = "zynq-pluto-sdr-revb";
++			data = /incbin/("../build/zynq-e310v2.dtb");
++			type = "flat_dt";
++			arch = "arm";
++			compression = "none";
++		};
++
++		fdt@3 {
++			description = "zynq-pluto-sdr-revc";
++			data = /incbin/("../build/zynq-e310v2.dtb");
++			type = "flat_dt";
++			arch = "arm";
++			compression = "none";
++		};
++
++		fpga@1 {
++			description = "FPGA";
++			data = /incbin/("../build/system_top.bit");
++			type = "fpga";
++			arch = "arm";
++			compression = "none";
++			load = <0xF000000>;
++			hash@1 {
++				algo = "md5";
++			};
++		};
++
++		linux_kernel@1 {
++			description = "Linux";
++			data = /incbin/("../build/zImage");
++			type = "kernel";
++			arch = "arm";
++			os = "linux";
++			compression = "none";
++			load = <0x8000>;
++			entry = <0x8000>;
++			hash@1 {
++				algo = "md5";
++			};
++		};
++		ramdisk@1 {
++			description = "Ramdisk";
++			data = /incbin/("../build/rootfs.cpio.gz");
++			type = "ramdisk";
++			arch = "arm";
++			os = "linux";
++			compression = "gzip";
++			hash@1 {
++				algo = "md5";
++			};
++		};
++
++	};
++
++	configurations {
++		default = "config@0";
++		config@0 {
++			description = "Linux with fpga RevA";
++			fdt = "fdt@1";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		/* all below is currently RevB ! */
++
++		config@1 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@2 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@3 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@4 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@5 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@6 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++
++		config@7 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@8 { /* This one is actually RevC */
++			description = "Linux with fpga RevC";
++			fdt = "fdt@3";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@9 { /* This one is actually RevB */
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@10 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++	};
++};
+diff --git a/scripts/e310v2.mk b/scripts/e310v2.mk
+new file mode 100644
+index 0000000..36cdca3
+--- /dev/null
++++ b/scripts/e310v2.mk
+@@ -0,0 +1,10 @@
++
++# Target specific constants go here
++
++HDF_URL:=http://github.com/analogdevicesinc/plutosdr-fw/releases/download/${LATEST_TAG}/system_top.hdf
++TARGET_DTS_FILES:= zynq-e310v2.dtb
++COMPLETE_NAME:=PlutoSDR
++ZIP_ARCHIVE_PREFIX:=plutosdr
++DEVICE_VID:=0x0456
++DEVICE_PID:=0xb673
++
+-- 
+2.25.1
+
