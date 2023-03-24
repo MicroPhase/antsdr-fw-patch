@@ -63,9 +63,9 @@ sudo apt-get remove libfdt-de
 	
 3. ant e310v2
 
-  ```sh
-  export TARGET=e310v2
-  ```
+   ```sh
+   export TARGET=e310v2
+   ```
 
   
 
