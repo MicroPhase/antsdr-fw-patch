@@ -1,19 +1,23 @@
-From a28b3fa6d05fec7798f88d9cbd63165274935c36 Mon Sep 17 00:00:00 2001
+From 7191c35a63d91ec5b716f33c18a1b71b382477c5 Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Tue, 22 Nov 2022 15:10:21 +0800
+Date: Fri, 7 Apr 2023 09:47:52 +0800
 Subject: [PATCH] add antsdre200 support linux
 
 ---
  arch/arm/boot/dts/zynq-antsdre200.dts      |  47 +++
- arch/arm/boot/dts/zynq-antsdre200.dtsi     | 448 +++++++++++++++++++++
- arch/arm/configs/zynq_antsdre200_defconfig | 290 +++++++++++++
+ arch/arm/boot/dts/zynq-antsdre200.dtsi     | 450 +++++++++++++++++++++
+ arch/arm/configs/zynq_antsdre200_defconfig | 291 +++++++++++++
+ drivers/iio/adc/Kconfig                    |   5 +
+ drivers/iio/adc/Makefile                   |   1 +
+ drivers/iio/adc/mpiio_io.c                 | 184 +++++++++
  drivers/iio/dac/Kconfig                    |   7 +
  drivers/iio/dac/Makefile                   |   1 +
- drivers/iio/dac/ltc2630.c                  | 202 ++++++++++
- 6 files changed, 995 insertions(+)
+ drivers/iio/dac/ltc2630.c                  | 202 +++++++++
+ 9 files changed, 1188 insertions(+)
  create mode 100644 arch/arm/boot/dts/zynq-antsdre200.dts
  create mode 100644 arch/arm/boot/dts/zynq-antsdre200.dtsi
  create mode 100644 arch/arm/configs/zynq_antsdre200_defconfig
+ create mode 100644 drivers/iio/adc/mpiio_io.c
  create mode 100644 drivers/iio/dac/ltc2630.c
 
 diff --git a/arch/arm/boot/dts/zynq-antsdre200.dts b/arch/arm/boot/dts/zynq-antsdre200.dts
@@ -71,10 +75,10 @@ index 000000000000..ae103e22e46c
 +};
 diff --git a/arch/arm/boot/dts/zynq-antsdre200.dtsi b/arch/arm/boot/dts/zynq-antsdre200.dtsi
 new file mode 100644
-index 000000000000..d44b230ada48
+index 000000000000..41680f9da0c3
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-antsdre200.dtsi
-@@ -0,0 +1,448 @@
+@@ -0,0 +1,450 @@
 +/*
 + * ZYNQ Pluto SDR (Z7020/AD936x)
 + *
@@ -127,7 +131,9 @@ index 000000000000..d44b230ada48
 +		ext_ref_ispps = <&gpio0 87 0>;
 +		ref_sel = <&gpio0 88 0>;
 +	};
-+
++	mpiio {
++		compatible = "microphase,mpiio";
++	};
 +
 +};
 +
@@ -525,10 +531,10 @@ index 000000000000..d44b230ada48
 +
 diff --git a/arch/arm/configs/zynq_antsdre200_defconfig b/arch/arm/configs/zynq_antsdre200_defconfig
 new file mode 100644
-index 000000000000..40f47c80d538
+index 000000000000..b5748cf8fe65
 --- /dev/null
 +++ b/arch/arm/configs/zynq_antsdre200_defconfig
-@@ -0,0 +1,290 @@
+@@ -0,0 +1,291 @@
 +CONFIG_SYSVIPC=y
 +CONFIG_USELIB=y
 +CONFIG_HIGH_RES_TIMERS=y
@@ -819,6 +825,225 @@ index 000000000000..40f47c80d538
 +CONFIG_DEBUG_LL=y
 +CONFIG_DEBUG_ZYNQ_UART0=y
 +CONFIG_EARLY_PRINTK=y
++CONFIG_MPIIO=y
+diff --git a/drivers/iio/adc/Kconfig b/drivers/iio/adc/Kconfig
+index a4bffafd93d7..7d9ffc1fd36d 100644
+--- a/drivers/iio/adc/Kconfig
++++ b/drivers/iio/adc/Kconfig
+@@ -760,6 +760,11 @@ config LTC2497
+ 
+ 	  To compile this driver as a module, choose M here: the module will be
+ 	  called ltc2497.
++	  
++config MPIIO
++	tristate "mp gpio iio"
++	help
++	  IIO control 8 EMIO
+ 
+ config MAX1027
+ 	tristate "Maxim max1027 ADC driver"
+diff --git a/drivers/iio/adc/Makefile b/drivers/iio/adc/Makefile
+index f4332d39a7bc..005fb444fabb 100644
+--- a/drivers/iio/adc/Makefile
++++ b/drivers/iio/adc/Makefile
+@@ -120,6 +120,7 @@ obj-$(CONFIG_LTC2308) += ltc2308.o
+ obj-$(CONFIG_LTC2471) += ltc2471.o
+ obj-$(CONFIG_LTC2485) += ltc2485.o
+ obj-$(CONFIG_LTC2497) += ltc2497.o
++obj-$(CONFIG_MPIIO) += mpiio_io.o
+ obj-$(CONFIG_MAX1027) += max1027.o
+ obj-$(CONFIG_MAX11100) += max11100.o
+ obj-$(CONFIG_MAX1118) += max1118.o
+diff --git a/drivers/iio/adc/mpiio_io.c b/drivers/iio/adc/mpiio_io.c
+new file mode 100644
+index 000000000000..bd47722a0d58
+--- /dev/null
++++ b/drivers/iio/adc/mpiio_io.c
+@@ -0,0 +1,184 @@
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/kernel.h>
++#include <linux/platform_device.h>
++#include <linux/interrupt.h>
++#include <linux/of.h>
++#include <linux/iio/iio.h>
++#include <linux/iio/sysfs.h>
++#include <linux/iio/events.h>
++#include <linux/iio/buffer.h>
++#include <linux/of.h>
++#include <linux/of_gpio.h>
++#include <linux/gpio.h>
++
++
++#define FAKE_VOLTAGE_CHANNEL(num)                  \
++   {                                               \
++         .type = IIO_VOLTAGE,                      \
++         .indexed = 1,                             \
++         .channel = (num),                         \
++         .address = (num),                         \
++         .info_mask_separate = BIT(IIO_CHAN_INFO_RAW),   \
++   }
++
++struct my_private_data {
++    int gpio[8];
++    
++    int gpio_value;
++    int gpio_direction;
++};
++
++static int fake_read_raw(struct iio_dev *indio_dev,
++                   struct iio_chan_spec const *channel, int *val,
++                   int *val2, long mask)
++{
++    struct my_private_data *gpio = iio_priv(indio_dev);
++    int temp_value = 0;
++    int i;
++    switch (mask)
++    {
++        case IIO_CHAN_INFO_RAW:
++        if(channel->channel == 0){
++            for(i=0;i<8;i++){
++                temp_value |= ((gpio_get_value(gpio->gpio[i]) << i) & 255);
++            }
++            gpio->gpio_value = temp_value;
++            *val = gpio->gpio_value;
++        }
++        if(channel->channel == 1){
++            *val = gpio->gpio_direction;
++        }
++        break;
++        default:
++          break;
++    }
++    return IIO_VAL_INT;
++}
++
++static int fake_write_raw(struct iio_dev *indio_dev,
++                   struct iio_chan_spec const *chan,
++                   int val, int val2, long mask)
++{
++    struct my_private_data *gpio = iio_priv(indio_dev);
++    int value;
++    int i;
++    int maskmp = 0x1;
++    switch (mask)
++    {
++    case IIO_CHAN_INFO_RAW:
++        if(chan->channel == 0){
++            for(i=0;i<8;i++){
++                value = (val & maskmp) != 0;
++                maskmp <<= 1;
++                printk(KERN_INFO "gpio %d:set value %d\n",i,value);
++                gpio_set_value(gpio->gpio[i],value);
++            }
++           
++        }
++        if(chan->channel == 1){
++            gpio->gpio_direction = val;
++            for(i=0;i<8;i++){
++                value = (val & maskmp) != 0;
++                maskmp <<= 1;
++                if(value){
++                    gpio_direction_output(gpio->gpio[i],(gpio->gpio_value & (0x1 < i)) != 0);
++                }
++                else
++                    gpio_direction_input(gpio->gpio[i]);    
++            }
++        }
++        break;
++    default:
++        break;
++    }
++    return 0;
++
++}
++
++static const struct iio_chan_spec fake_channels[] = {
++    FAKE_VOLTAGE_CHANNEL(0),
++    FAKE_VOLTAGE_CHANNEL(1),
++};
++
++static const struct of_device_id iio_dummy_ids[] = {
++    { .compatible = "microphase,mpiio", },
++    { /* sentinel */ }
++};
++
++static const struct iio_info fake_iio_info = {
++   .read_raw = fake_read_raw,
++   .write_raw        = fake_write_raw,
++};
++
++static int init_gpio(struct iio_dev *indio_dev){
++    struct my_private_data *data;
++    int ret;
++    int i;
++    data = iio_priv(indio_dev);
++    data->gpio_direction = 255;
++    data->gpio_value = 0;
++
++    for(i = 0;i < 8;i++){
++        data->gpio[i] = 906 + 54 + 35 + i;
++        ret = gpio_request(data->gpio[i],"USER-gpio");
++        if(ret){
++            printk(KERN_EMERG "gpio %d: request failed\n",i);
++            return ret;
++        }
++        gpio_direction_output(data->gpio[i],0);
++    }
++
++    return 0;
++}
++
++static void free_gpio(struct iio_dev *indio_dev){
++    struct my_private_data *data = iio_priv(indio_dev);
++    int i;
++    for(i=0;i<8;i++){
++        gpio_free(data->gpio[i]);
++    }   
++}
++
++static int my_pdrv_probe (struct platform_device *pdev)
++{
++    struct iio_dev *indio_dev;
++    struct my_private_data *data;
++    indio_dev = devm_iio_device_alloc(&pdev->dev, sizeof(*data));
++
++    if (!indio_dev) {
++          dev_err(&pdev->dev, "iio allocation failed!\n");
++          return -ENOMEM;
++    }
++     init_gpio(indio_dev);
++    data = iio_priv(indio_dev);
++    indio_dev->dev.parent = &pdev->dev;
++    indio_dev->info = &fake_iio_info;
++    indio_dev->name = "mp-gpio";
++    indio_dev->modes = INDIO_DIRECT_MODE;
++    indio_dev->channels = fake_channels;
++    indio_dev->num_channels = ARRAY_SIZE(fake_channels);
++    iio_device_register(indio_dev);
++    platform_set_drvdata(pdev, indio_dev);
++    return 0;
++}
++
++static int my_pdrv_remove(struct platform_device *pdev)
++{
++    struct iio_dev *indio_dev = platform_get_drvdata(pdev);
++    iio_device_unregister(indio_dev);
++    free_gpio(indio_dev);
++    return 0;
++}
++static struct platform_driver mypdrv = {
++    .probe      = my_pdrv_probe,
++    .remove     = my_pdrv_remove,
++    .driver     = {
++        .name     = KBUILD_MODNAME,
++        .of_match_table = of_match_ptr(iio_dummy_ids),  
++        .owner    = THIS_MODULE,
++    },
++};
++module_platform_driver(mypdrv);
++MODULE_AUTHOR("lone_boy 995586238@qq.com");
++MODULE_LICENSE("GPL");
 diff --git a/drivers/iio/dac/Kconfig b/drivers/iio/dac/Kconfig
 index 4d9acf91d7e1..13d5963a24d5 100644
 --- a/drivers/iio/dac/Kconfig
@@ -1058,5 +1283,5 @@ index 000000000000..cbf23fcc2ae8
 +MODULE_LICENSE("GPL");
 +
 -- 
-2.17.1
+2.25.1
 

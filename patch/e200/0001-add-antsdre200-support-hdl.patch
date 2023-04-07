@@ -6129,9 +6129,9 @@ index 000000000..c7751d395
 +create_bd_port -dir O spi0_sdo_o
 +create_bd_port -dir I spi0_sdi_i
 +
-+create_bd_port -dir I -from 24 -to 0 gpio_i
-+create_bd_port -dir O -from 24 -to 0 gpio_o
-+create_bd_port -dir O -from 24 -to 0 gpio_t
++create_bd_port -dir I -from 63 -to 0 gpio_i
++create_bd_port -dir O -from 63 -to 0 gpio_o
++create_bd_port -dir O -from 63 -to 0 gpio_t
 +
 +
 +# instance: sys_ps7
@@ -6155,7 +6155,7 @@ index 000000000..c7751d395
 +ad_ip_parameter sys_ps7 CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ 100.0
 +ad_ip_parameter sys_ps7 CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ 200.0
 +ad_ip_parameter sys_ps7 CONFIG.PCW_GPIO_EMIO_GPIO_ENABLE 1
-+ad_ip_parameter sys_ps7 CONFIG.PCW_GPIO_EMIO_GPIO_IO 25
++ad_ip_parameter sys_ps7 CONFIG.PCW_GPIO_EMIO_GPIO_IO 64
 +ad_ip_parameter sys_ps7 CONFIG.PCW_SPI1_PERIPHERAL_ENABLE 0
 +ad_ip_parameter sys_ps7 CONFIG.PCW_I2C0_PERIPHERAL_ENABLE 0
 +ad_ip_parameter sys_ps7 CONFIG.PCW_SD0_PERIPHERAL_ENABLE 1
