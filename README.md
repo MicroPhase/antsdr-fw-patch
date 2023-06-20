@@ -184,3 +184,83 @@ sudo dfu-util -a uboot-extra-env.dfu -U ./uboot-extra-env.dfu
 
 Now you can repower device.
 
+
+
+## Support 2r2t mode
+If you want to use 2r2t mode, you need to enter the system and run the following command to write the mode configuradion into the nor flash. **But there is a little difference in sd card boot mode and qspi boot mode**
+
+### QSPI mode
+   ```sh
+ fw_setenv attr_name compatible
+ fw_setenv attr_val ad9361
+ fw_setenv compatible ad9361
+ fw_setenv mode 2r2t
+ reboot
+   ```
+
+After restarting, use the command to detect whether the variable in the flash has been written. If the write is successful, then the 2r2t mode can be used.
+
+Of course, thers is another way to configure the 2r2t mode, and use the command to write to the flash under uboot, such as
+
+```sh
+ setenv attr_name compatible
+ setenv attr_val ad9361
+ setenv compatible ad9361
+ setenv mode 2r2t
+ saveenv
+ reset
+```
+
+ ### SD mode
+ You need to modify some parameters in uEnv.txt file.
+
+1. you need to modify the value of **adi_loadvals** as follows:
+
+before fixing:
+```txt
+ adi_loadvals=fdt addr ${fit_load_address}......
+```
+after fixing:
+ ```txt
+ adi_loadvals=fdt addr ${devicetree_load_address}......
+ ```
+
+2. you need to modify the value of **mode** as follows:
+
+before fixing:
+```txt
+maxcpus=1
+mode=1r1t
+```
+after fixing:
+```txt
+maxcpus=1
+mode=2r2t
+```
+
+3. you need to modify the value of **sdboot( add run adi_loadvals and #{fit_config})** as follows:
+
+before fixing:
+```txt
+sdboot=if mmcinfo; then run uenvboot; echo Copying Linux from SD to RAM... && load mmc 0 ${fit_load_address} ${kernel_image} && load mmc 0 ${devicetree_load_address} ${devicetree_image} && load mmc 0 ${ramdisk_load_address} ${ramdisk_image} bootm ${fit_load_address} ${ramdisk_load_address} ${devicetree_load_address}; fi
+```
+after fixing:
+```txt
+sdboot=if mmcinfo; then run uenvboot; echo Copying Linux from SD to RAM... && load mmc 0 ${fit_load_address} ${kernel_image} && load mmc 0 ${devicetree_load_address} ${devicetree_image} && load mmc 0 ${ramdisk_load_address} ${ramdisk_image} && run adi_loadvals;bootm ${fit_load_address} ${ramdisk_load_address} ${devicetree_load_address}#{fit_config}; fi
+```
+
+4. you need to **add the following parameters(attr_name attr_val compatible)** in the last line:
+
+before fixing:
+```txt
+usbboot=if usb start; then run uenvboot; echo Copying Linux from USB to RAM... && load usb 0 ${fit_load_address} ${kernel_image} && load usb 0 ${devicetree_load_address} ${devicetree_image} && load usb 0 ${ramdisk_load_address} ${ramdisk_image} && bootm ${fit_load_address} ${ramdisk_load_address} ${devicetree_load_address}; fi
+```
+after fixing:
+```txt
+usbboot=if usb start; then run uenvboot; echo Copying Linux from USB to RAM... && load usb 0 ${fit_load_address} ${kernel_image} && load usb 0 ${devicetree_load_address} ${devicetree_image} && load usb 0 ${ramdisk_load_address} ${ramdisk_image} && bootm ${fit_load_address} ${ramdisk_load_address} ${devicetree_load_address}; fi
+attr_name=compatible
+attr_val=ad9361
+compatible=ad9361
+```
+
+Then you can enjoy the 2r2t mode.
