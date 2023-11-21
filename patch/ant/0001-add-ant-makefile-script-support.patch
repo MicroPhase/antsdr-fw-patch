@@ -1,18 +1,18 @@
-From 028b35ac6839b0ae96cc75b932617f0e1538bd4e Mon Sep 17 00:00:00 2001
+From 7d5ec950dbad3828cfe5eefbb34e9230e02aa134 Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Tue, 21 Nov 2023 16:30:09 +0800
-Subject: [PATCH] add ant makefile scripts support
+Date: Tue, 21 Nov 2023 17:11:01 +0800
+Subject: [PATCH] add ant makefile script support
 
 ---
- Makefile        |  49 ++++++++++++---
+ Makefile        |  31 +++++++++-
  scripts/ant.its | 159 ++++++++++++++++++++++++++++++++++++++++++++++++
  scripts/ant.mk  |  10 +++
- 3 files changed, 208 insertions(+), 10 deletions(-)
+ 3 files changed, 198 insertions(+), 2 deletions(-)
  create mode 100644 scripts/ant.its
  create mode 100644 scripts/ant.mk
 
 diff --git a/Makefile b/Makefile
-index 0dc9c4b..ffe3ce7 100644
+index 0dc9c4b..4d08c74 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -27,8 +27,8 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
@@ -47,32 +47,7 @@ index 0dc9c4b..ffe3ce7 100644
  ### Device Tree ###
  
  linux/arch/arm/boot/dts/%.dtb: TOOLCHAIN linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
-@@ -130,14 +137,16 @@ build/$(TARGET).itb: u-boot-xlnx/tools/mkimage build/zImage build/rootfs.cpio.gz
- 	u-boot-xlnx/tools/mkimage -f scripts/$(TARGET).its $@
- 
- build/system_top.xsa:  | build
--ifeq (1, ${HAVE_VIVADO})
--	bash -c "source $(VIVADO_SETTINGS) && make -C hdl/projects/$(TARGET) && cp hdl/projects/$(TARGET)/$(TARGET).sdk/system_top.xsa $@"
--	unzip -l $@ | grep -q ps7_init || cp hdl/projects/$(TARGET)/$(TARGET).srcs/sources_1/bd/system/ip/system_sys_ps7_0/ps7_init* build/
--else ifneq ($(XSA_FILE),)
--	cp $(XSA_FILE) $@
--else ifneq ($(XSA_URL),)
--	wget -T 3 -t 1 -N --directory-prefix build $(XSA_URL)
--endif
-+	cp hdl/ant.xsa $@
-+	cp hdl/ps7_init/* build/
-+# ifeq (1, ${HAVE_VIVADO})
-+# 	bash -c "source $(VIVADO_SETTINGS) && make -C hdl/projects/$(TARGET) && cp hdl/projects/$(TARGET)/$(TARGET).sdk/system_top.xsa $@"
-+# 	unzip -l $@ | grep -q ps7_init || cp hdl/projects/$(TARGET)/$(TARGET).srcs/sources_1/bd/system/ip/system_sys_ps7_0/ps7_init* build/
-+# else ifneq ($(XSA_FILE),)
-+# 	cp $(XSA_FILE) $@
-+# else ifneq ($(XSA_URL),)
-+# 	wget -T 3 -t 1 -N --directory-prefix build $(XSA_URL)
-+# endif
- 
- ### TODO: Build system_top.xsa from src if dl fails ...
- 
-@@ -186,6 +195,26 @@ clean:
+@@ -186,6 +193,26 @@ clean:
  	rm -f $(notdir $(wildcard build/*))
  	rm -rf build/*
  
