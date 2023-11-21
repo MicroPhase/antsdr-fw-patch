@@ -1,128 +1,132 @@
-From 4efdf8adb2d0247f8216cadb6fd220175a23935e Mon Sep 17 00:00:00 2001
+From ff281efd6b16e41b7a9aad19fa8ac95f1b57b5cb Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Thu, 2 Feb 2023 10:44:23 +0800
-Subject: [PATCH] add buildroot support
+Date: Tue, 21 Nov 2023 16:28:40 +0800
+Subject: [PATCH] add ant buildroot support
 
 ---
- board/e310v2/S10mdev                      |   24 +
- board/e310v2/S15watchdog                  |   21 +
- board/e310v2/S20urandom                   |   29 +
- board/e310v2/S21misc                      |   36 +
- board/e310v2/S23udc                       |  168 +++
- board/e310v2/S40network                   |  146 +++
- board/e310v2/S41network                   |   30 +
- board/e310v2/S45msd                       |   75 ++
- board/e310v2/automounter.sh               |   87 ++
- board/e310v2/busybox-1.25.0.config        | 1135 +++++++++++++++++++++
- board/e310v2/device_config                |   15 +
- board/e310v2/device_format_jffs2          |   17 +
- board/e310v2/device_passwd                |   11 +
- board/e310v2/device_persistent_keys       |   21 +
- board/e310v2/device_reboot                |   32 +
- board/e310v2/dropbrear_localoptions.h     |    1 +
- board/e310v2/fw_env.config                |    2 +
- board/e310v2/genimage-msd.cfg             |   20 +
- board/e310v2/ifupdown.sh                  |   12 +
- board/e310v2/index.html                   |  372 +++++++
- board/e310v2/input-event-daemon.conf      |   12 +
- board/e310v2/mdev.conf                    |    7 +
- board/e310v2/motd                         |    9 +
- board/e310v2/msd/.gitignore               |    2 +
- board/e310v2/msd/LICENSE                  |  339 ++++++
- board/e310v2/msd/img/ADI_Logo_AWP.png     |  Bin 0 -> 12437 bytes
- board/e310v2/msd/img/GNURadio_logo.png    |  Bin 0 -> 11379 bytes
- board/e310v2/msd/img/PlutoSDR.png         |  Bin 0 -> 105306 bytes
- board/e310v2/msd/img/SDR-Sharp.png        |  Bin 0 -> 11417 bytes
- board/e310v2/msd/img/download.png         |  Bin 0 -> 2801 bytes
- board/e310v2/msd/img/ez.png               |  Bin 0 -> 1657 bytes
- board/e310v2/msd/img/favicon.ico          |  Bin 0 -> 318 bytes
- board/e310v2/msd/img/fb.png               |  Bin 0 -> 495 bytes
- board/e310v2/msd/img/gp.png               |  Bin 0 -> 1257 bytes
- board/e310v2/msd/img/ig.png               |  Bin 0 -> 700 bytes
- board/e310v2/msd/img/li.png               |  Bin 0 -> 536 bytes
- board/e310v2/msd/img/mathworks_logo.png   |  Bin 0 -> 10032 bytes
- board/e310v2/msd/img/osc128.png           |  Bin 0 -> 2622 bytes
- board/e310v2/msd/img/prof_blue.png        |  Bin 0 -> 20451 bytes
- board/e310v2/msd/img/sdrangel.png         |  Bin 0 -> 6669 bytes
- board/e310v2/msd/img/ss.png               |  Bin 0 -> 1794 bytes
- board/e310v2/msd/img/style.css            |  164 +++
- board/e310v2/msd/img/sw.png               |  Bin 0 -> 785 bytes
- board/e310v2/msd/img/tw.png               |  Bin 0 -> 849 bytes
- board/e310v2/msd/img/version.js           |  278 +++++
- board/e310v2/msd/img/yk.png               |  Bin 0 -> 888 bytes
- board/e310v2/msd/img/yt.png               |  Bin 0 -> 653 bytes
- board/e310v2/post-build.sh                |   91 ++
- board/e310v2/test_ensm_pinctrl.sh         |  130 +++
- board/e310v2/udc_handle_suspend.sh        |   34 +
- board/e310v2/update.sh                    |  278 +++++
- board/e310v2/update_frm.sh                |   49 +
- board/e310v2/wpa_supplicant/action_wpa.sh |   50 +
- board/e310v2/wpa_supplicant/functions.sh  | 1006 ++++++++++++++++++
- board/e310v2/wpa_supplicant/ifupdown.sh   |  172 ++++
- configs/zynq_e310v2_defconfig             |   74 ++
- 56 files changed, 4949 insertions(+)
- create mode 100644 board/e310v2/S10mdev
- create mode 100644 board/e310v2/S15watchdog
- create mode 100644 board/e310v2/S20urandom
- create mode 100644 board/e310v2/S21misc
- create mode 100644 board/e310v2/S23udc
- create mode 100644 board/e310v2/S40network
- create mode 100644 board/e310v2/S41network
- create mode 100644 board/e310v2/S45msd
- create mode 100644 board/e310v2/automounter.sh
- create mode 100644 board/e310v2/busybox-1.25.0.config
- create mode 100644 board/e310v2/device_config
- create mode 100644 board/e310v2/device_format_jffs2
- create mode 100644 board/e310v2/device_passwd
- create mode 100644 board/e310v2/device_persistent_keys
- create mode 100644 board/e310v2/device_reboot
- create mode 100644 board/e310v2/dropbrear_localoptions.h
- create mode 100644 board/e310v2/fw_env.config
- create mode 100644 board/e310v2/genimage-msd.cfg
- create mode 100644 board/e310v2/ifupdown.sh
- create mode 100644 board/e310v2/index.html
- create mode 100644 board/e310v2/input-event-daemon.conf
- create mode 100644 board/e310v2/mdev.conf
- create mode 100644 board/e310v2/motd
- create mode 100644 board/e310v2/msd/.gitignore
- create mode 100644 board/e310v2/msd/LICENSE
- create mode 100644 board/e310v2/msd/img/ADI_Logo_AWP.png
- create mode 100644 board/e310v2/msd/img/GNURadio_logo.png
- create mode 100644 board/e310v2/msd/img/PlutoSDR.png
- create mode 100644 board/e310v2/msd/img/SDR-Sharp.png
- create mode 100644 board/e310v2/msd/img/download.png
- create mode 100644 board/e310v2/msd/img/ez.png
- create mode 100644 board/e310v2/msd/img/favicon.ico
- create mode 100644 board/e310v2/msd/img/fb.png
- create mode 100644 board/e310v2/msd/img/gp.png
- create mode 100644 board/e310v2/msd/img/ig.png
- create mode 100644 board/e310v2/msd/img/li.png
- create mode 100644 board/e310v2/msd/img/mathworks_logo.png
- create mode 100644 board/e310v2/msd/img/osc128.png
- create mode 100644 board/e310v2/msd/img/prof_blue.png
- create mode 100644 board/e310v2/msd/img/sdrangel.png
- create mode 100644 board/e310v2/msd/img/ss.png
- create mode 100644 board/e310v2/msd/img/style.css
- create mode 100644 board/e310v2/msd/img/sw.png
- create mode 100644 board/e310v2/msd/img/tw.png
- create mode 100644 board/e310v2/msd/img/version.js
- create mode 100644 board/e310v2/msd/img/yk.png
- create mode 100644 board/e310v2/msd/img/yt.png
- create mode 100755 board/e310v2/post-build.sh
- create mode 100755 board/e310v2/test_ensm_pinctrl.sh
- create mode 100644 board/e310v2/udc_handle_suspend.sh
- create mode 100644 board/e310v2/update.sh
- create mode 100644 board/e310v2/update_frm.sh
- create mode 100644 board/e310v2/wpa_supplicant/action_wpa.sh
- create mode 100644 board/e310v2/wpa_supplicant/functions.sh
- create mode 100644 board/e310v2/wpa_supplicant/ifupdown.sh
- create mode 100644 configs/zynq_e310v2_defconfig
+ board/ant/S10mdev                      |   24 +
+ board/ant/S15watchdog                  |   21 +
+ board/ant/S20urandom                   |   29 +
+ board/ant/S21misc                      |   36 +
+ board/ant/S23udc                       |  175 ++++
+ board/ant/S40network                   |  149 ++++
+ board/ant/S41network                   |   30 +
+ board/ant/S45msd                       |   75 ++
+ board/ant/S98autostart                 |   21 +
+ board/ant/automounter.sh               |   87 ++
+ board/ant/busybox-1.25.0.config        | 1135 ++++++++++++++++++++++++
+ board/ant/device_config                |   15 +
+ board/ant/device_format_jffs2          |   17 +
+ board/ant/device_passwd                |   11 +
+ board/ant/device_persistent_keys       |   21 +
+ board/ant/device_reboot                |   32 +
+ board/ant/dropbrear_localoptions.h     |    1 +
+ board/ant/fw_env.config                |    2 +
+ board/ant/genimage-msd.cfg             |   20 +
+ board/ant/ifupdown.sh                  |   12 +
+ board/ant/index.html                   |  372 ++++++++
+ board/ant/input-event-daemon.conf      |   12 +
+ board/ant/mdev.conf                    |    7 +
+ board/ant/motd                         |    9 +
+ board/ant/msd/.gitignore               |    2 +
+ board/ant/msd/LICENSE                  |  339 +++++++
+ board/ant/msd/img/ADI_Logo_AWP.png     |  Bin 0 -> 12437 bytes
+ board/ant/msd/img/GNURadio_logo.png    |  Bin 0 -> 11379 bytes
+ board/ant/msd/img/PlutoSDR.png         |  Bin 0 -> 105306 bytes
+ board/ant/msd/img/SDR-Sharp.png        |  Bin 0 -> 11417 bytes
+ board/ant/msd/img/download.png         |  Bin 0 -> 2801 bytes
+ board/ant/msd/img/ez.png               |  Bin 0 -> 1657 bytes
+ board/ant/msd/img/favicon.ico          |  Bin 0 -> 318 bytes
+ board/ant/msd/img/fb.png               |  Bin 0 -> 495 bytes
+ board/ant/msd/img/gp.png               |  Bin 0 -> 1257 bytes
+ board/ant/msd/img/ig.png               |  Bin 0 -> 700 bytes
+ board/ant/msd/img/li.png               |  Bin 0 -> 536 bytes
+ board/ant/msd/img/mathworks_logo.png   |  Bin 0 -> 10032 bytes
+ board/ant/msd/img/osc128.png           |  Bin 0 -> 2622 bytes
+ board/ant/msd/img/prof_blue.png        |  Bin 0 -> 20451 bytes
+ board/ant/msd/img/sdrangel.png         |  Bin 0 -> 6669 bytes
+ board/ant/msd/img/ss.png               |  Bin 0 -> 1794 bytes
+ board/ant/msd/img/style.css            |  164 ++++
+ board/ant/msd/img/sw.png               |  Bin 0 -> 785 bytes
+ board/ant/msd/img/tw.png               |  Bin 0 -> 849 bytes
+ board/ant/msd/img/version.js           |  278 ++++++
+ board/ant/msd/img/yk.png               |  Bin 0 -> 888 bytes
+ board/ant/msd/img/yt.png               |  Bin 0 -> 653 bytes
+ board/ant/post-build.sh                |   93 ++
+ board/ant/test_ensm_pinctrl.sh         |  130 +++
+ board/ant/udc_handle_suspend.sh        |   34 +
+ board/ant/update.sh                    |  278 ++++++
+ board/ant/update_frm.sh                |   49 +
+ board/ant/update_from_github.sh        |   58 ++
+ board/ant/wpa_supplicant/action_wpa.sh |   50 ++
+ board/ant/wpa_supplicant/functions.sh  | 1006 +++++++++++++++++++++
+ board/ant/wpa_supplicant/ifupdown.sh   |  172 ++++
+ configs/zynq_ant_defconfig             |   64 ++
+ 58 files changed, 5030 insertions(+)
+ create mode 100644 board/ant/S10mdev
+ create mode 100644 board/ant/S15watchdog
+ create mode 100644 board/ant/S20urandom
+ create mode 100644 board/ant/S21misc
+ create mode 100644 board/ant/S23udc
+ create mode 100644 board/ant/S40network
+ create mode 100644 board/ant/S41network
+ create mode 100644 board/ant/S45msd
+ create mode 100644 board/ant/S98autostart
+ create mode 100644 board/ant/automounter.sh
+ create mode 100644 board/ant/busybox-1.25.0.config
+ create mode 100644 board/ant/device_config
+ create mode 100644 board/ant/device_format_jffs2
+ create mode 100644 board/ant/device_passwd
+ create mode 100644 board/ant/device_persistent_keys
+ create mode 100644 board/ant/device_reboot
+ create mode 100644 board/ant/dropbrear_localoptions.h
+ create mode 100644 board/ant/fw_env.config
+ create mode 100644 board/ant/genimage-msd.cfg
+ create mode 100644 board/ant/ifupdown.sh
+ create mode 100644 board/ant/index.html
+ create mode 100644 board/ant/input-event-daemon.conf
+ create mode 100644 board/ant/mdev.conf
+ create mode 100644 board/ant/motd
+ create mode 100644 board/ant/msd/.gitignore
+ create mode 100644 board/ant/msd/LICENSE
+ create mode 100644 board/ant/msd/img/ADI_Logo_AWP.png
+ create mode 100644 board/ant/msd/img/GNURadio_logo.png
+ create mode 100644 board/ant/msd/img/PlutoSDR.png
+ create mode 100644 board/ant/msd/img/SDR-Sharp.png
+ create mode 100644 board/ant/msd/img/download.png
+ create mode 100644 board/ant/msd/img/ez.png
+ create mode 100644 board/ant/msd/img/favicon.ico
+ create mode 100644 board/ant/msd/img/fb.png
+ create mode 100644 board/ant/msd/img/gp.png
+ create mode 100644 board/ant/msd/img/ig.png
+ create mode 100644 board/ant/msd/img/li.png
+ create mode 100644 board/ant/msd/img/mathworks_logo.png
+ create mode 100644 board/ant/msd/img/osc128.png
+ create mode 100644 board/ant/msd/img/prof_blue.png
+ create mode 100644 board/ant/msd/img/sdrangel.png
+ create mode 100644 board/ant/msd/img/ss.png
+ create mode 100644 board/ant/msd/img/style.css
+ create mode 100644 board/ant/msd/img/sw.png
+ create mode 100644 board/ant/msd/img/tw.png
+ create mode 100644 board/ant/msd/img/version.js
+ create mode 100644 board/ant/msd/img/yk.png
+ create mode 100644 board/ant/msd/img/yt.png
+ create mode 100755 board/ant/post-build.sh
+ create mode 100755 board/ant/test_ensm_pinctrl.sh
+ create mode 100644 board/ant/udc_handle_suspend.sh
+ create mode 100644 board/ant/update.sh
+ create mode 100644 board/ant/update_frm.sh
+ create mode 100644 board/ant/update_from_github.sh
+ create mode 100644 board/ant/wpa_supplicant/action_wpa.sh
+ create mode 100644 board/ant/wpa_supplicant/functions.sh
+ create mode 100644 board/ant/wpa_supplicant/ifupdown.sh
+ create mode 100644 configs/zynq_ant_defconfig
 
-diff --git a/board/e310v2/S10mdev b/board/e310v2/S10mdev
+diff --git a/board/ant/S10mdev b/board/ant/S10mdev
 new file mode 100644
 index 0000000000..aea3d7d9ea
 --- /dev/null
-+++ b/board/e310v2/S10mdev
++++ b/board/ant/S10mdev
 @@ -0,0 +1,24 @@
 +#!/bin/sh
 +#
@@ -148,11 +152,11 @@ index 0000000000..aea3d7d9ea
 +esac
 +
 +exit $?
-diff --git a/board/e310v2/S15watchdog b/board/e310v2/S15watchdog
+diff --git a/board/ant/S15watchdog b/board/ant/S15watchdog
 new file mode 100644
 index 0000000000..fdb9860917
 --- /dev/null
-+++ b/board/e310v2/S15watchdog
++++ b/board/ant/S15watchdog
 @@ -0,0 +1,21 @@
 +#!/bin/sh
 +#
@@ -175,11 +179,11 @@ index 0000000000..fdb9860917
 +esac
 +
 +exit $?
-diff --git a/board/e310v2/S20urandom b/board/e310v2/S20urandom
+diff --git a/board/ant/S20urandom b/board/ant/S20urandom
 new file mode 100644
 index 0000000000..94551f87ca
 --- /dev/null
-+++ b/board/e310v2/S20urandom
++++ b/board/ant/S20urandom
 @@ -0,0 +1,29 @@
 +#! /bin/sh
 +#
@@ -210,11 +214,11 @@ index 0000000000..94551f87ca
 +		exit 1
 +		;;
 +esac
-diff --git a/board/e310v2/S21misc b/board/e310v2/S21misc
+diff --git a/board/ant/S21misc b/board/ant/S21misc
 new file mode 100644
 index 0000000000..28c5739ffe
 --- /dev/null
-+++ b/board/e310v2/S21misc
++++ b/board/ant/S21misc
 @@ -0,0 +1,36 @@
 +#! /bin/sh
 +
@@ -252,12 +256,12 @@ index 0000000000..28c5739ffe
 +		exit 1
 +		;;
 +esac
-diff --git a/board/e310v2/S23udc b/board/e310v2/S23udc
+diff --git a/board/ant/S23udc b/board/ant/S23udc
 new file mode 100644
-index 0000000000..b599f699b6
+index 0000000000..202347f001
 --- /dev/null
-+++ b/board/e310v2/S23udc
-@@ -0,0 +1,168 @@
++++ b/board/ant/S23udc
+@@ -0,0 +1,175 @@
 +#!/bin/sh
 +
 +source /etc/device_config
@@ -266,7 +270,7 @@ index 0000000000..b599f699b6
 +GADGET=$CONFIGFS/composite_gadget
 +IIOD_OPTS="-D -n $ENDPOINTS -F /dev/iio_ffs"
 +UDC_HANDLE_SUSPEND=`fw_printenv -n udc_handle_suspend 2> /dev/null || echo 0`
-+USB_ETH_MODE=`fw_printenv -n usb_ethernet_mode 2> /dev/null || echo 0`
++USB_ETH_MODE=`fw_printenv -n usb_ethernet_mode 2> /dev/null || echo rndis`
 +
 +if [ "$USB_ETH_MODE" == "ncm" ]
 +then
@@ -361,7 +365,14 @@ index 0000000000..b599f699b6
 +	mkdir -p $GADGET/configs/c.1
 +	mkdir -p $GADGET/configs/c.1/strings/0x409
 +	echo "RNDIS/MSD/ACM/IIOUSBD" > $GADGET/configs/c.1/strings/0x409/configuration
-+	echo 500 > $GADGET/configs/c.1/MaxPower
++
++	# In case the M2k is powered via the Power USB, advertise low power on the DATA USB
++	if [ "$TARGET" == "m2k" ]; then
++		echo 905 > /sys/class/gpio/export
++		[ "`cat /sys/class/gpio/gpio905/value`" == "1" ] && echo 4 > $GADGET/configs/c.1/MaxPower || echo 500 > $GADGET/configs/c.1/MaxPower
++	else
++		echo 500 > $GADGET/configs/c.1/MaxPower
++	fi
 +
 +	ln -s $GADGET/functions/$USB_NET_FUNCTION $GADGET/configs/c.1
 +	ln -s $GADGET/functions/mass_storage.0 $GADGET/configs/c.1
@@ -426,12 +437,12 @@ index 0000000000..b599f699b6
 +
 +
 +
-diff --git a/board/e310v2/S40network b/board/e310v2/S40network
+diff --git a/board/ant/S40network b/board/ant/S40network
 new file mode 100644
-index 0000000000..8bebf17b75
+index 0000000000..4082ab1982
 --- /dev/null
-+++ b/board/e310v2/S40network
-@@ -0,0 +1,146 @@
++++ b/board/ant/S40network
+@@ -0,0 +1,149 @@
 +#!/bin/sh
 +#
 +# Start the network....
@@ -456,6 +467,7 @@ index 0000000000..8bebf17b75
 +
 +	ETH_IPADDR=`fw_printenv -n ipaddr_eth 2> /dev/null || echo 192.168.1.10`
 +	ETH_NETMASK=`fw_printenv -n netmask_eth 2> /dev/null || echo 255.255.255.0`
++	ETH_GATEWAY=`fw_printenv -n eth_gateway 2> /dev/null || echo 192.168.1.1`
 +
 +	WLAN_SSID=`fw_printenv -n ssid_wlan 2> /dev/null`
 +	WLAN_PWD=`fw_printenv -n pwd_wlan 2> /dev/null`
@@ -463,10 +475,11 @@ index 0000000000..8bebf17b75
 +
 +	XO_CORRECTION=`fw_printenv -n xo_correction 2> /dev/null`
 +	UDC_HANDLE_SUSPEND=`fw_printenv -n udc_handle_suspend 2> /dev/null || echo 0`
-+	USB_ETH_MODE=`fw_printenv -n usb_ethernet_mode 2> /dev/null || echo 0`
++	USB_ETH_MODE=`fw_printenv -n usb_ethernet_mode 2> /dev/null || echo rndis`
 +
 +	### /etc/udhcpd.conf ###
 +	echo "start $IPADDR_HOST" > $UDHCPD_CONF
++	echo "end $IPADDR_HOST" >> $UDHCPD_CONF
 +	echo "interface usb0" >> $UDHCPD_CONF
 +	echo "option subnet $NETMASK" >> $UDHCPD_CONF
 +
@@ -474,6 +487,7 @@ index 0000000000..8bebf17b75
 +	echo -e "auto lo\n""iface lo inet loopback\n" > $IFAC
 +	echo -e "auto usb0\n""iface usb0 inet static" >> $IFAC
 +	echo -e "\taddress $IPADDR\n""\tnetmask $NETMASK\n" >> $IFAC
++	echo -e "auto usb1\n""iface usb1 inet dhcp\n" >> $IFAC
 +
 +	echo -e "auto eth0" >> $IFAC
 +	if [ -n "$ETH_IPADDR" ]
@@ -518,7 +532,7 @@ index 0000000000..8bebf17b75
 +	echo "#   4. Eject the device USB Drive"$'\r' >> $CONF
 +	echo "# Doc: https://wiki.analog.com/university/tools/pluto/users/customizing"$'\r' >> $CONF
 +	echo ""$'\r'>> $CONF
-+	echo "[NETWORK]"$'\r' >> $CONF
++	echo "[USB_ETHERNET]"$'\r' >> $CONF
 +	echo "hostname = $HOSTNAME"$'\r' >> $CONF
 +	echo "ipaddr = $IPADDR"$'\r' >> $CONF
 +	echo "ipaddr_host = $IPADDR_HOST"$'\r' >> $CONF
@@ -529,7 +543,7 @@ index 0000000000..8bebf17b75
 +	echo "pwd_wlan = $WLAN_PWD"$'\r' >> $CONF
 +	echo "ipaddr_wlan = $WLAN_IPADDR"$'\r' >> $CONF
 +	echo ""$'\r'>> $CONF
-+	echo "[USB_ETHERNET]"$'\r' >> $CONF
++	echo "[NETWORK]"$'\r' >> $CONF
 +	echo "ipaddr_eth = $ETH_IPADDR"$'\r' >> $CONF
 +	echo "netmask_eth = $ETH_NETMASK"$'\r' >> $CONF
 +	echo ""$'\r'>> $CONF
@@ -578,11 +592,11 @@ index 0000000000..8bebf17b75
 +
 +exit $?
 +
-diff --git a/board/e310v2/S41network b/board/e310v2/S41network
+diff --git a/board/ant/S41network b/board/ant/S41network
 new file mode 100644
 index 0000000000..78433a60d7
 --- /dev/null
-+++ b/board/e310v2/S41network
++++ b/board/ant/S41network
 @@ -0,0 +1,30 @@
 +#!/bin/sh
 +# Server-side demuxing by default
@@ -614,11 +628,11 @@ index 0000000000..78433a60d7
 +		echo "Usage: $0 {start|stop|restart}"
 +		exit 1
 +esac
-diff --git a/board/e310v2/S45msd b/board/e310v2/S45msd
+diff --git a/board/ant/S45msd b/board/ant/S45msd
 new file mode 100644
-index 0000000000..c125f1430f
+index 0000000000..8b73beeb52
 --- /dev/null
-+++ b/board/e310v2/S45msd
++++ b/board/ant/S45msd
 @@ -0,0 +1,75 @@
 +#!/bin/sh
 +# Server-side demuxing by default
@@ -635,12 +649,12 @@ index 0000000000..c125f1430f
 +	SERIAL=`cat /sys/kernel/config/usb_gadget/composite_gadget/strings/0x409/serialnumber`
 +	MACHOST=`cat /sys/kernel/config/usb_gadget/composite_gadget/functions/*/host_addr`
 +	MAC=`cat /sys/kernel/config/usb_gadget/composite_gadget/functions/*/dev_addr`
-+	IIO=`iio_info 2>/dev/null | grep "Library version:"`
++	IIO=`iio_info -V 2>/dev/null | tail -1`
 +	BUILD=`grep device-fw /opt/VERSIONS | cut -d ' ' -f 2`
 +	FPGA=`grep hdl /opt/VERSIONS | cut -d ' ' -f 2`
 +	ROOTFS=`grep buildroot /opt/VERSIONS | cut -d ' ' -f 2`
 +	UBOOT=`cat /proc/cmdline | tr  "=" "\n" | grep "U-Boot"`
-+	USB_ETH_MODE=`fw_printenv -n usb_ethernet_mode 2> /dev/null || echo 0`
++	USB_ETH_MODE=`fw_printenv -n usb_ethernet_mode 2> /dev/null || echo rndis`
 +	if [ "$USB_ETH_MODE" == "ncm" ]; then
 +		NETWORKUSB="Communications Device Class – Network Control Model (CDC-NCM)"
 +	elif [ "$USB_ETH_MODE" == "ecm" ]; then
@@ -695,11 +709,38 @@ index 0000000000..c125f1430f
 +		echo "Usage: $0 {start|stop|restart}"
 +		exit 1
 +esac
-diff --git a/board/e310v2/automounter.sh b/board/e310v2/automounter.sh
+diff --git a/board/ant/S98autostart b/board/ant/S98autostart
+new file mode 100644
+index 0000000000..9515ccc682
+--- /dev/null
++++ b/board/ant/S98autostart
+@@ -0,0 +1,21 @@
++#!/bin/sh
++#
++# Script to check for and run user-supplied /mnt/jffs2/autorun.sh
++#
++
++case "$1" in
++  start)
++	if test -f /mnt/jffs2/autorun.sh; then
++		source /mnt/jffs2/autorun.sh
++	fi
++	;;
++  stop)
++	;;
++  restart|reload)
++	;;
++  *)
++	echo "Usage: $0 {start|stop|restart}"
++	exit 1
++esac
++
++exit $?
+diff --git a/board/ant/automounter.sh b/board/ant/automounter.sh
 new file mode 100644
 index 0000000000..0d093a53fc
 --- /dev/null
-+++ b/board/e310v2/automounter.sh
++++ b/board/ant/automounter.sh
 @@ -0,0 +1,87 @@
 +#!/bin/sh
 +
@@ -788,11 +829,11 @@ index 0000000000..0d093a53fc
 +		my_umount $(basename $i)
 +	done
 +esac
-diff --git a/board/e310v2/busybox-1.25.0.config b/board/e310v2/busybox-1.25.0.config
+diff --git a/board/ant/busybox-1.25.0.config b/board/ant/busybox-1.25.0.config
 new file mode 100644
 index 0000000000..88728cc9f2
 --- /dev/null
-+++ b/board/e310v2/busybox-1.25.0.config
++++ b/board/ant/busybox-1.25.0.config
 @@ -0,0 +1,1135 @@
 +#
 +# Automatically generated make config: don't edit
@@ -1929,11 +1970,11 @@ index 0000000000..88728cc9f2
 +# CONFIG_FEATURE_IPC_SYSLOG is not set
 +CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE=0
 +# CONFIG_FEATURE_KMSG_SYSLOG is not set
-diff --git a/board/e310v2/device_config b/board/e310v2/device_config
+diff --git a/board/ant/device_config b/board/ant/device_config
 new file mode 100644
-index 0000000000..f1800cd231
+index 0000000000..c241bf90a0
 --- /dev/null
-+++ b/board/e310v2/device_config
++++ b/board/ant/device_config
 @@ -0,0 +1,15 @@
 +#S23udc
 +PRODUCT="PlutoSDR (ADALM-PLUTO)"
@@ -1947,14 +1988,14 @@ index 0000000000..f1800cd231
 +
 +#update.sh
 +TARGET=plutosdr
-+FIRMWARE=/mnt/msd/e310v2.frm
++FIRMWARE=/mnt/msd/ant.frm
 +FRM_MAGIC="ITB PlutoSDR (ADALM-PLUTO)"
 +
-diff --git a/board/e310v2/device_format_jffs2 b/board/e310v2/device_format_jffs2
+diff --git a/board/ant/device_format_jffs2 b/board/ant/device_format_jffs2
 new file mode 100644
 index 0000000000..eb2e5ce7e3
 --- /dev/null
-+++ b/board/e310v2/device_format_jffs2
++++ b/board/ant/device_format_jffs2
 @@ -0,0 +1,17 @@
 +#!/bin/sh
 +set +e
@@ -1973,11 +2014,11 @@ index 0000000000..eb2e5ce7e3
 +		* ) echo "Please answer yes or no.";;
 +	esac
 +done
-diff --git a/board/e310v2/device_passwd b/board/e310v2/device_passwd
+diff --git a/board/ant/device_passwd b/board/ant/device_passwd
 new file mode 100644
 index 0000000000..c3c50dddc4
 --- /dev/null
-+++ b/board/e310v2/device_passwd
++++ b/board/ant/device_passwd
 @@ -0,0 +1,11 @@
 +#!/bin/sh
 +set +e
@@ -1990,11 +2031,11 @@ index 0000000000..c3c50dddc4
 +md5sum passwd shadow group 2>/dev/null > /mnt/jffs2/etc/password.md5
 +sync
 +
-diff --git a/board/e310v2/device_persistent_keys b/board/e310v2/device_persistent_keys
+diff --git a/board/ant/device_persistent_keys b/board/ant/device_persistent_keys
 new file mode 100644
-index 0000000000..bd3a7f7d1b
+index 0000000000..a67d3a8db2
 --- /dev/null
-+++ b/board/e310v2/device_persistent_keys
++++ b/board/ant/device_persistent_keys
 @@ -0,0 +1,21 @@
 +#!/bin/sh
 +set +e
@@ -2006,9 +2047,9 @@ index 0000000000..bd3a7f7d1b
 +
 +#dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key
 +[[ ! -f ${KEYFILE} ]] && dropbearkey -t ecdsa -f ${KEYFILE}
-+install -D ${KEYFILE} -t /mnt/jffs2/etc/dropbear
++install -D /etc/dropbear/dropbear_* -t /mnt/jffs2/etc/dropbear
 +cd /etc/dropbear
-+md5sum dropbear* /etc/dropbear/ 2>/dev/null > /mnt/jffs2/etc/dropbear/keys.md5
++md5sum dropbear_* /etc/dropbear/ 2>/dev/null > /mnt/jffs2/etc/dropbear/keys.md5
 +
 +if [ -f ${IDFILE} ]; then
 + install -D ${IDFILE} -t /mnt/jffs2/root/.ssh
@@ -2017,11 +2058,11 @@ index 0000000000..bd3a7f7d1b
 +fi
 +
 +sync
-diff --git a/board/e310v2/device_reboot b/board/e310v2/device_reboot
+diff --git a/board/ant/device_reboot b/board/ant/device_reboot
 new file mode 100644
 index 0000000000..1134b2a240
 --- /dev/null
-+++ b/board/e310v2/device_reboot
++++ b/board/ant/device_reboot
 @@ -0,0 +1,32 @@
 +#!/bin/sh
 +
@@ -2055,26 +2096,26 @@ index 0000000000..1134b2a240
 +echo $cause > /sys/kernel/debug/zynq_rst/code && /sbin/reboot
 +
 +exit 0
-diff --git a/board/e310v2/dropbrear_localoptions.h b/board/e310v2/dropbrear_localoptions.h
+diff --git a/board/ant/dropbrear_localoptions.h b/board/ant/dropbrear_localoptions.h
 new file mode 100644
 index 0000000000..8d1cd4ab7b
 --- /dev/null
-+++ b/board/e310v2/dropbrear_localoptions.h
++++ b/board/ant/dropbrear_localoptions.h
 @@ -0,0 +1 @@
 +#define DO_MOTD	1
-diff --git a/board/e310v2/fw_env.config b/board/e310v2/fw_env.config
+diff --git a/board/ant/fw_env.config b/board/ant/fw_env.config
 new file mode 100644
 index 0000000000..402a3409ff
 --- /dev/null
-+++ b/board/e310v2/fw_env.config
++++ b/board/ant/fw_env.config
 @@ -0,0 +1,2 @@
 +# MTD device name       Device offset   Env. size       Flash sector size
 +/dev/mtd1               0x0000          0x20000         0x20000
-diff --git a/board/e310v2/genimage-msd.cfg b/board/e310v2/genimage-msd.cfg
+diff --git a/board/ant/genimage-msd.cfg b/board/ant/genimage-msd.cfg
 new file mode 100644
 index 0000000000..71872e8596
 --- /dev/null
-+++ b/board/e310v2/genimage-msd.cfg
++++ b/board/ant/genimage-msd.cfg
 @@ -0,0 +1,20 @@
 +image boot.vfat {
 +  vfat {
@@ -2096,11 +2137,11 @@ index 0000000000..71872e8596
 +}
 +
 +
-diff --git a/board/e310v2/ifupdown.sh b/board/e310v2/ifupdown.sh
+diff --git a/board/ant/ifupdown.sh b/board/ant/ifupdown.sh
 new file mode 100644
 index 0000000000..0e75ce188d
 --- /dev/null
-+++ b/board/e310v2/ifupdown.sh
++++ b/board/ant/ifupdown.sh
 @@ -0,0 +1,12 @@
 +#!/bin/sh
 +
@@ -2114,11 +2155,11 @@ index 0000000000..0e75ce188d
 +	ifdown ${MDEV}
 +	;;
 +esac
-diff --git a/board/e310v2/index.html b/board/e310v2/index.html
+diff --git a/board/ant/index.html b/board/ant/index.html
 new file mode 100644
 index 0000000000..a09ecf0b3e
 --- /dev/null
-+++ b/board/e310v2/index.html
++++ b/board/ant/index.html
 @@ -0,0 +1,372 @@
 +<!doctype html>
 +<html class="no-js" lang="en">
@@ -2492,11 +2533,11 @@ index 0000000000..a09ecf0b3e
 +<script src="./img/version.js"></script>
 +</body>
 +</html>
-diff --git a/board/e310v2/input-event-daemon.conf b/board/e310v2/input-event-daemon.conf
+diff --git a/board/ant/input-event-daemon.conf b/board/ant/input-event-daemon.conf
 new file mode 100644
 index 0000000000..96c1c9a3a1
 --- /dev/null
-+++ b/board/e310v2/input-event-daemon.conf
++++ b/board/ant/input-event-daemon.conf
 @@ -0,0 +1,12 @@
 +#
 +# /etc/input-event-daemon.conf
@@ -2510,11 +2551,11 @@ index 0000000000..96c1c9a3a1
 +
 +
 +
-diff --git a/board/e310v2/mdev.conf b/board/e310v2/mdev.conf
+diff --git a/board/ant/mdev.conf b/board/ant/mdev.conf
 new file mode 100644
 index 0000000000..09ad12fbb8
 --- /dev/null
-+++ b/board/e310v2/mdev.conf
++++ b/board/ant/mdev.conf
 @@ -0,0 +1,7 @@
 +# block devices
 +sd[a-z]      root:root     660 */lib/mdev/automounter.sh
@@ -2523,11 +2564,11 @@ index 0000000000..09ad12fbb8
 +wlan[0-9] root:root     660 */lib/mdev/ifupdown.sh
 +usb[0-9] root:root     660 */lib/mdev/ifupdown.sh
 +eth[0-9] root:root     660 */lib/mdev/ifupdown.sh
-diff --git a/board/e310v2/motd b/board/e310v2/motd
+diff --git a/board/ant/motd b/board/ant/motd
 new file mode 100644
 index 0000000000..8d10b7db39
 --- /dev/null
-+++ b/board/e310v2/motd
++++ b/board/ant/motd
 @@ -0,0 +1,9 @@
 +Welcome to:
 +    ___    _   _____________ ____  ____ 
@@ -2538,19 +2579,19 @@ index 0000000000..8d10b7db39
 +                                       
 +#BUILD#
 +https://github.com/MicroPhase/antsdr-fw
-diff --git a/board/e310v2/msd/.gitignore b/board/e310v2/msd/.gitignore
+diff --git a/board/ant/msd/.gitignore b/board/ant/msd/.gitignore
 new file mode 100644
 index 0000000000..ef2d66efd1
 --- /dev/null
-+++ b/board/e310v2/msd/.gitignore
++++ b/board/ant/msd/.gitignore
 @@ -0,0 +1,2 @@
 +LICENSE.html
 +index.html
-diff --git a/board/e310v2/msd/LICENSE b/board/e310v2/msd/LICENSE
+diff --git a/board/ant/msd/LICENSE b/board/ant/msd/LICENSE
 new file mode 100644
 index 0000000000..d159169d10
 --- /dev/null
-+++ b/board/e310v2/msd/LICENSE
++++ b/board/ant/msd/LICENSE
 @@ -0,0 +1,339 @@
 +                    GNU GENERAL PUBLIC LICENSE
 +                       Version 2, June 1991
@@ -2891,7 +2932,7 @@ index 0000000000..d159169d10
 +consider it more useful to permit linking proprietary applications with the
 +library.  If this is what you want to do, use the GNU Lesser General
 +Public License instead of this License.
-diff --git a/board/e310v2/msd/img/ADI_Logo_AWP.png b/board/e310v2/msd/img/ADI_Logo_AWP.png
+diff --git a/board/ant/msd/img/ADI_Logo_AWP.png b/board/ant/msd/img/ADI_Logo_AWP.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..231fa10875b8f8f8522784f2cf9368c122f05e05
 GIT binary patch
@@ -3133,7 +3174,7 @@ u1^Tfak!aypY8i^15)d#ab@hUP1xLTt@fkc4n*Yy_0`jsdz&dHukpBf7B&#0)
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/GNURadio_logo.png b/board/e310v2/msd/img/GNURadio_logo.png
+diff --git a/board/ant/msd/img/GNURadio_logo.png b/board/ant/msd/img/GNURadio_logo.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..e9936c07de1721aac40996a0a2c7c6e3bd846ca8
 GIT binary patch
@@ -3362,7 +3403,7 @@ BGnxPZ
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/PlutoSDR.png b/board/e310v2/msd/img/PlutoSDR.png
+diff --git a/board/ant/msd/img/PlutoSDR.png b/board/ant/msd/img/PlutoSDR.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..b3026eeff2fec90e747619a36e5a8c547824aad1
 GIT binary patch
@@ -5397,7 +5438,7 @@ Ya6d1gN)L}$$<-3T!~mw>pz9X*Ukb8n7XSbN
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/SDR-Sharp.png b/board/e310v2/msd/img/SDR-Sharp.png
+diff --git a/board/ant/msd/img/SDR-Sharp.png b/board/ant/msd/img/SDR-Sharp.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..e761be0a41ec1160b3ea3f0532f41d6e3b4edd35
 GIT binary patch
@@ -5626,7 +5667,7 @@ nFgYzSIaD$*Iy5*sGdV3VG&(RaL)k(R00000NkvXXu0mjfu=M16
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/download.png b/board/e310v2/msd/img/download.png
+diff --git a/board/ant/msd/img/download.png b/board/ant/msd/img/download.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..8f7def1499519fdc8fe6c8ff2f720d7d3e9dde95
 GIT binary patch
@@ -5690,7 +5731,7 @@ D`3s6H
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/ez.png b/board/e310v2/msd/img/ez.png
+diff --git a/board/ant/msd/img/ez.png b/board/ant/msd/img/ez.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..66cc22f1c59fd21a4e42ea01768e1988c406f508
 GIT binary patch
@@ -5732,7 +5773,7 @@ DVC&ur
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/favicon.ico b/board/e310v2/msd/img/favicon.ico
+diff --git a/board/ant/msd/img/favicon.ico b/board/ant/msd/img/favicon.ico
 new file mode 100644
 index 0000000000000000000000000000000000000000..0faa5e99110279262e1f9c6b5418931f164912fe
 GIT binary patch
@@ -5745,7 +5786,7 @@ BX7~UA
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/fb.png b/board/e310v2/msd/img/fb.png
+diff --git a/board/ant/msd/img/fb.png b/board/ant/msd/img/fb.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..d2c8b5df7206441a419a60e3c12d6e08aafdfdc9
 GIT binary patch
@@ -5763,7 +5804,7 @@ v5@bVgep*R+Vo@rCV@iHfs)A>3VtQ&&YGO)d;mK4`EHHSw`njxgN@xNAM$MHa
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/gp.png b/board/e310v2/msd/img/gp.png
+diff --git a/board/ant/msd/img/gp.png b/board/ant/msd/img/gp.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..7eced6ee02fc58163919cf6bef62c416188ac283
 GIT binary patch
@@ -5797,7 +5838,7 @@ G2mb*f@I+An
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/ig.png b/board/e310v2/msd/img/ig.png
+diff --git a/board/ant/msd/img/ig.png b/board/ant/msd/img/ig.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..e443eedfec59db9c7b1e8982c31112713eff7aa9
 GIT binary patch
@@ -5820,7 +5861,7 @@ GLK6T_Q669b
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/li.png b/board/e310v2/msd/img/li.png
+diff --git a/board/ant/msd/img/li.png b/board/ant/msd/img/li.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..fd12daf40f3c4f7a8349b3078da088c4d30faf21
 GIT binary patch
@@ -5839,7 +5880,7 @@ pCFO}lsSJ)O`AMk?p1FzXsX?iUDV2pMQ$f+i;OXk;vd$@?2>|EExUB#H
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/mathworks_logo.png b/board/e310v2/msd/img/mathworks_logo.png
+diff --git a/board/ant/msd/img/mathworks_logo.png b/board/ant/msd/img/mathworks_logo.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..ba21f31ad1c6088057698910d2c31d127a486f8c
 GIT binary patch
@@ -6042,7 +6083,7 @@ E2h4PKy#N3J
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/osc128.png b/board/e310v2/msd/img/osc128.png
+diff --git a/board/ant/msd/img/osc128.png b/board/ant/msd/img/osc128.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..cc85232ddd615d494f86aa75a68471ba8744175b
 GIT binary patch
@@ -6102,7 +6143,7 @@ gE@^ISb7Ns}WiD@WXPfRk8UO$Q07*qoM6N<$f`g9A*Z=?k
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/prof_blue.png b/board/e310v2/msd/img/prof_blue.png
+diff --git a/board/ant/msd/img/prof_blue.png b/board/ant/msd/img/prof_blue.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..17ecd8f1320897c88b0b3414eca473e85e8eeb2b
 GIT binary patch
@@ -6505,7 +6546,7 @@ UXPfRk8UO$Q07*qoM6N<$g5?cSkN^Mx
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/sdrangel.png b/board/e310v2/msd/img/sdrangel.png
+diff --git a/board/ant/msd/img/sdrangel.png b/board/ant/msd/img/sdrangel.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..d29e063fdbf53cf1261b4a49e5ad7f35bbf14421
 GIT binary patch
@@ -6643,7 +6684,7 @@ VKY?c-ne#vZs48hGewMe2{2%kni5vg`
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/ss.png b/board/e310v2/msd/img/ss.png
+diff --git a/board/ant/msd/img/ss.png b/board/ant/msd/img/ss.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..5e7df963e9ee9291a48e3db2dc05231d463dbddc
 GIT binary patch
@@ -6687,11 +6728,11 @@ k`x1yYkLrJl{}BLx0ONI*{Nr4c1poj507*qoM6N<$g6rK~&Hw-a
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/style.css b/board/e310v2/msd/img/style.css
+diff --git a/board/ant/msd/img/style.css b/board/ant/msd/img/style.css
 new file mode 100644
 index 0000000000..f70076b7db
 --- /dev/null
-+++ b/board/e310v2/msd/img/style.css
++++ b/board/ant/msd/img/style.css
 @@ -0,0 +1,164 @@
 +body{
 +	font-family: "Helvetica Neue", sans-serif;
@@ -6857,7 +6898,7 @@ index 0000000000..f70076b7db
 +	border:1px solid #ccc;
 +	border-radius:4px;
 +}
-diff --git a/board/e310v2/msd/img/sw.png b/board/e310v2/msd/img/sw.png
+diff --git a/board/ant/msd/img/sw.png b/board/ant/msd/img/sw.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..50aa946f0300c05724ecfa9b97cf29b6342f02d0
 GIT binary patch
@@ -6881,7 +6922,7 @@ eRq)JBOiv9;O-!jQJedkgrwpF1elF{r5}E+IOhGOH
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/tw.png b/board/e310v2/msd/img/tw.png
+diff --git a/board/ant/msd/img/tw.png b/board/ant/msd/img/tw.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..afab2a9892a698e6a916e00d36fb740f6e1baa96
 GIT binary patch
@@ -6907,11 +6948,11 @@ HB{Ts5VL6p?
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/version.js b/board/e310v2/msd/img/version.js
+diff --git a/board/ant/msd/img/version.js b/board/ant/msd/img/version.js
 new file mode 100644
 index 0000000000..71f0f84063
 --- /dev/null
-+++ b/board/e310v2/msd/img/version.js
++++ b/board/ant/msd/img/version.js
 @@ -0,0 +1,278 @@
 +function OnTheWeb() {
 +	window.location.assign("https://wiki.analog.com/university/tools/pluto");
@@ -7191,7 +7232,7 @@ index 0000000000..71f0f84063
 +}
 +
 +window.onload = CheckFrmVersion;
-diff --git a/board/e310v2/msd/img/yk.png b/board/e310v2/msd/img/yk.png
+diff --git a/board/ant/msd/img/yk.png b/board/ant/msd/img/yk.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..bcb5cf5d62656b664c2a1a7ad75df3d9b2aebd83
 GIT binary patch
@@ -7218,7 +7259,7 @@ DOzVR&
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/msd/img/yt.png b/board/e310v2/msd/img/yt.png
+diff --git a/board/ant/msd/img/yt.png b/board/ant/msd/img/yt.png
 new file mode 100644
 index 0000000000000000000000000000000000000000..566a3bba680dea3eba037ba9cc07a289c31e8506
 GIT binary patch
@@ -7240,12 +7281,12 @@ Hr-UW|YB1_W
 literal 0
 HcmV?d00001
 
-diff --git a/board/e310v2/post-build.sh b/board/e310v2/post-build.sh
+diff --git a/board/ant/post-build.sh b/board/ant/post-build.sh
 new file mode 100755
-index 0000000000..fd07114627
+index 0000000000..03021a4918
 --- /dev/null
-+++ b/board/e310v2/post-build.sh
-@@ -0,0 +1,91 @@
++++ b/board/ant/post-build.sh
+@@ -0,0 +1,93 @@
 +#!/bin/sh
 +# args from BR2_ROOTFS_POST_SCRIPT_ARGS
 +# $2    board name
@@ -7302,6 +7343,7 @@ index 0000000000..fd07114627
 +mkdir -p ${TARGET_DIR}/etc/dropbear
 +
 +${INSTALL} -D -m 0755 ${BOARD_DIR}/update.sh ${TARGET_DIR}/sbin/
++${INSTALL} -D -m 0755 ${BOARD_DIR}/update_from_github.sh ${TARGET_DIR}/sbin/
 +${INSTALL} -D -m 0755 ${BOARD_DIR}/update_frm.sh ${TARGET_DIR}/sbin/
 +${INSTALL} -D -m 0755 ${BOARD_DIR}/udc_handle_suspend.sh ${TARGET_DIR}/sbin/
 +${INSTALL} -D -m 0755 ${BOARD_DIR}/S10mdev ${TARGET_DIR}/etc/init.d/
@@ -7312,6 +7354,7 @@ index 0000000000..fd07114627
 +${INSTALL} -D -m 0755 ${BOARD_DIR}/S40network ${TARGET_DIR}/etc/init.d/
 +${INSTALL} -D -m 0755 ${BOARD_DIR}/S41network ${TARGET_DIR}/etc/init.d/
 +${INSTALL} -D -m 0755 ${BOARD_DIR}/S45msd ${TARGET_DIR}/etc/init.d/
++${INSTALL} -D -m 0755 ${BOARD_DIR}/S98autostart ${TARGET_DIR}/etc/init.d/
 +${INSTALL} -D -m 0644 ${BOARD_DIR}/fw_env.config ${TARGET_DIR}/etc/
 +${INSTALL} -D -m 0644 ${BOARD_DIR}/VERSIONS ${TARGET_DIR}/opt/
 +${INSTALL} -D -m 0755 ${BOARD_DIR}/device_reboot ${TARGET_DIR}/usr/sbin/
@@ -7337,11 +7380,11 @@ index 0000000000..fd07114627
 +ln -sf ../../wpa_supplicant/ifupdown.sh ${TARGET_DIR}/etc/network/if-post-down.d/wpasupplicant
 +
 +ln -sf device_reboot ${TARGET_DIR}/usr/sbin/pluto_reboot
-diff --git a/board/e310v2/test_ensm_pinctrl.sh b/board/e310v2/test_ensm_pinctrl.sh
+diff --git a/board/ant/test_ensm_pinctrl.sh b/board/ant/test_ensm_pinctrl.sh
 new file mode 100755
 index 0000000000..963b22ee46
 --- /dev/null
-+++ b/board/e310v2/test_ensm_pinctrl.sh
++++ b/board/ant/test_ensm_pinctrl.sh
 @@ -0,0 +1,130 @@
 +#!/bin/sh
 +
@@ -7473,11 +7516,11 @@ index 0000000000..963b22ee46
 +    tdd_pin_control_test
 +    ;;
 +esac
-diff --git a/board/e310v2/udc_handle_suspend.sh b/board/e310v2/udc_handle_suspend.sh
+diff --git a/board/ant/udc_handle_suspend.sh b/board/ant/udc_handle_suspend.sh
 new file mode 100644
 index 0000000000..785482e2b1
 --- /dev/null
-+++ b/board/e310v2/udc_handle_suspend.sh
++++ b/board/ant/udc_handle_suspend.sh
 @@ -0,0 +1,34 @@
 +#!/bin/sh
 +
@@ -7513,11 +7556,11 @@ index 0000000000..785482e2b1
 +		;;
 +esac
 +done
-diff --git a/board/e310v2/update.sh b/board/e310v2/update.sh
+diff --git a/board/ant/update.sh b/board/ant/update.sh
 new file mode 100644
 index 0000000000..4a4bac416c
 --- /dev/null
-+++ b/board/e310v2/update.sh
++++ b/board/ant/update.sh
 @@ -0,0 +1,278 @@
 +#!/bin/sh
 +
@@ -7797,11 +7840,11 @@ index 0000000000..4a4bac416c
 +done
 +
 +exit 1
-diff --git a/board/e310v2/update_frm.sh b/board/e310v2/update_frm.sh
+diff --git a/board/ant/update_frm.sh b/board/ant/update_frm.sh
 new file mode 100644
 index 0000000000..d0b42f139f
 --- /dev/null
-+++ b/board/e310v2/update_frm.sh
++++ b/board/ant/update_frm.sh
 @@ -0,0 +1,49 @@
 +#!/bin/sh
 +
@@ -7852,11 +7895,75 @@ index 0000000000..d0b42f139f
 +	echo "Failed"
 +	exit 1
 +fi
-diff --git a/board/e310v2/wpa_supplicant/action_wpa.sh b/board/e310v2/wpa_supplicant/action_wpa.sh
+diff --git a/board/ant/update_from_github.sh b/board/ant/update_from_github.sh
+new file mode 100644
+index 0000000000..0149e1e188
+--- /dev/null
++++ b/board/ant/update_from_github.sh
+@@ -0,0 +1,58 @@
++#!/bin/sh
++
++cd /root
++rm -f /root/latest /root/*.zip /root/*.frm
++
++# get the location of the latest release
++wget https://api.github.com/repos/analogdevicesinc/plutosdr-fw/releases/latest
++if [ "$?" -ne "0" ] ; then
++	echo "Error talking to github - is this pluto on the internet?"
++	exit
++fi
++if [ ! -f "latest" ] ; then
++	echo "downloaded file missing"
++	exit
++fi
++# get the FIRMWARE file name
++FIRMWARE=$(grep "name.*plutosdr-fw-" latest | cut -d : -f 2,3 | tr -d \", | sed 's/^ //g')
++if [ -z "${FIRMWARE}" ] ; then
++	echo "Error parsing download file name - please report a bug"
++	exit
++fi
++# get the FIRMWARE URL
++URL=$(grep "browser_download_url.*plutosdr-fw-" latest | cut -d : -f 2,3 | awk '{print $1}' | tr -d \")
++if [ -z "${URL}" ] ; then
++	echo "Error parsing download url - please report a bug"
++	exit
++fi
++# get the URL
++wget ${URL}
++if [ "$?" -ne "0" ] ; then
++	echo "Error talking to github - is this pluto on the internet?"
++	exit
++fi
++if [ ! -f "${FIRMWARE}" ] ; then
++	echo "Can not find downloaded file - report a bug"
++	exit
++fi
++# find the frm inside the zip file
++FILE=$(unzip -l "${FIRMWARE}" | grep frm | sort -nr | head -1 | awk '{print $NF}')
++if [ -z "${FILE}" ] ; then
++	echo "not sure which file to extract - report a bug"
++	exit
++fi
++# upzip it
++unzip ${FIRMWARE} ${FILE}
++if [ "$?" -ne "0" ] ; then
++	echo "Error unzipping ${FILE} from ${FIRMWARE}"
++	exit
++fi
++if [ ! -f ${FILE} ] ; then
++	echo "Can not file file to write to flash"
++	exit
++fi
++
++# write to flash
++update_frm.sh /root/${FILE}
++
++echo "Reboot your system to run the new firmware"
+diff --git a/board/ant/wpa_supplicant/action_wpa.sh b/board/ant/wpa_supplicant/action_wpa.sh
 new file mode 100644
 index 0000000000..bb4c7c10af
 --- /dev/null
-+++ b/board/e310v2/wpa_supplicant/action_wpa.sh
++++ b/board/ant/wpa_supplicant/action_wpa.sh
 @@ -0,0 +1,50 @@
 +#!/bin/sh
 +
@@ -7908,11 +8015,11 @@ index 0000000000..bb4c7c10af
 +		wpa_cli -i "${IFACE}" "${COMMAND}"
 +	fi
 +done
-diff --git a/board/e310v2/wpa_supplicant/functions.sh b/board/e310v2/wpa_supplicant/functions.sh
+diff --git a/board/ant/wpa_supplicant/functions.sh b/board/ant/wpa_supplicant/functions.sh
 new file mode 100644
 index 0000000000..bf01819f17
 --- /dev/null
-+++ b/board/e310v2/wpa_supplicant/functions.sh
++++ b/board/ant/wpa_supplicant/functions.sh
 @@ -0,0 +1,1006 @@
 +#!/bin/sh
 +
@@ -8920,11 +9027,11 @@ index 0000000000..bf01819f17
 +		ifconfig "$WPA_IFACE" up
 +	fi
 +}
-diff --git a/board/e310v2/wpa_supplicant/ifupdown.sh b/board/e310v2/wpa_supplicant/ifupdown.sh
+diff --git a/board/ant/wpa_supplicant/ifupdown.sh b/board/ant/wpa_supplicant/ifupdown.sh
 new file mode 100644
 index 0000000000..2c5b0608ce
 --- /dev/null
-+++ b/board/e310v2/wpa_supplicant/ifupdown.sh
++++ b/board/ant/wpa_supplicant/ifupdown.sh
 @@ -0,0 +1,172 @@
 +#!/bin/sh
 +
@@ -9098,30 +9205,27 @@ index 0000000000..2c5b0608ce
 +esac
 +
 +exit 0
-diff --git a/configs/zynq_e310v2_defconfig b/configs/zynq_e310v2_defconfig
+diff --git a/configs/zynq_ant_defconfig b/configs/zynq_ant_defconfig
 new file mode 100644
-index 0000000000..2346986e4f
+index 0000000000..3c88c4aec6
 --- /dev/null
-+++ b/configs/zynq_e310v2_defconfig
-@@ -0,0 +1,74 @@
++++ b/configs/zynq_ant_defconfig
+@@ -0,0 +1,64 @@
 +BR2_arm=y
 +BR2_cortex_a9=y
 +BR2_ARM_ENABLE_NEON=y
 +BR2_ARM_ENABLE_VFP=y
 +BR2_ARM_FPU_NEON=y
 +BR2_TOOLCHAIN_EXTERNAL=y
-+BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y
-+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX="arm-linux-gnueabihf"
-+BR2_TOOLCHAIN_EXTERNAL_GCC_8=y
-+BR2_TOOLCHAIN_EXTERNAL_HEADERS_4_14=y
-+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_GLIBC=y
-+BR2_TOOLCHAIN_EXTERNAL_CXX=y
++BR2_TOOLCHAIN_EXTERNAL_LINARO_ARM=y
++BR2_OPTIMIZE_2=y
 +BR2_TARGET_GENERIC_HOSTNAME="ant"
 +BR2_TARGET_GENERIC_ISSUE="Welcome to ANTSDR"
 +BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_MDEV=y
 +BR2_TARGET_GENERIC_ROOT_PASSWD="analog"
 +BR2_TARGET_GENERIC_GETTY_PORT="ttyPS0"
-+BR2_ROOTFS_POST_BUILD_SCRIPT="board/e310v2/post-build.sh"
++BR2_ROOTFS_POST_BUILD_SCRIPT="board/ant/post-build.sh"
++BR2_PACKAGE_ZSTD=y
 +BR2_PACKAGE_MTD=y
 +# BR2_PACKAGE_MTD_NANDDUMP is not set
 +# BR2_PACKAGE_MTD_NANDTEST is not set
@@ -9149,6 +9253,8 @@ index 0000000000..2346986e4f
 +BR2_PACKAGE_UBOOT_TOOLS=y
 +BR2_PACKAGE_ZLIB=y
 +BR2_PACKAGE_LIBAD9361_IIO=y
++BR2_PACKAGE_LIBGPIOD=y
++BR2_PACKAGE_LIBGPIOD_TOOLS=y
 +BR2_PACKAGE_LIBIIO_IIOD_USBD=y
 +BR2_PACKAGE_LIBIIO_TESTS=y
 +BR2_PACKAGE_LIBINI=y
@@ -9156,22 +9262,13 @@ index 0000000000..2346986e4f
 +BR2_PACKAGE_AVAHI_DAEMON=y
 +BR2_PACKAGE_AVAHI_LIBDNSSD_COMPATIBILITY=y
 +BR2_PACKAGE_DROPBEAR=y
-+BR2_PACKAGE_DROPBEAR_LOCALOPTIONS_FILE="board/pluto/dropbrear_localoptions.h"
++BR2_PACKAGE_DROPBEAR_LOCALOPTIONS_FILE="board/ant/dropbrear_localoptions.h"
 +BR2_PACKAGE_IW=y
 +BR2_PACKAGE_WPA_SUPPLICANT=y
 +BR2_PACKAGE_WPA_SUPPLICANT_CLI=y
 +BR2_PACKAGE_WPA_SUPPLICANT_PASSPHRASE=y
 +BR2_PACKAGE_POLL_SYSFS=y
 +BR2_PACKAGE_AD936X_REF_CAL=y
-+BR2_PACKAGE_NCURSES=y
-+BR2_PACKAGE_GPSD=y
-+BR2_PACKAGE_GPSD_DEVICES="/dev/ttyPS1"
-+BR2_PACKAGE_GPSD_NMEA=y
-+BR2_PACKAGE_GPSD_USER=y
-+BR2_PACKAGE_GPSD_USER_VALUE="root"
-+BR2_PACKAGE_GPSD_FIXED_PORT_SPEED=y
-+BR2_PACKAGE_GPSD_FIXED_PORT_SPEED_VALUE=9600
-+BR2_PACKAGE_GPSD_UBX=y
 +BR2_TARGET_ROOTFS_CPIO=y
 +BR2_TARGET_ROOTFS_CPIO_GZIP=y
 +BR2_TARGET_ROOTFS_CPIO_UIMAGE=y

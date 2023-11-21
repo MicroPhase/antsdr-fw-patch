@@ -1,23 +1,24 @@
-From 8fbc0beb247aedd88558d9c50f3f9f2d9dbdc91d Mon Sep 17 00:00:00 2001
+From 5617e0d33d8a55433a5bfcfa5f9ec82f246d2362 Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Thu, 2 Feb 2023 14:10:03 +0800
-Subject: [PATCH] add support linux
+Date: Tue, 21 Nov 2023 16:27:36 +0800
+Subject: [PATCH] add ant linux support
 
 ---
- arch/arm/boot/dts/zynq-e310v2.dts      |  49 +++
- arch/arm/boot/dts/zynq-e310v2.dtsi     | 471 +++++++++++++++++++++++++
- arch/arm/configs/zynq_e310v2_defconfig | 291 +++++++++++++++
- 3 files changed, 811 insertions(+)
- create mode 100644 arch/arm/boot/dts/zynq-e310v2.dts
- create mode 100644 arch/arm/boot/dts/zynq-e310v2.dtsi
- create mode 100644 arch/arm/configs/zynq_e310v2_defconfig
+ arch/arm/boot/dts/zynq-ant.dts      |  62 ++++
+ arch/arm/boot/dts/zynq-ant.dtsi     | 500 ++++++++++++++++++++++++++++
+ arch/arm/configs/zynq_ant_defconfig | 283 ++++++++++++++++
+ drivers/mtd/spi-nor/core.c          |  30 +-
+ 4 files changed, 873 insertions(+), 2 deletions(-)
+ create mode 100644 arch/arm/boot/dts/zynq-ant.dts
+ create mode 100644 arch/arm/boot/dts/zynq-ant.dtsi
+ create mode 100644 arch/arm/configs/zynq_ant_defconfig
 
-diff --git a/arch/arm/boot/dts/zynq-e310v2.dts b/arch/arm/boot/dts/zynq-e310v2.dts
+diff --git a/arch/arm/boot/dts/zynq-ant.dts b/arch/arm/boot/dts/zynq-ant.dts
 new file mode 100644
-index 000000000000..9bd3a9730c98
+index 000000000000..d9ee46e79b33
 --- /dev/null
-+++ b/arch/arm/boot/dts/zynq-e310v2.dts
-@@ -0,0 +1,49 @@
++++ b/arch/arm/boot/dts/zynq-ant.dts
+@@ -0,0 +1,62 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + *
@@ -27,8 +28,18 @@ index 000000000000..9bd3a9730c98
 + * Copyright (C) 2016-2019 MicroPhase Inc.
 + */
 +/dts-v1/;
-+#include "zynq-e310v2.dtsi"
++#include "zynq-ant.dtsi"
 +
++
++// &axi_i2c0 {
++// 	current_limiter@5a {
++// 		compatible = "adi,adm1177";
++// 		reg = <0x5a>;
++// 		adi,r-sense-mohm = <50>; /* 50 mOhm */
++// 		adi,shutdown-threshold-ma = <1059>; /* 1.059 A */
++// 		adi,vrange-high-enable;
++// 	};
++// };
 +
 +
 +&adc0_ad9364 {
@@ -43,7 +54,6 @@ index 000000000000..9bd3a9730c98
 +
 +
 +/ {
-+	model = "Analog Devices PlutoSDR Rev.C (Z7010/AD9363)";
 +	
 +	leds {
 +		compatible = "gpio-leds";
@@ -58,21 +68,25 @@ index 000000000000..9bd3a9730c98
 +		compatible = "gpio-keys";
 +		#address-cells = <1>;
 +		#size-cells = <0>;
++
 +		button {
 +			interrupt-parent = <&gpio0>;
 +			interrupts = <14 IRQ_TYPE_EDGE_FALLING>;
 +			label = "Button";
 +			linux,code = <BTN_MISC>;
 +		};
-+	};
 +
++	};
 +};
-diff --git a/arch/arm/boot/dts/zynq-e310v2.dtsi b/arch/arm/boot/dts/zynq-e310v2.dtsi
++
++
++	
+diff --git a/arch/arm/boot/dts/zynq-ant.dtsi b/arch/arm/boot/dts/zynq-ant.dtsi
 new file mode 100644
-index 000000000000..f5d596396a46
+index 000000000000..a2215cf5b63b
 --- /dev/null
-+++ b/arch/arm/boot/dts/zynq-e310v2.dtsi
-@@ -0,0 +1,471 @@
++++ b/arch/arm/boot/dts/zynq-ant.dtsi
+@@ -0,0 +1,500 @@
 +/*
 + * ZYNQ Pluto SDR (Z7020/AD936x)
 + *
@@ -89,17 +103,10 @@ index 000000000000..f5d596396a46
 +#include <dt-bindings/iio/adc/adi,ad9361.h>
 +
 +/ {
-+	model = "Analog Devices PlutoSDR Rev.C (Z7010/AD9363)";
++	model = "Analog Devices ANTSDR Rev.C (Z7020/AD9363)";
 +	memory {
 +		device_type = "memory";
 +		reg = <0x00000000 0x40000000>;
-+	};
-+
-+	aliases {
-+		ethernet0 = &gem0;
-+		serial1 = &uart0;
-+		spi0 = &qspi;
-+		mmc0 = &sdhci0;
 +	};
 +
 +	chosen {
@@ -124,34 +131,9 @@ index 000000000000..f5d596396a46
 +		view-port = <0x0170>;
 +		drv-vbus;
 +	};
-+	// ltc2630 {
-+	// 	compatible = "microphase,ltc2630";
-+	// 	status = "okay";
-+	// 	ext_ref_locked = <&gpio0 86 1>;
-+	// 	ext_ref_ispps = <&gpio0 87 0>;
-+	// 	ref_sel = <&gpio0 88 0>;
-+	// };
-+
 +
 +};
 +
-+&i2c0 {
-+	status = "okay";
-+	clock-frequency = <400000>;
-+
-+	eeprom@50 {
-+		compatible = "atmel,24c256";
-+		reg = <0x50>;
-+	};
-+
-+};
-+
-+&usb0 {
-+	xlnx,phy-reset-gpio = <&gpio0 47 0>;
-+	dr_mode = "otg";
-+	status = "okay";
-+	usb-phy = <&usb_phy0>;
-+};
 +
 +&sdhci0 {
 +	status = "okay";
@@ -165,30 +147,23 @@ index 000000000000..f5d596396a46
 +	reset-on-timeout;
 +};
 +
-+&uart0 {
-+	status = "okay";
-+};
-+
 +&gem0 {
 +	status = "okay";
-+	
++	phy-mode = "rgmii-id";
 +	phy-handle = <&phy0>;
-+	phy-mode = "rgmii-rxid";
-+	xlnx,has-mdio = <0x1>;
-+	gmii2rgmii-phy-handle = <&gmii_to_rgmii_0>;
-+	
-+	phy0: phy@1 {
-+		compatible = "ethernet-phy-id011c.c916";
-+		device_type = "ethernet-phy";
-+		reg = <0x1>;
-+	};
 +
-+	gmii_to_rgmii_0: gmiitorgmii@8 {
-+		compatible = "xlnx,gmii-to-rgmii-1.0";
-+		reg = <0x8>;
-+		phy-handle = <&phy0>;
++	phy0: phy@0 { /* Marvell 88e1512 */
++		reg = <0>;
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reset-gpios = <&gpio0 46 1>;
 +	};
++};
 +
++&usb0 {
++	xlnx,phy-reset-gpio = <&gpio0 47 0>;
++	dr_mode = "otg";
++	status = "okay";
++	usb-phy = <&usb_phy0>;
 +};
 +
 +&qspi {
@@ -238,6 +213,19 @@ index 000000000000..f5d596396a46
 +		#address-cells = <0x1>;
 +		#size-cells = <0x1>;
 +		ranges;
++
++		// axi_i2c0: i2c@41600000 {
++		// 	compatible = "xlnx,axi-iic-1.02.a", "xlnx,xps-iic-2.00.a";
++		// 	reg = <0x41600000 0x10000>;
++		// 	interrupt-parent = <&intc>;
++		// 	interrupts = <0 59 IRQ_TYPE_LEVEL_HIGH>;
++		// 	clocks = <&clkc 15>;
++		// 	clock-names = "pclk";
++
++		// 	#address-cells = <1>;
++		// 	#size-cells = <0>;
++
++		// };
 +
 +		rx_dma: dma@7c400000 {
 +			compatible = "adi,axi-dmac-1.00.a";
@@ -374,7 +362,7 @@ index 000000000000..f5d596396a46
 +		 * 8 = RX1C_P and RX2C_P enabled; unbalanced
 +		 */
 +
-+		adi,rx-rf-port-input-select = <0>; /* (RX1A_N &  RX1A_P) and (RX2A_N & RX2A_P) enabled; balanced */
++		adi,rx-rf-port-input-select = <1>; /* (RX1A_N &  RX1A_P) and (RX2A_N & RX2A_P) enabled; balanced */
 +		adi,rx-rf-port-input-select-lock-enable;
 +
 +		/* adi,tx-rf-port-input-select:
@@ -541,15 +529,70 @@ index 000000000000..f5d596396a46
 +
 +		en_agc-gpios = <&gpio0 66 0>;
 +		reset-gpios = <&gpio0 67 0>;
++		adi,band-ctl-0-gpio = <&gpio0 86 0>;/* RX1 3~6G */
++		adi,band-ctl-1-gpio = <&gpio0 87 0>;/* RX1 4.5M~3G */
++		adi,band-ctl-2-gpio = <&gpio0 88 0>;/* TX1 3~6G */
++		adi,band-ctl-3-gpio = <&gpio0 89 0>;/* TX1 4.5M~3G */
++		adi,band-ctl-4-gpio = <&gpio0 90 0>;/* RX2 3~6G */
++		adi,band-ctl-5-gpio = <&gpio0 91 0>;/* RX2 4.5M~3G */
++		adi,band-ctl-6-gpio = <&gpio0 92 0>;/* TX2 3~6G */
++		adi,band-ctl-7-gpio = <&gpio0 93 0>;/* TX2 4.5M~3G */
++
++
++		ad9361_rx_ant_port_a: ad9361_rx_ant_port_a {
++			adi,rx-rf-port-input-select = <0>; /* (RX1A_N &  RX1A_P) and (RX2A_N & RX2A_P) enabled; balanced */
++		};
++
++		ad9361_rx_ant_port_b: ad9361_rx_ant_port_b {
++			adi,rx-rf-port-input-select = <1>; /* (RX1B_N &  RX1B_P) and (RX2B_N & RX2B_P) enabled; balanced */
++		};
++
++		ad9361_tx_ant_port_a: ad9361_tx_ant_port_a {
++			adi,tx-rf-port-input-select = <0>; /* TX1A, TX2A */
++		};
++
++		ad9361_tx_ant_port_b: ad9361_tx_ant_port_b {
++			adi,tx-rf-port-input-select = <1>; /* TX1B, TX2B */
++		};
++
++
++		adi_rx_band_setting_0 {
++			adi,lo-freq-min = /bits/ 64 <0>;
++			adi,lo-freq-max = /bits/ 64 <3000000000>;
++			adi,gpio-settings = <0 1 _ _ 0 1 _ _>;
++			adi,band-ctl-post = <&ad9361_rx_ant_port_b 0>;
++		};
++
++		adi_rx_band_setting_1 {
++			adi,lo-freq-min = /bits/ 64 <3000000000>;
++			adi,lo-freq-max = /bits/ 64 <6000000000>;
++			adi,gpio-settings = <1 0 _ _ 1 0 _ _>;
++			adi,band-ctl-post = <&ad9361_rx_ant_port_a 0>;
++		};
++
++		adi_tx_band_setting_0 {
++			adi,lo-freq-min = /bits/ 64 <0>;
++			adi,lo-freq-max = /bits/ 64 <3000000000>;
++			adi,gpio-settings = <_ _ 0 1 _ _ 0 1>;
++			adi,band-ctl-post = <&ad9361_tx_ant_port_b 0>;
++		};
++
++		adi_tx_band_setting_1 {
++			adi,lo-freq-min = /bits/ 64 <3000000000>;
++			adi,lo-freq-max = /bits/ 64 <6000000000>;
++
++			adi,gpio-settings = <_ _ 1 0 _ _ 1 0>;
++			adi,band-ctl-post = <&ad9361_tx_ant_port_a 0>;
++		};
 +	};
 +};
 +
-diff --git a/arch/arm/configs/zynq_e310v2_defconfig b/arch/arm/configs/zynq_e310v2_defconfig
+diff --git a/arch/arm/configs/zynq_ant_defconfig b/arch/arm/configs/zynq_ant_defconfig
 new file mode 100644
-index 000000000000..5fc98e392cda
+index 000000000000..87d9ec515655
 --- /dev/null
-+++ b/arch/arm/configs/zynq_e310v2_defconfig
-@@ -0,0 +1,291 @@
++++ b/arch/arm/configs/zynq_ant_defconfig
+@@ -0,0 +1,283 @@
 +CONFIG_SYSVIPC=y
 +CONFIG_USELIB=y
 +CONFIG_HIGH_RES_TIMERS=y
@@ -565,7 +608,6 @@ index 000000000000..5fc98e392cda
 +# CONFIG_RD_LZO is not set
 +# CONFIG_RD_LZ4 is not set
 +CONFIG_CC_OPTIMIZE_FOR_SIZE=y
-+CONFIG_SYSCTL_SYSCALL=y
 +CONFIG_EMBEDDED=y
 +CONFIG_PERF_EVENTS=y
 +CONFIG_SLAB=y
@@ -575,12 +617,10 @@ index 000000000000..5fc98e392cda
 +CONFIG_MMC_SDHCI=y
 +CONFIG_MMC_SDHCI_PLTFM=y
 +CONFIG_MMC_SDHCI_OF_ARASAN=y
-+
 +CONFIG_UEVENT_HELPER=y
 +CONFIG_MACB=y
 +CONFIG_MDIO_BITBANG=y
 +CONFIG_MARVELL_PHY=y
-+CONFIG_REALTEK_PHY=y
 +CONFIG_XILINX_GMII2RGMII=y
 +CONFIG_USB_NET_DM9601=y
 +
@@ -598,8 +638,6 @@ index 000000000000..5fc98e392cda
 +CONFIG_SCHED_SMT=y
 +CONFIG_HIGHMEM=y
 +# CONFIG_HIGHPTE is not set
-+CONFIG_ZBOOT_ROM_TEXT=0x0
-+CONFIG_ZBOOT_ROM_BSS=0x0
 +CONFIG_CMDLINE="console=ttyPS0,115200n8 root=/dev/ram rw earlyprintk"
 +CONFIG_CPU_IDLE=y
 +CONFIG_CPU_IDLE_GOV_MENU=y
@@ -610,7 +648,6 @@ index 000000000000..5fc98e392cda
 +CONFIG_MODULE_UNLOAD=y
 +CONFIG_MODULE_FORCE_UNLOAD=y
 +CONFIG_MODVERSIONS=y
-+# CONFIG_BLK_DEV_BSG is not set
 +# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
 +# CONFIG_COMPACTION is not set
 +CONFIG_CMA=y
@@ -631,11 +668,9 @@ index 000000000000..5fc98e392cda
 +CONFIG_MAC80211_LEDS=y
 +CONFIG_RFKILL=y
 +CONFIG_RFKILL_INPUT=y
-+CONFIG_UEVENT_HELPER_PATH="/sbin/hotplug"
++CONFIG_UEVENT_HELPER=y
 +CONFIG_DEVTMPFS=y
 +CONFIG_DEVTMPFS_MOUNT=y
-+CONFIG_DMA_CMA=y
-+CONFIG_CMA_SIZE_MBYTES=256
 +CONFIG_CONNECTOR=y
 +CONFIG_MTD=y
 +CONFIG_MTD_CMDLINE_PARTS=y
@@ -644,17 +679,18 @@ index 000000000000..5fc98e392cda
 +CONFIG_MTD_CFI_AMDSTD=y
 +CONFIG_MTD_PHYSMAP=y
 +CONFIG_MTD_PHYSMAP_OF=y
-+CONFIG_MTD_M25P80=y
 +CONFIG_MTD_SPI_NOR=y
 +# CONFIG_MTD_SPI_NOR_USE_4K_SECTORS is not set
 +CONFIG_BLK_DEV_LOOP=y
 +CONFIG_BLK_DEV_RAM=y
 +CONFIG_BLK_DEV_RAM_SIZE=16384
++CONFIG_ADI_AXI_TDD=y
 +CONFIG_SRAM=y
 +# CONFIG_MATHWORKS_IP_CORE is not set
 +CONFIG_SCSI=y
 +CONFIG_BLK_DEV_SD=y
 +CONFIG_CHR_DEV_SG=y
++# CONFIG_BLK_DEV_BSG is not set
 +CONFIG_NETDEVICES=y
 +# CONFIG_NET_VENDOR_ALACRITECH is not set
 +# CONFIG_NET_VENDOR_AMAZON is not set
@@ -689,6 +725,7 @@ index 000000000000..5fc98e392cda
 +CONFIG_USB_LAN78XX=y
 +CONFIG_USB_USBNET=y
 +# CONFIG_USB_NET_CDC_NCM is not set
++CONFIG_USB_NET_DM9601=y
 +CONFIG_USB_NET_SMSC75XX=y
 +CONFIG_USB_NET_SMSC95XX=y
 +# CONFIG_USB_NET_NET1080 is not set
@@ -704,7 +741,6 @@ index 000000000000..5fc98e392cda
 +# CONFIG_WLAN_VENDOR_INTERSIL is not set
 +# CONFIG_WLAN_VENDOR_MARVELL is not set
 +# CONFIG_WLAN_VENDOR_MEDIATEK is not set
-+# CONFIG_LTC2630_MICROPHASE=y
 +CONFIG_RT2X00=y
 +CONFIG_RT2500USB=y
 +CONFIG_RT73USB=y
@@ -731,10 +767,7 @@ index 000000000000..5fc98e392cda
 +# CONFIG_LEGACY_PTYS is not set
 +CONFIG_SERIAL_XILINX_PS_UART=y
 +CONFIG_SERIAL_XILINX_PS_UART_CONSOLE=y
-+CONFIG_SERIAL_CORE=y
-+CONFIG_SERIAL_CORE_CONSOLE=y
 +# CONFIG_HW_RANDOM is not set
-+EEPROM_AT24=y
 +CONFIG_I2C=y
 +CONFIG_I2C_CHARDEV=y
 +CONFIG_I2C_CADENCE=y
@@ -809,10 +842,11 @@ index 000000000000..5fc98e392cda
 +CONFIG_IIO=y
 +CONFIG_ADM1177=y
 +CONFIG_AD9361=y
-+CONFIG_AD9361_EXT_BAND_CONTROL=y
 +CONFIG_ADMC=y
 +CONFIG_XILINX_XADC=y
++CONFIG_ONE_BIT_ADC_DAC=y
 +CONFIG_CF_AXI_DDS=y
++CONFIG_ADI_IIO_FAKEDEV=y
 +CONFIG_FPGA=y
 +CONFIG_FPGA_MGR_ZYNQ_FPGA=y
 +CONFIG_EXT4_FS=y
@@ -829,8 +863,9 @@ index 000000000000..5fc98e392cda
 +CONFIG_NLS_ISO8859_1=y
 +CONFIG_CRYPTO_ECB=y
 +CONFIG_CRYPTO_MICHAEL_MIC=y
++CONFIG_DMA_CMA=y
++CONFIG_CMA_SIZE_MBYTES=256
 +CONFIG_DEBUG_INFO=y
-+# CONFIG_ENABLE_MUST_CHECK is not set
 +CONFIG_DEBUG_FS=y
 +CONFIG_DETECT_HUNG_TASK=y
 +CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=20
@@ -839,8 +874,63 @@ index 000000000000..5fc98e392cda
 +CONFIG_RCU_CPU_STALL_TIMEOUT=60
 +# CONFIG_FTRACE is not set
 +CONFIG_DEBUG_LL=y
-+CONFIG_DEBUG_ZYNQ_UART0=y
++CONFIG_DEBUG_ZYNQ_UART1=y
 +CONFIG_EARLY_PRINTK=y
+diff --git a/drivers/mtd/spi-nor/core.c b/drivers/mtd/spi-nor/core.c
+index 84439aca5009..b7e676bbe6a9 100644
+--- a/drivers/mtd/spi-nor/core.c
++++ b/drivers/mtd/spi-nor/core.c
+@@ -608,7 +608,8 @@ int spi_nor_write_ear(struct spi_nor *nor, u32 addr)
+ 		code = SPINOR_OP_BRWR;
+ 	if (nor->jedec_id == CFI_MFR_ST ||
+ 	    nor->jedec_id == CFI_MFR_MACRONIX ||
+-	    nor->jedec_id == CFI_MFR_PMC) {
++	    nor->jedec_id == CFI_MFR_PMC ||
++		nor->jedec_id == CFI_MFR_WINBND) {
+ 		spi_nor_write_enable(nor);
+ 		code = SPINOR_OP_WREAR;
+ 	}
+@@ -687,7 +688,8 @@ static int read_ear(struct spi_nor *nor, struct flash_info *info)
+ 	/* This is actually Micron */
+ 	else if (nor->jedec_id == CFI_MFR_ST ||
+ 		 nor->jedec_id == CFI_MFR_MACRONIX ||
+-		 nor->jedec_id == CFI_MFR_PMC)
++		 nor->jedec_id == CFI_MFR_PMC || 
++		 nor->jedec_id == CFI_MFR_WINBND)
+ 		code = SPINOR_OP_RDEAR;
+ 	else
+ 		return -EINVAL;
+@@ -2007,6 +2009,30 @@ static const struct flash_info *spi_nor_read_id(struct spi_nor *nor)
+ 	u8 *id = nor->bouncebuf;
+ 	unsigned int i;
+ 	int ret;
++	int tmp;
++	u8 uid[20];
++	if(nor -> spimem){
++		struct spi_mem_op op = 
++			SPI_MEM_OP(SPI_MEM_OP_CMD(0x4B,1),
++					SPI_MEM_OP_NO_ADDR,
++					SPI_MEM_OP_DUMMY(0,4),
++					SPI_MEM_OP_DATA_IN(20,uid,1)
++						);
++		tmp = spi_mem_exec_op(nor->spimem, &op);
++		if(tmp < 0){
++			dev_dbg(nor->dev, "error %d reading UID\n", tmp);
++			return ERR_PTR(tmp);
++		}
++		dev_info(nor->dev,"SPI-NOR-UniqueID %*phN\n",8,&uid[4]);
++	} else{
++		tmp = nor->controller_ops->read_reg(nor,0x4b,uid,20);
++		if(tmp < 0){
++			dev_dbg(nor->dev, "error %d reading UID\n", tmp);
++			return ERR_PTR(tmp);
++		}
++		dev_info(nor->dev,"SPI-NOR-UniqueID %*phN\n",16,&uid[4]);
++	}
++
+ 
+ 	#define SPI_NOR_MAX_EDID_LEN	20
+ 
 -- 
 2.25.1
 

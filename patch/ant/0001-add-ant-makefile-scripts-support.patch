@@ -1,49 +1,78 @@
-From 4106cb401b82e67e336c1664d03cd0f5a6ad0bd9 Mon Sep 17 00:00:00 2001
+From 028b35ac6839b0ae96cc75b932617f0e1538bd4e Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Tue, 22 Nov 2022 16:27:49 +0800
-Subject: [PATCH] add antsdre200 support makefile-scripts
+Date: Tue, 21 Nov 2023 16:30:09 +0800
+Subject: [PATCH] add ant makefile scripts support
 
 ---
- Makefile               |  29 ++++++-
- scripts/antsdre200.its | 174 +++++++++++++++++++++++++++++++++++++++++
- scripts/antsdre200.mk  |  10 +++
- 3 files changed, 211 insertions(+), 2 deletions(-)
- create mode 100644 scripts/antsdre200.its
- create mode 100644 scripts/antsdre200.mk
+ Makefile        |  49 ++++++++++++---
+ scripts/ant.its | 159 ++++++++++++++++++++++++++++++++++++++++++++++++
+ scripts/ant.mk  |  10 +++
+ 3 files changed, 208 insertions(+), 10 deletions(-)
+ create mode 100644 scripts/ant.its
+ create mode 100644 scripts/ant.mk
 
 diff --git a/Makefile b/Makefile
-index c0bb761..2bac4b2 100644
+index 0dc9c4b..ffe3ce7 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -38,7 +38,7 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
+@@ -27,8 +27,8 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
+ 	endif
  endif
  
- TARGET ?= pluto
+-TARGET ?= pluto
 -SUPPORTED_TARGETS:=pluto sidekiqz2
-+SUPPORTED_TARGETS:=pluto sidekiqz2 antsdre200
++TARGET ?= ant
++SUPPORTED_TARGETS:=pluto sidekiqz2 ant
  
  # Include target specific constants
  include scripts/$(TARGET).mk
-@@ -96,13 +96,17 @@ build/uboot-env.bin: build/uboot-env.txt
- linux/arch/arm/boot/zImage:
- 	make -C linux ARCH=arm zynq_$(TARGET)_defconfig
- 	make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zImage UIMAGE_LOADADDR=0x8000
-+	make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) uImage UIMAGE_LOADADDR=0x8000
+@@ -91,13 +91,20 @@ build/uboot-env.bin: build/uboot-env.txt
+ linux/arch/arm/boot/zImage: TOOLCHAIN
+ 	$(TOOLS_PATH) make -C linux ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zynq_$(TARGET)_defconfig
+ 	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zImage UIMAGE_LOADADDR=0x8000
++	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) uImage UIMAGE_LOADADDR=0x8000
++
  
  .PHONY: linux/arch/arm/boot/zImage
--
 +.PHONY: linux/arch/arm/boot/uImage
  
- build/zImage: linux/arch/arm/boot/zImage  | build
+ 
+ build/zImage: linux/arch/arm/boot/zImage | build
  	cp $< $@
  
 +build/uImage: linux/arch/arm/boot/uImage  | build
 +	cp $< $@
 +
++
  ### Device Tree ###
  
- linux/arch/arm/boot/dts/%.dtb: linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
-@@ -191,6 +195,27 @@ clean:
+ linux/arch/arm/boot/dts/%.dtb: TOOLCHAIN linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
+@@ -130,14 +137,16 @@ build/$(TARGET).itb: u-boot-xlnx/tools/mkimage build/zImage build/rootfs.cpio.gz
+ 	u-boot-xlnx/tools/mkimage -f scripts/$(TARGET).its $@
+ 
+ build/system_top.xsa:  | build
+-ifeq (1, ${HAVE_VIVADO})
+-	bash -c "source $(VIVADO_SETTINGS) && make -C hdl/projects/$(TARGET) && cp hdl/projects/$(TARGET)/$(TARGET).sdk/system_top.xsa $@"
+-	unzip -l $@ | grep -q ps7_init || cp hdl/projects/$(TARGET)/$(TARGET).srcs/sources_1/bd/system/ip/system_sys_ps7_0/ps7_init* build/
+-else ifneq ($(XSA_FILE),)
+-	cp $(XSA_FILE) $@
+-else ifneq ($(XSA_URL),)
+-	wget -T 3 -t 1 -N --directory-prefix build $(XSA_URL)
+-endif
++	cp hdl/ant.xsa $@
++	cp hdl/ps7_init/* build/
++# ifeq (1, ${HAVE_VIVADO})
++# 	bash -c "source $(VIVADO_SETTINGS) && make -C hdl/projects/$(TARGET) && cp hdl/projects/$(TARGET)/$(TARGET).sdk/system_top.xsa $@"
++# 	unzip -l $@ | grep -q ps7_init || cp hdl/projects/$(TARGET)/$(TARGET).srcs/sources_1/bd/system/ip/system_sys_ps7_0/ps7_init* build/
++# else ifneq ($(XSA_FILE),)
++# 	cp $(XSA_FILE) $@
++# else ifneq ($(XSA_URL),)
++# 	wget -T 3 -t 1 -N --directory-prefix build $(XSA_URL)
++# endif
+ 
+ ### TODO: Build system_top.xsa from src if dl fails ...
+ 
+@@ -186,6 +195,26 @@ clean:
  	rm -f $(notdir $(wildcard build/*))
  	rm -rf build/*
  
@@ -51,7 +80,7 @@ index c0bb761..2bac4b2 100644
 +sdimg: build/
 +	mkdir $(SDIMGDIR)
 +	cp build/sdk/fsbl/Release/fsbl.elf 	$(SDIMGDIR)/fsbl.elf  
-+	cp build/sdk/hw_0/system_top.bit 	$(SDIMGDIR)/system_top.bit
++	cp build/system_top.bit 	$(SDIMGDIR)/system_top.bit
 +	cp build/u-boot.elf 			$(SDIMGDIR)/u-boot.elf
 +	cp $(CURDIR)/linux/arch/arm/boot/uImage	$(SDIMGDIR)/uImage
 +	cp build/zynq-$(TARGET).dtb 	$(SDIMGDIR)/devicetree.dtb
@@ -59,24 +88,23 @@ index c0bb761..2bac4b2 100644
 +	cp build/rootfs.cpio.gz  		$(SDIMGDIR)/ramdisk.image.gz
 +	mkimage -A arm -T ramdisk -C gzip -d $(SDIMGDIR)/ramdisk.image.gz $(SDIMGDIR)/uramdisk.image.gz
 +	touch 	$(SDIMGDIR)/boot.bif
-+	echo "image : {[bootloader] $(SDIMGDIR)/fsbl.elf  $(SDIMGDIR)/system_top.bit  $(SDIMGDIR)/u-boot.elf}" >  $(SDIMGDIR)/boot.bif
-+	bash -c "source $(VIVADO_SETTINGS) && bootgen -image $(SDIMGDIR)/boot.bif -o i $(SDIMGDIR)/BOOT.bin"
++	echo "img : {[bootloader] $(SDIMGDIR)/fsbl.elf  $(SDIMGDIR)/system_top.bit  $(SDIMGDIR)/u-boot.elf}" >  $(SDIMGDIR)/boot.bif
++	bash -c "source $(VIVADO_SETTINGS) && bootgen -image $(SDIMGDIR)/boot.bif -w -o $(SDIMGDIR)/BOOT.bin"
 +	rm $(SDIMGDIR)/fsbl.elf
 +	rm $(SDIMGDIR)/system_top.bit
 +	rm $(SDIMGDIR)/u-boot.elf
 +	rm $(SDIMGDIR)/ramdisk.image.gz 
 +	rm $(SDIMGDIR)/boot.bif
-+
-+
++	
  zip-all: $(TARGETS)
  	zip -j build/$(ZIP_ARCHIVE_PREFIX)-fw-$(VERSION).zip $^
  
-diff --git a/scripts/antsdre200.its b/scripts/antsdre200.its
+diff --git a/scripts/ant.its b/scripts/ant.its
 new file mode 100644
-index 0000000..9e9e7c5
+index 0000000..f1f9904
 --- /dev/null
-+++ b/scripts/antsdre200.its
-@@ -0,0 +1,174 @@
++++ b/scripts/ant.its
+@@ -0,0 +1,159 @@
 +/*
 + * U-Boot uImage source file with multiple kernels, ramdisks and FDT blobs
 + * This example makes use of the 'loadables' field
@@ -96,27 +124,12 @@ index 0000000..9e9e7c5
 +
 +		fdt@1 {
 +			description = "zynq-pluto-sdr";
-+			data = /incbin/("../build/zynq-antsdre200.dtb");
++			data = /incbin/("../build/zynq-ant.dtb");
 +			type = "flat_dt";
 +			arch = "arm";
 +			compression = "none";
 +		};
 +
-+		fdt@2 {
-+			description = "zynq-pluto-sdr";
-+			data = /incbin/("../build/zynq-antsdre200.dtb");
-+			type = "flat_dt";
-+			arch = "arm";
-+			compression = "none";
-+		};
-+
-+		fdt@3 {
-+			description = "zynq-pluto-sdr";
-+			data = /incbin/("../build/zynq-antsdre200.dtb");
-+			type = "flat_dt";
-+			arch = "arm";
-+			compression = "none";
-+		};
 +
 +		fpga@1 {
 +			description = "FPGA";
@@ -251,22 +264,22 @@ index 0000000..9e9e7c5
 +		};
 +	};
 +};
-diff --git a/scripts/antsdre200.mk b/scripts/antsdre200.mk
+diff --git a/scripts/ant.mk b/scripts/ant.mk
 new file mode 100644
-index 0000000..7373742
+index 0000000..00d540e
 --- /dev/null
-+++ b/scripts/antsdre200.mk
++++ b/scripts/ant.mk
 @@ -0,0 +1,10 @@
 +
 +# Target specific constants go here
 +
 +HDF_URL:=http://github.com/analogdevicesinc/plutosdr-fw/releases/download/${LATEST_TAG}/system_top.hdf
-+TARGET_DTS_FILES:= zynq-antsdre200.dtb
++TARGET_DTS_FILES:= zynq-ant.dtb 
 +COMPLETE_NAME:=ANTSDR
 +ZIP_ARCHIVE_PREFIX:=antsdr
 +DEVICE_VID:=0x0456
 +DEVICE_PID:=0xb673
 +
 -- 
-2.17.1
+2.25.1
 
