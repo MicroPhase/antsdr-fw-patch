@@ -1,7 +1,7 @@
-From 0c4049dd0bf7a7ede5838bb40e0a78ea92e2b6e5 Mon Sep 17 00:00:00 2001
+From 3a7c261e74e1628d24dda757d8866c2de3c2e5b1 Mon Sep 17 00:00:00 2001
 From: Wei Chaochen <1530604142@qq.com>
-Date: Tue, 21 Nov 2023 16:33:03 +0800
-Subject: [PATCH] add ant hdl support, bump to version v0.38
+Date: Tue, 21 Nov 2023 20:48:18 +0800
+Subject: [PATCH] 0001-add-ant-hdl-support-bump-to-version-v0.38
 
 ---
  .../axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.mdd |  10 +
@@ -14,10 +14,14 @@ Subject: [PATCH] add ant hdl support, bump to version v0.38
  .../example_designs/bfm_design/design.tcl     |  88 ++++
  .../axi_vcxo_ctrl_v1_0_hw_test.tcl            |  45 ++
  .../debug_hw_design/design.tcl                | 118 +++++
+ .../axi_vcxo_ctrl_1.0/hdl/ad5662_auto_spi.v   |  99 ++++
  .../hdl/axi_vcxo_ctrl_v1_0.v                  | 153 ++++++
  .../hdl/axi_vcxo_ctrl_v1_0_S00_AXI.v          | 458 ++++++++++++++++++
  library/axi_vcxo_ctrl_1.0/hdl/b205_ref_pll.v  | 327 +++++++++++++
  library/axi_vcxo_ctrl_1.0/hdl/ltc2630_spi.v   | 151 ++++++
+ .../axi_vcxo_ctrl_1.0/src/ad5662_auto_spi.v   |  99 ++++
+ .../src/axi_vcxo_ctrl_v1_0.v                  | 154 ++++++
+ .../src/axi_vcxo_ctrl_v1_0_S00_AXI.v          | 458 ++++++++++++++++++
  library/axi_vcxo_ctrl_1.0/src/b205_ref_pll.v  | 334 +++++++++++++
  library/axi_vcxo_ctrl_1.0/src/ltc2630_spi.v   | 151 ++++++
  projects/ant/Makefile                         |  24 +
@@ -31,11 +35,11 @@ Subject: [PATCH] add ant hdl support, bump to version v0.38
  projects/e200/system_project.tcl              |  16 +
  projects/e200/system_top.v                    | 251 ++++++++++
  projects/e310v2/Makefile                      |  25 +
- projects/e310v2/system_bd.tcl                 | 408 ++++++++++++++++
+ projects/e310v2/system_bd.tcl                 | 409 ++++++++++++++++
  projects/e310v2/system_constr.xdc             | 123 +++++
  projects/e310v2/system_project.tcl            |  16 +
  projects/e310v2/system_top.v                  | 272 +++++++++++
- 31 files changed, 4601 insertions(+)
+ 35 files changed, 5412 insertions(+)
  create mode 100644 library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.mdd
  create mode 100644 library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.tcl
  create mode 100644 library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/Makefile
@@ -46,10 +50,14 @@ Subject: [PATCH] add ant hdl support, bump to version v0.38
  create mode 100644 library/axi_vcxo_ctrl_1.0/example_designs/bfm_design/design.tcl
  create mode 100644 library/axi_vcxo_ctrl_1.0/example_designs/debug_hw_design/axi_vcxo_ctrl_v1_0_hw_test.tcl
  create mode 100644 library/axi_vcxo_ctrl_1.0/example_designs/debug_hw_design/design.tcl
+ create mode 100644 library/axi_vcxo_ctrl_1.0/hdl/ad5662_auto_spi.v
  create mode 100644 library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0.v
  create mode 100644 library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0_S00_AXI.v
  create mode 100644 library/axi_vcxo_ctrl_1.0/hdl/b205_ref_pll.v
  create mode 100644 library/axi_vcxo_ctrl_1.0/hdl/ltc2630_spi.v
+ create mode 100644 library/axi_vcxo_ctrl_1.0/src/ad5662_auto_spi.v
+ create mode 100644 library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0.v
+ create mode 100644 library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0_S00_AXI.v
  create mode 100644 library/axi_vcxo_ctrl_1.0/src/b205_ref_pll.v
  create mode 100644 library/axi_vcxo_ctrl_1.0/src/ltc2630_spi.v
  create mode 100644 projects/ant/Makefile
@@ -766,6 +774,111 @@ index 000000000..8c7ce676a
 +puts "   : source -notrace ${hw_test_file}"
 +puts "-------------------------------------------------------------------------------------------------"
 +
+diff --git a/library/axi_vcxo_ctrl_1.0/hdl/ad5662_auto_spi.v b/library/axi_vcxo_ctrl_1.0/hdl/ad5662_auto_spi.v
+new file mode 100644
+index 000000000..d9f2e53be
+--- /dev/null
++++ b/library/axi_vcxo_ctrl_1.0/hdl/ad5662_auto_spi.v
+@@ -0,0 +1,99 @@
++//
++// Copyright 2015 Ettus Research
++// Copyright 2018 Ettus Research, a National Instruments Company
++//
++// SPDX-License-Identifier: LGPL-3.0-or-later
++//
++// The AD5662 DAC serial interface uses 24-bit transfers to encode 16-bits
++// of actual data, two bits for power-down mode, and six pad bits. This
++// module stores a copy of the last-programmed value, and will generate a
++// serial stream if ever the input word (dat) changes. It will ignore
++// changes to (dat) while it is busy with a serial update.
++//
++module ad5662_auto_spi
++(
++  input clk,
++  input [15:0] dat,
++  output reg sclk,
++  output reg mosi,
++  output reg sync_n
++);
++  // initialize ldat to 0, thus forcing
++  // a reload on init.
++  reg [15:0] ldat = 16'd0;
++  wire upd = (dat != ldat); // new data present, need to update hw
++
++  reg [23:0] shft=24'b0;
++  wire [23:0] nxt_shft;
++
++  // clock cycle counter to throttle generated spi cycles
++  // allowing one spi clock cycle every 16 cycles of clk, with clk at 200 MHz
++  // gives a spi clock rate of 12 MHz. This can be made more sophisticated
++  // or parameterized, if more flexibility in clk is needed, of course.
++  reg [3:0] ccnt=4'b0;
++  wire [3:0] nxt_ccnt = ccnt + 1'b1;
++  wire half = ccnt==4'b1000;
++  wire full = ccnt==4'b1111;
++  reg sena, hena;
++  wire cena;
++  always @(posedge clk) if (cena) ccnt <= nxt_ccnt;
++  always @(posedge clk) sena <= full; // state updates and rising sclk
++  always @(posedge clk) hena <= half; // for falling sclk
++
++  // transfer state counter
++  reg [4:0] scnt = 5'b0;
++  reg [4:0] nxt_scnt;
++  always @(posedge clk) begin
++    if (sena) begin
++      scnt <= nxt_scnt;
++      shft <= nxt_shft;
++      mosi <= shft[23];
++    end
++  end
++
++
++  // 32 possible states - more than enough to shift-out 24 bits and manage
++  // the sync_n line
++
++  // particular scnt values of interest
++  localparam READY=5'b00000; // waiting for new data
++  localparam DCAPT=5'b00001; // new data transfers into ldat
++  localparam SYNCL=5'b00010; // assert sync_n low
++  localparam SYNCH=5'b11011; // return sync_n high
++
++  assign cena = upd | scnt != READY;
++
++  always @(scnt or upd)
++  begin
++    case (scnt)
++    READY:
++      nxt_scnt = upd ? DCAPT : READY;
++    SYNCH:
++      nxt_scnt = READY;
++    default:
++      nxt_scnt = scnt + 1'b1;
++    endcase
++  end
++
++  // note: defining the power-down mode bits to 00 for "normal operation"
++  assign nxt_shft = (scnt == SYNCL) ? { 8'b000000_00, ldat } : { shft[22:0], 1'b0 };
++
++  // Update ldat when dat has changed, but only if READY.
++  // Changes to dat arriving faster than can be kept up with here are ignored
++  // until the cycle-in-progress is completed.
++  wire ldat_ena = sena & (scnt == DCAPT);
++  always @(posedge clk) begin
++    if (ldat_ena) ldat <= dat;
++  end
++
++  // keep the sync_n line low when idle to minimize power consumption
++  // it gets brought high just before beginning each transaction
++  wire nxt_sync_n = (scnt==SYNCL) | (scnt==SYNCH);
++  always @(posedge clk) if (sena) sync_n <= nxt_sync_n;
++
++  reg sclk_go;
++  always @(posedge clk) sclk_go <= (scnt > SYNCL);
++  wire nxt_sclk = ~sclk_go ? 1'b1 : ~sclk;
++  always @(posedge clk) if (sena | hena) sclk <= nxt_sclk;
++
++endmodule
 diff --git a/library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0.v b/library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0.v
 new file mode 100644
 index 000000000..34934f4c6
@@ -1880,6 +1993,735 @@ index 000000000..43ee8fcc2
 +    
 +endmodule
 \ No newline at end of file
+diff --git a/library/axi_vcxo_ctrl_1.0/src/ad5662_auto_spi.v b/library/axi_vcxo_ctrl_1.0/src/ad5662_auto_spi.v
+new file mode 100644
+index 000000000..d9f2e53be
+--- /dev/null
++++ b/library/axi_vcxo_ctrl_1.0/src/ad5662_auto_spi.v
+@@ -0,0 +1,99 @@
++//
++// Copyright 2015 Ettus Research
++// Copyright 2018 Ettus Research, a National Instruments Company
++//
++// SPDX-License-Identifier: LGPL-3.0-or-later
++//
++// The AD5662 DAC serial interface uses 24-bit transfers to encode 16-bits
++// of actual data, two bits for power-down mode, and six pad bits. This
++// module stores a copy of the last-programmed value, and will generate a
++// serial stream if ever the input word (dat) changes. It will ignore
++// changes to (dat) while it is busy with a serial update.
++//
++module ad5662_auto_spi
++(
++  input clk,
++  input [15:0] dat,
++  output reg sclk,
++  output reg mosi,
++  output reg sync_n
++);
++  // initialize ldat to 0, thus forcing
++  // a reload on init.
++  reg [15:0] ldat = 16'd0;
++  wire upd = (dat != ldat); // new data present, need to update hw
++
++  reg [23:0] shft=24'b0;
++  wire [23:0] nxt_shft;
++
++  // clock cycle counter to throttle generated spi cycles
++  // allowing one spi clock cycle every 16 cycles of clk, with clk at 200 MHz
++  // gives a spi clock rate of 12 MHz. This can be made more sophisticated
++  // or parameterized, if more flexibility in clk is needed, of course.
++  reg [3:0] ccnt=4'b0;
++  wire [3:0] nxt_ccnt = ccnt + 1'b1;
++  wire half = ccnt==4'b1000;
++  wire full = ccnt==4'b1111;
++  reg sena, hena;
++  wire cena;
++  always @(posedge clk) if (cena) ccnt <= nxt_ccnt;
++  always @(posedge clk) sena <= full; // state updates and rising sclk
++  always @(posedge clk) hena <= half; // for falling sclk
++
++  // transfer state counter
++  reg [4:0] scnt = 5'b0;
++  reg [4:0] nxt_scnt;
++  always @(posedge clk) begin
++    if (sena) begin
++      scnt <= nxt_scnt;
++      shft <= nxt_shft;
++      mosi <= shft[23];
++    end
++  end
++
++
++  // 32 possible states - more than enough to shift-out 24 bits and manage
++  // the sync_n line
++
++  // particular scnt values of interest
++  localparam READY=5'b00000; // waiting for new data
++  localparam DCAPT=5'b00001; // new data transfers into ldat
++  localparam SYNCL=5'b00010; // assert sync_n low
++  localparam SYNCH=5'b11011; // return sync_n high
++
++  assign cena = upd | scnt != READY;
++
++  always @(scnt or upd)
++  begin
++    case (scnt)
++    READY:
++      nxt_scnt = upd ? DCAPT : READY;
++    SYNCH:
++      nxt_scnt = READY;
++    default:
++      nxt_scnt = scnt + 1'b1;
++    endcase
++  end
++
++  // note: defining the power-down mode bits to 00 for "normal operation"
++  assign nxt_shft = (scnt == SYNCL) ? { 8'b000000_00, ldat } : { shft[22:0], 1'b0 };
++
++  // Update ldat when dat has changed, but only if READY.
++  // Changes to dat arriving faster than can be kept up with here are ignored
++  // until the cycle-in-progress is completed.
++  wire ldat_ena = sena & (scnt == DCAPT);
++  always @(posedge clk) begin
++    if (ldat_ena) ldat <= dat;
++  end
++
++  // keep the sync_n line low when idle to minimize power consumption
++  // it gets brought high just before beginning each transaction
++  wire nxt_sync_n = (scnt==SYNCL) | (scnt==SYNCH);
++  always @(posedge clk) if (sena) sync_n <= nxt_sync_n;
++
++  reg sclk_go;
++  always @(posedge clk) sclk_go <= (scnt > SYNCL);
++  wire nxt_sclk = ~sclk_go ? 1'b1 : ~sclk;
++  always @(posedge clk) if (sena | hena) sclk <= nxt_sclk;
++
++endmodule
+diff --git a/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0.v b/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0.v
+new file mode 100644
+index 000000000..c22d2b9b6
+--- /dev/null
++++ b/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0.v
+@@ -0,0 +1,154 @@
++
++`timescale 1 ns / 1 ps
++
++	module axi_vcxo_ctrl_v1_0 #
++	(
++		// Users to add parameters here
++		parameter DEVICE="LTC2630",
++
++		// User parameters ends
++		// Do not modify the parameters beyond this line
++
++
++		// Parameters of Axi Slave Bus Interface S00_AXI
++		parameter integer C_S00_AXI_DATA_WIDTH	= 32,
++		parameter integer C_S00_AXI_ADDR_WIDTH	= 5
++	)
++	(
++		// Users to add ports here
++		input  wire	 			CLK_40MHz_FPGA  ,
++		// PPS or 10 MHz (need to choose from SW)
++		input  wire             PPS_IN          ,
++		input  wire             CLKIN_10MHz     ,
++		input  wire             PPS_GPS         ,
++		output wire             PPS_LED         ,
++		output wire             PPS_LOCKED      ,
++		output wire             REF_10M_LOCKED  ,
++		output wire             CLK_40M_DAC_nSYNC,
++		output wire             CLK_40M_DAC_SCLK ,
++		output wire             CLK_40M_DAC_DIN ,
++
++		// User ports ends
++		// Do not modify the ports beyond this line
++
++
++		// Ports of Axi Slave Bus Interface S00_AXI
++		input wire  s00_axi_aclk,
++		input wire  s00_axi_aresetn,
++		input wire [C_S00_AXI_ADDR_WIDTH-1 : 0] s00_axi_awaddr,
++		input wire [2 : 0] s00_axi_awprot,
++		input wire  s00_axi_awvalid,
++		output wire  s00_axi_awready,
++		input wire [C_S00_AXI_DATA_WIDTH-1 : 0] s00_axi_wdata,
++		input wire [(C_S00_AXI_DATA_WIDTH/8)-1 : 0] s00_axi_wstrb,
++		input wire  s00_axi_wvalid,
++		output wire  s00_axi_wready,
++		output wire [1 : 0] s00_axi_bresp,
++		output wire  s00_axi_bvalid,
++		input wire  s00_axi_bready,
++		input wire [C_S00_AXI_ADDR_WIDTH-1 : 0] s00_axi_araddr,
++		input wire [2 : 0] s00_axi_arprot,
++		input wire  s00_axi_arvalid,
++		output wire  s00_axi_arready,
++		output wire [C_S00_AXI_DATA_WIDTH-1 : 0] s00_axi_rdata,
++		output wire [1 : 0] s00_axi_rresp,
++		output wire  s00_axi_rvalid,
++		input wire  s00_axi_rready
++	);
++
++
++	wire  	[0:0]	dac_mode 			;
++	wire 	[15:0]	dac_user_set_value	;
++	wire 	[15:0]	dac_dyn_value 		;
++	wire  	[1:0]	dac_ref_sel 		;
++	wire 			dac_locked 			;
++
++	wire 		clk_200M;
++	wire 		clk_40M;
++	wire 		plllck;
++	wire 		ref_sync 	;
++	wire 		ref_ext_pll_locked;
++	wire 		ref_is_10M;
++	wire 		ref_is_pps;
++	wire [15:0]	dyn_dac_value	;
++
++
++// Instantiation of Axi Bus Interface S00_AXI
++	axi_vcxo_ctrl_v1_0_S00_AXI # ( 
++		.C_S_AXI_DATA_WIDTH(C_S00_AXI_DATA_WIDTH),
++		.C_S_AXI_ADDR_WIDTH(C_S00_AXI_ADDR_WIDTH)
++	) axi_vcxo_ctrl_v1_0_S00_AXI_inst (
++		.dac_mode(dac_mode) 			,
++		.dac_user_set_value(dac_user_set_value)	,
++		.dac_dyn_value(dac_dyn_value) 		,
++		.dac_ref_sel(dac_ref_sel) 		,
++		.dac_locked(ref_ext_pll_locked) 			,
++		.S_AXI_ACLK(s00_axi_aclk),
++		.S_AXI_ARESETN(s00_axi_aresetn),
++		.S_AXI_AWADDR(s00_axi_awaddr),
++		.S_AXI_AWPROT(s00_axi_awprot),
++		.S_AXI_AWVALID(s00_axi_awvalid),
++		.S_AXI_AWREADY(s00_axi_awready),
++		.S_AXI_WDATA(s00_axi_wdata),
++		.S_AXI_WSTRB(s00_axi_wstrb),
++		.S_AXI_WVALID(s00_axi_wvalid),
++		.S_AXI_WREADY(s00_axi_wready),
++		.S_AXI_BRESP(s00_axi_bresp),
++		.S_AXI_BVALID(s00_axi_bvalid),
++		.S_AXI_BREADY(s00_axi_bready),
++		.S_AXI_ARADDR(s00_axi_araddr),
++		.S_AXI_ARPROT(s00_axi_arprot),
++		.S_AXI_ARVALID(s00_axi_arvalid),
++		.S_AXI_ARREADY(s00_axi_arready),
++		.S_AXI_RDATA(s00_axi_rdata),
++		.S_AXI_RRESP(s00_axi_rresp),
++		.S_AXI_RVALID(s00_axi_rvalid),
++		.S_AXI_RREADY(s00_axi_rready)
++	);
++
++	// Add user logic here
++	
++
++	assign REF_10M_LOCKED = ref_ext_pll_locked & ref_is_10M;
++	assign PPS_LOCKED = ref_ext_pll_locked & ref_is_pps;
++	assign ref_sync = (dac_ref_sel==2'b00) ? CLKIN_10MHz :
++					  (dac_ref_sel==2'b01) ? PPS_IN :
++					  (dac_ref_sel==2'b10) ? PPS_GPS: 1'b0;
++
++	PLLE2_ADV #(.BANDWIDTH("OPTIMIZED"), .COMPENSATION("INTERNAL"),
++		.DIVCLK_DIVIDE(1),
++		.CLKFBOUT_MULT(30),
++		.CLKOUT0_DIVIDE(6),
++		.CLKOUT1_DIVIDE(30),
++		.CLKIN1_PERIOD(25.0)
++	)
++	clkgen (
++		.PWRDWN(1'b0), .RST(1'b0),
++		.CLKIN1(CLK_40MHz_FPGA),
++		.CLKOUT0(clk_200M),
++		.CLKOUT1(clk_40M),
++		.LOCKED(plllck)
++	);
++
++	b205_ref_pll#(
++		.DEVICE(DEVICE )
++	)u_b205_ref_pll(
++		.reset      ( ~plllck    ),
++		.clk        ( clk_200M   ),
++		.refclk     ( clk_40M    ),
++		.ref        ( ref_sync        ),
++		.locked     ( ref_ext_pll_locked     ),
++		.ref_is_10M ( ref_is_10M ),
++		.ref_is_pps ( ref_is_pps ),
++		.dac_mode   ( dac_mode   ),
++		.dyn_dac    ( dyn_dac_value    ),
++		.dac_dft    ( 16'd42580	),
++		.dac_user_set_value(dac_user_set_value),
++		.sclk       ( CLK_40M_DAC_SCLK       ),
++		.mosi       ( CLK_40M_DAC_DIN       ),
++		.sync_n     ( CLK_40M_DAC_nSYNC     )
++	);
++
++	// User logic ends
++
++	endmodule
+diff --git a/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0_S00_AXI.v b/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0_S00_AXI.v
+new file mode 100644
+index 000000000..22ebf7eb8
+--- /dev/null
++++ b/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0_S00_AXI.v
+@@ -0,0 +1,458 @@
++
++`timescale 1 ns / 1 ps
++
++	module axi_vcxo_ctrl_v1_0_S00_AXI #
++	(
++		// Users to add parameters here
++
++		// User parameters ends
++		// Do not modify the parameters beyond this line
++
++		// Width of S_AXI data bus
++		parameter integer C_S_AXI_DATA_WIDTH	= 32,
++		// Width of S_AXI address bus
++		parameter integer C_S_AXI_ADDR_WIDTH	= 5
++	)
++	(
++		// Users to add ports here
++		output 	wire  	[0:0]	dac_mode 			,
++		output 	wire 	[15:0]	dac_user_set_value	,
++		input 	wire 	[15:0]	dac_dyn_value 		,
++		output 	wire  	[1:0]	dac_ref_sel 		,
++		input 	wire 			dac_locked 			,
++
++		// User ports ends
++		// Do not modify the ports beyond this line
++
++		// Global Clock Signal
++		input wire  S_AXI_ACLK,
++		// Global Reset Signal. This Signal is Active LOW
++		input wire  S_AXI_ARESETN,
++		// Write address (issued by master, acceped by Slave)
++		input wire [C_S_AXI_ADDR_WIDTH-1 : 0] S_AXI_AWADDR,
++		// Write channel Protection type. This signal indicates the
++    		// privilege and security level of the transaction, and whether
++    		// the transaction is a data access or an instruction access.
++		input wire [2 : 0] S_AXI_AWPROT,
++		// Write address valid. This signal indicates that the master signaling
++    		// valid write address and control information.
++		input wire  S_AXI_AWVALID,
++		// Write address ready. This signal indicates that the slave is ready
++    		// to accept an address and associated control signals.
++		output wire  S_AXI_AWREADY,
++		// Write data (issued by master, acceped by Slave) 
++		input wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_WDATA,
++		// Write strobes. This signal indicates which byte lanes hold
++    		// valid data. There is one write strobe bit for each eight
++    		// bits of the write data bus.    
++		input wire [(C_S_AXI_DATA_WIDTH/8)-1 : 0] S_AXI_WSTRB,
++		// Write valid. This signal indicates that valid write
++    		// data and strobes are available.
++		input wire  S_AXI_WVALID,
++		// Write ready. This signal indicates that the slave
++    		// can accept the write data.
++		output wire  S_AXI_WREADY,
++		// Write response. This signal indicates the status
++    		// of the write transaction.
++		output wire [1 : 0] S_AXI_BRESP,
++		// Write response valid. This signal indicates that the channel
++    		// is signaling a valid write response.
++		output wire  S_AXI_BVALID,
++		// Response ready. This signal indicates that the master
++    		// can accept a write response.
++		input wire  S_AXI_BREADY,
++		// Read address (issued by master, acceped by Slave)
++		input wire [C_S_AXI_ADDR_WIDTH-1 : 0] S_AXI_ARADDR,
++		// Protection type. This signal indicates the privilege
++    		// and security level of the transaction, and whether the
++    		// transaction is a data access or an instruction access.
++		input wire [2 : 0] S_AXI_ARPROT,
++		// Read address valid. This signal indicates that the channel
++    		// is signaling valid read address and control information.
++		input wire  S_AXI_ARVALID,
++		// Read address ready. This signal indicates that the slave is
++    		// ready to accept an address and associated control signals.
++		output wire  S_AXI_ARREADY,
++		// Read data (issued by slave)
++		output wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
++		// Read response. This signal indicates the status of the
++    		// read transfer.
++		output wire [1 : 0] S_AXI_RRESP,
++		// Read valid. This signal indicates that the channel is
++    		// signaling the required read data.
++		output wire  S_AXI_RVALID,
++		// Read ready. This signal indicates that the master can
++    		// accept the read data and response information.
++		input wire  S_AXI_RREADY
++	);
++
++	// AXI4LITE signals
++	reg [C_S_AXI_ADDR_WIDTH-1 : 0] 	axi_awaddr;
++	reg  	axi_awready;
++	reg  	axi_wready;
++	reg [1 : 0] 	axi_bresp;
++	reg  	axi_bvalid;
++	reg [C_S_AXI_ADDR_WIDTH-1 : 0] 	axi_araddr;
++	reg  	axi_arready;
++	reg [C_S_AXI_DATA_WIDTH-1 : 0] 	axi_rdata;
++	reg [1 : 0] 	axi_rresp;
++	reg  	axi_rvalid;
++
++	// Example-specific design signals
++	// local parameter for addressing 32 bit / 64 bit C_S_AXI_DATA_WIDTH
++	// ADDR_LSB is used for addressing 32/64 bit registers/memories
++	// ADDR_LSB = 2 for 32 bits (n downto 2)
++	// ADDR_LSB = 3 for 64 bits (n downto 3)
++	localparam integer ADDR_LSB = (C_S_AXI_DATA_WIDTH/32) + 1;
++	localparam integer OPT_MEM_ADDR_BITS = 2;
++	//----------------------------------------------
++	//-- Signals for user logic register space example
++	//------------------------------------------------
++	//-- Number of Slave Registers 8
++	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg0;
++	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg1;
++	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg2;
++	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg3;
++	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg4;
++	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg5;
++	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg6;
++	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg7;
++	wire	 slv_reg_rden;
++	wire	 slv_reg_wren;
++	reg [C_S_AXI_DATA_WIDTH-1:0]	 reg_data_out;
++	integer	 byte_index;
++	reg	 aw_en;
++
++	// I/O Connections assignments
++
++	assign S_AXI_AWREADY	= axi_awready;
++	assign S_AXI_WREADY	= axi_wready;
++	assign S_AXI_BRESP	= axi_bresp;
++	assign S_AXI_BVALID	= axi_bvalid;
++	assign S_AXI_ARREADY	= axi_arready;
++	assign S_AXI_RDATA	= axi_rdata;
++	assign S_AXI_RRESP	= axi_rresp;
++	assign S_AXI_RVALID	= axi_rvalid;
++	// Implement axi_awready generation
++	// axi_awready is asserted for one S_AXI_ACLK clock cycle when both
++	// S_AXI_AWVALID and S_AXI_WVALID are asserted. axi_awready is
++	// de-asserted when reset is low.
++
++	always @( posedge S_AXI_ACLK )
++	begin
++	  if ( S_AXI_ARESETN == 1'b0 )
++	    begin
++	      axi_awready <= 1'b0;
++	      aw_en <= 1'b1;
++	    end 
++	  else
++	    begin    
++	      if (~axi_awready && S_AXI_AWVALID && S_AXI_WVALID && aw_en)
++	        begin
++	          // slave is ready to accept write address when 
++	          // there is a valid write address and write data
++	          // on the write address and data bus. This design 
++	          // expects no outstanding transactions. 
++	          axi_awready <= 1'b1;
++	          aw_en <= 1'b0;
++	        end
++	        else if (S_AXI_BREADY && axi_bvalid)
++	            begin
++	              aw_en <= 1'b1;
++	              axi_awready <= 1'b0;
++	            end
++	      else           
++	        begin
++	          axi_awready <= 1'b0;
++	        end
++	    end 
++	end       
++
++	// Implement axi_awaddr latching
++	// This process is used to latch the address when both 
++	// S_AXI_AWVALID and S_AXI_WVALID are valid. 
++
++	always @( posedge S_AXI_ACLK )
++	begin
++	  if ( S_AXI_ARESETN == 1'b0 )
++	    begin
++	      axi_awaddr <= 0;
++	    end 
++	  else
++	    begin    
++	      if (~axi_awready && S_AXI_AWVALID && S_AXI_WVALID && aw_en)
++	        begin
++	          // Write Address latching 
++	          axi_awaddr <= S_AXI_AWADDR;
++	        end
++	    end 
++	end       
++
++	// Implement axi_wready generation
++	// axi_wready is asserted for one S_AXI_ACLK clock cycle when both
++	// S_AXI_AWVALID and S_AXI_WVALID are asserted. axi_wready is 
++	// de-asserted when reset is low. 
++
++	always @( posedge S_AXI_ACLK )
++	begin
++	  if ( S_AXI_ARESETN == 1'b0 )
++	    begin
++	      axi_wready <= 1'b0;
++	    end 
++	  else
++	    begin    
++	      if (~axi_wready && S_AXI_WVALID && S_AXI_AWVALID && aw_en )
++	        begin
++	          // slave is ready to accept write data when 
++	          // there is a valid write address and write data
++	          // on the write address and data bus. This design 
++	          // expects no outstanding transactions. 
++	          axi_wready <= 1'b1;
++	        end
++	      else
++	        begin
++	          axi_wready <= 1'b0;
++	        end
++	    end 
++	end       
++
++	// Implement memory mapped register select and write logic generation
++	// The write data is accepted and written to memory mapped registers when
++	// axi_awready, S_AXI_WVALID, axi_wready and S_AXI_WVALID are asserted. Write strobes are used to
++	// select byte enables of slave registers while writing.
++	// These registers are cleared when reset (active low) is applied.
++	// Slave register write enable is asserted when valid address and data are available
++	// and the slave is ready to accept the write address and write data.
++	assign slv_reg_wren = axi_wready && S_AXI_WVALID && axi_awready && S_AXI_AWVALID;
++
++	always @( posedge S_AXI_ACLK )
++	begin
++	  if ( S_AXI_ARESETN == 1'b0 )
++	    begin
++	      slv_reg0 <= 0;
++	      slv_reg1 <= 0;
++	      slv_reg2 <= 0;
++	      slv_reg3 <= 0;
++	      slv_reg4 <= 0;
++	      slv_reg5 <= 0;
++	      slv_reg6 <= 0;
++	      slv_reg7 <= 0;
++	    end 
++	  else begin
++	    if (slv_reg_wren)
++	      begin
++	        case ( axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
++	          3'h0:
++	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
++	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
++	                // Respective byte enables are asserted as per write strobes 
++	                // Slave register 0
++	                slv_reg0[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
++	              end  
++	          3'h1:
++	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
++	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
++	                // Respective byte enables are asserted as per write strobes 
++	                // Slave register 1
++	                slv_reg1[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
++	              end  
++	          3'h2:
++	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
++	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
++	                // Respective byte enables are asserted as per write strobes 
++	                // Slave register 2
++	                slv_reg2[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
++	              end  
++	          3'h3:
++	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
++	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
++	                // Respective byte enables are asserted as per write strobes 
++	                // Slave register 3
++	                slv_reg3[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
++	              end  
++	          3'h4:
++	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
++	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
++	                // Respective byte enables are asserted as per write strobes 
++	                // Slave register 4
++	                slv_reg4[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
++	              end  
++	          3'h5:
++	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
++	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
++	                // Respective byte enables are asserted as per write strobes 
++	                // Slave register 5
++	                slv_reg5[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
++	              end  
++	          3'h6:
++	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
++	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
++	                // Respective byte enables are asserted as per write strobes 
++	                // Slave register 6
++	                slv_reg6[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
++	              end  
++	          3'h7:
++	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
++	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
++	                // Respective byte enables are asserted as per write strobes 
++	                // Slave register 7
++	                slv_reg7[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
++	              end  
++	          default : begin
++	                      slv_reg0 <= slv_reg0;
++	                      slv_reg1 <= slv_reg1;
++	                      slv_reg2 <= slv_reg2;
++	                      slv_reg3 <= slv_reg3;
++	                      slv_reg4 <= slv_reg4;
++	                      slv_reg5 <= slv_reg5;
++	                      slv_reg6 <= slv_reg6;
++	                      slv_reg7 <= slv_reg7;
++	                    end
++	        endcase
++	      end
++	  end
++	end    
++
++	// Implement write response logic generation
++	// The write response and response valid signals are asserted by the slave 
++	// when axi_wready, S_AXI_WVALID, axi_wready and S_AXI_WVALID are asserted.  
++	// This marks the acceptance of address and indicates the status of 
++	// write transaction.
++
++	always @( posedge S_AXI_ACLK )
++	begin
++	  if ( S_AXI_ARESETN == 1'b0 )
++	    begin
++	      axi_bvalid  <= 0;
++	      axi_bresp   <= 2'b0;
++	    end 
++	  else
++	    begin    
++	      if (axi_awready && S_AXI_AWVALID && ~axi_bvalid && axi_wready && S_AXI_WVALID)
++	        begin
++	          // indicates a valid write response is available
++	          axi_bvalid <= 1'b1;
++	          axi_bresp  <= 2'b0; // 'OKAY' response 
++	        end                   // work error responses in future
++	      else
++	        begin
++	          if (S_AXI_BREADY && axi_bvalid) 
++	            //check if bready is asserted while bvalid is high) 
++	            //(there is a possibility that bready is always asserted high)   
++	            begin
++	              axi_bvalid <= 1'b0; 
++	            end  
++	        end
++	    end
++	end   
++
++	// Implement axi_arready generation
++	// axi_arready is asserted for one S_AXI_ACLK clock cycle when
++	// S_AXI_ARVALID is asserted. axi_awready is 
++	// de-asserted when reset (active low) is asserted. 
++	// The read address is also latched when S_AXI_ARVALID is 
++	// asserted. axi_araddr is reset to zero on reset assertion.
++
++	always @( posedge S_AXI_ACLK )
++	begin
++	  if ( S_AXI_ARESETN == 1'b0 )
++	    begin
++	      axi_arready <= 1'b0;
++	      axi_araddr  <= 32'b0;
++	    end 
++	  else
++	    begin    
++	      if (~axi_arready && S_AXI_ARVALID)
++	        begin
++	          // indicates that the slave has acceped the valid read address
++	          axi_arready <= 1'b1;
++	          // Read address latching
++	          axi_araddr  <= S_AXI_ARADDR;
++	        end
++	      else
++	        begin
++	          axi_arready <= 1'b0;
++	        end
++	    end 
++	end       
++
++	// Implement axi_arvalid generation
++	// axi_rvalid is asserted for one S_AXI_ACLK clock cycle when both 
++	// S_AXI_ARVALID and axi_arready are asserted. The slave registers 
++	// data are available on the axi_rdata bus at this instance. The 
++	// assertion of axi_rvalid marks the validity of read data on the 
++	// bus and axi_rresp indicates the status of read transaction.axi_rvalid 
++	// is deasserted on reset (active low). axi_rresp and axi_rdata are 
++	// cleared to zero on reset (active low).  
++	always @( posedge S_AXI_ACLK )
++	begin
++	  if ( S_AXI_ARESETN == 1'b0 )
++	    begin
++	      axi_rvalid <= 0;
++	      axi_rresp  <= 0;
++	    end 
++	  else
++	    begin    
++	      if (axi_arready && S_AXI_ARVALID && ~axi_rvalid)
++	        begin
++	          // Valid read data is available at the read data bus
++	          axi_rvalid <= 1'b1;
++	          axi_rresp  <= 2'b0; // 'OKAY' response
++	        end   
++	      else if (axi_rvalid && S_AXI_RREADY)
++	        begin
++	          // Read data is accepted by the master
++	          axi_rvalid <= 1'b0;
++	        end                
++	    end
++	end    
++
++	// Implement memory mapped register select and read logic generation
++	// Slave register read enable is asserted when valid address is available
++	// and the slave is ready to accept the read address.
++	assign slv_reg_rden = axi_arready & S_AXI_ARVALID & ~axi_rvalid;
++	always @(*)
++	begin
++	      // Address decoding for reading registers
++	      case ( axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
++	        3'h0   : reg_data_out <= slv_reg0;
++	        3'h1   : reg_data_out <= slv_reg1;
++	        3'h2   : reg_data_out <= dac_dyn_value;
++	        3'h3   : reg_data_out <= slv_reg3;
++	        3'h4   : reg_data_out <= dac_locked;
++	        3'h5   : reg_data_out <= slv_reg5;
++	        3'h6   : reg_data_out <= slv_reg6;
++	        3'h7   : reg_data_out <= slv_reg7;
++	        default : reg_data_out <= 0;
++	      endcase
++	end
++
++	// Output register or memory read data
++	always @( posedge S_AXI_ACLK )
++	begin
++	  if ( S_AXI_ARESETN == 1'b0 )
++	    begin
++	      axi_rdata  <= 0;
++	    end 
++	  else
++	    begin    
++	      // When there is a valid read address (S_AXI_ARVALID) with 
++	      // acceptance of read address by the slave (axi_arready), 
++	      // output the read dada 
++	      if (slv_reg_rden)
++	        begin
++	          axi_rdata <= reg_data_out;     // register read data
++	        end   
++	    end
++	end    
++
++	// Add user logic here
++	assign dac_mode = slv_reg0[0];
++	assign dac_user_set_value = slv_reg1[15:0];
++	assign dac_ref_sel = slv_reg3[1:0];
++	
++	
++
++	// User logic ends
++
++	endmodule
 diff --git a/library/axi_vcxo_ctrl_1.0/src/b205_ref_pll.v b/library/axi_vcxo_ctrl_1.0/src/b205_ref_pll.v
 new file mode 100644
 index 000000000..666c125c4
@@ -2410,7 +3252,7 @@ index 000000000..4a1ad7e0f
 +include ../scripts/project-xilinx.mk
 diff --git a/projects/ant/system_bd.tcl b/projects/ant/system_bd.tcl
 new file mode 100644
-index 000000000..e3e11b600
+index 000000000..ad924fcc1
 --- /dev/null
 +++ b/projects/ant/system_bd.tcl
 @@ -0,0 +1,376 @@
@@ -2418,7 +3260,7 @@ index 000000000..e3e11b600
 +
 +source $ad_hdl_dir/projects/common/xilinx/adi_fir_filter_bd.tcl
 +source $ad_hdl_dir/library/axi_tdd/scripts/axi_tdd.tcl
-+set_property  ip_repo_paths  { ../../library/} [current_project]
++set_property  ip_repo_paths  $ad_hdl_dir/library/ [current_project]
 +update_ip_catalog
 +
 +# default ports
@@ -3180,7 +4022,7 @@ index 000000000..1c9b4f2f4
 +include ../scripts/project-xilinx.mk
 diff --git a/projects/e200/system_bd.tcl b/projects/e200/system_bd.tcl
 new file mode 100644
-index 000000000..5f702b8e7
+index 000000000..9926d22a7
 --- /dev/null
 +++ b/projects/e200/system_bd.tcl
 @@ -0,0 +1,406 @@
@@ -3188,7 +4030,7 @@ index 000000000..5f702b8e7
 +
 +source $ad_hdl_dir/projects/common/xilinx/adi_fir_filter_bd.tcl
 +source $ad_hdl_dir/library/axi_tdd/scripts/axi_tdd.tcl
-+set_property  ip_repo_paths  { ../../library/} [current_project]
++set_property  ip_repo_paths  $ad_hdl_dir/library/ [current_project]
 +update_ip_catalog
 +
 +# default ports
@@ -4016,15 +4858,15 @@ index 000000000..8e5455c2d
 +include ../scripts/project-xilinx.mk
 diff --git a/projects/e310v2/system_bd.tcl b/projects/e310v2/system_bd.tcl
 new file mode 100644
-index 000000000..56d4632bc
+index 000000000..404c2cad3
 --- /dev/null
 +++ b/projects/e310v2/system_bd.tcl
-@@ -0,0 +1,408 @@
+@@ -0,0 +1,409 @@
 +# create board design
 +
 +source $ad_hdl_dir/projects/common/xilinx/adi_fir_filter_bd.tcl
 +source $ad_hdl_dir/library/axi_tdd/scripts/axi_tdd.tcl
-+set_property  ip_repo_paths  { ../../library/} [current_project]
++set_property  ip_repo_paths  $ad_hdl_dir/library/ [current_project]
 +update_ip_catalog
 +
 +# default ports
@@ -4146,6 +4988,7 @@ index 000000000..56d4632bc
 +
 +
 +set axi_vcxo_ctrl [ create_bd_cell -type ip -vlnv user.org:user:axi_vcxo_ctrl:1.0 axi_vcxo_ctrl ]
++ad_ip_parameter axi_vcxo_ctrl CONFIG.DEVICE "AD5660"
 +ad_connect axi_vcxo_ctrl/CLK_40M_DAC_DIN CLK_40M_DAC_DIN
 +ad_connect axi_vcxo_ctrl/CLK_40M_DAC_SCLK CLK_40M_DAC_SCLK
 +ad_connect axi_vcxo_ctrl/CLK_40M_DAC_nSYNC CLK_40M_DAC_nSYNC
