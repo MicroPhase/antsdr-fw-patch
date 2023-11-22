@@ -1,65 +1,41 @@
-From 3a7c261e74e1628d24dda757d8866c2de3c2e5b1 Mon Sep 17 00:00:00 2001
+From 3d3aec3756d7b95dba0e2dbe8cbf773e32966174 Mon Sep 17 00:00:00 2001
 From: Wei Chaochen <1530604142@qq.com>
-Date: Tue, 21 Nov 2023 20:48:18 +0800
-Subject: [PATCH] 0001-add-ant-hdl-support-bump-to-version-v0.38
+Date: Wed, 22 Nov 2023 10:30:53 +0800
+Subject: [PATCH] add ant hdl support bump to version v0.38
 
 ---
- .../axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.mdd |  10 +
- .../axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.tcl |   5 +
- .../drivers/axi_vcxo_ctrl_v1_0/src/Makefile   |  26 +
- .../axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl.c    |   6 +
- .../axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl.h    |  83 ++++
- .../src/axi_vcxo_ctrl_selftest.c              |  60 +++
- .../bfm_design/axi_vcxo_ctrl_v1_0_tb.sv       | 197 ++++++++
- .../example_designs/bfm_design/design.tcl     |  88 ++++
- .../axi_vcxo_ctrl_v1_0_hw_test.tcl            |  45 ++
- .../debug_hw_design/design.tcl                | 118 +++++
- .../axi_vcxo_ctrl_1.0/hdl/ad5662_auto_spi.v   |  99 ++++
- .../hdl/axi_vcxo_ctrl_v1_0.v                  | 153 ++++++
- .../hdl/axi_vcxo_ctrl_v1_0_S00_AXI.v          | 458 ++++++++++++++++++
- library/axi_vcxo_ctrl_1.0/hdl/b205_ref_pll.v  | 327 +++++++++++++
- library/axi_vcxo_ctrl_1.0/hdl/ltc2630_spi.v   | 151 ++++++
- .../axi_vcxo_ctrl_1.0/src/ad5662_auto_spi.v   |  99 ++++
- .../src/axi_vcxo_ctrl_v1_0.v                  | 154 ++++++
- .../src/axi_vcxo_ctrl_v1_0_S00_AXI.v          | 458 ++++++++++++++++++
- library/axi_vcxo_ctrl_1.0/src/b205_ref_pll.v  | 334 +++++++++++++
- library/axi_vcxo_ctrl_1.0/src/ltc2630_spi.v   | 151 ++++++
+ library/axi_vcxo_ctrl/component.xml           | 911 ++++++++++++++++++
+ library/axi_vcxo_ctrl/src/ad5662_auto_spi.v   |  99 ++
+ .../axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v    | 154 +++
+ .../src/axi_vcxo_ctrl_v1_0_S00_AXI.v          | 458 +++++++++
+ library/axi_vcxo_ctrl/src/b205_ref_pll.v      | 334 +++++++
+ library/axi_vcxo_ctrl/src/ltc2630_spi.v       | 151 +++
+ .../axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0.tcl |  55 ++
+ .../xgui/axi_vcxo_ctrl_v1_0_v1_0.tcl          |  55 ++
  projects/ant/Makefile                         |  24 +
- projects/ant/system_bd.tcl                    | 376 ++++++++++++++
- projects/ant/system_constr.xdc                |  91 ++++
+ projects/ant/system_bd.tcl                    | 376 ++++++++
+ projects/ant/system_constr.xdc                |  91 ++
  projects/ant/system_project.tcl               |  15 +
- projects/ant/system_top.v                     | 233 +++++++++
+ projects/ant/system_top.v                     | 233 +++++
  projects/e200/Makefile                        |  25 +
- projects/e200/system_bd.tcl                   | 406 ++++++++++++++++
- projects/e200/system_constr.xdc               | 108 +++++
+ projects/e200/system_bd.tcl                   | 406 ++++++++
+ projects/e200/system_constr.xdc               | 108 +++
  projects/e200/system_project.tcl              |  16 +
- projects/e200/system_top.v                    | 251 ++++++++++
+ projects/e200/system_top.v                    | 251 +++++
  projects/e310v2/Makefile                      |  25 +
- projects/e310v2/system_bd.tcl                 | 409 ++++++++++++++++
- projects/e310v2/system_constr.xdc             | 123 +++++
+ projects/e310v2/system_bd.tcl                 | 409 ++++++++
+ projects/e310v2/system_constr.xdc             | 123 +++
  projects/e310v2/system_project.tcl            |  16 +
- projects/e310v2/system_top.v                  | 272 +++++++++++
- 35 files changed, 5412 insertions(+)
- create mode 100644 library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.mdd
- create mode 100644 library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.tcl
- create mode 100644 library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/Makefile
- create mode 100644 library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl.c
- create mode 100644 library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl.h
- create mode 100644 library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl_selftest.c
- create mode 100644 library/axi_vcxo_ctrl_1.0/example_designs/bfm_design/axi_vcxo_ctrl_v1_0_tb.sv
- create mode 100644 library/axi_vcxo_ctrl_1.0/example_designs/bfm_design/design.tcl
- create mode 100644 library/axi_vcxo_ctrl_1.0/example_designs/debug_hw_design/axi_vcxo_ctrl_v1_0_hw_test.tcl
- create mode 100644 library/axi_vcxo_ctrl_1.0/example_designs/debug_hw_design/design.tcl
- create mode 100644 library/axi_vcxo_ctrl_1.0/hdl/ad5662_auto_spi.v
- create mode 100644 library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0.v
- create mode 100644 library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0_S00_AXI.v
- create mode 100644 library/axi_vcxo_ctrl_1.0/hdl/b205_ref_pll.v
- create mode 100644 library/axi_vcxo_ctrl_1.0/hdl/ltc2630_spi.v
- create mode 100644 library/axi_vcxo_ctrl_1.0/src/ad5662_auto_spi.v
- create mode 100644 library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0.v
- create mode 100644 library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0_S00_AXI.v
- create mode 100644 library/axi_vcxo_ctrl_1.0/src/b205_ref_pll.v
- create mode 100644 library/axi_vcxo_ctrl_1.0/src/ltc2630_spi.v
+ projects/e310v2/system_top.v                  | 272 ++++++
+ 23 files changed, 4607 insertions(+)
+ create mode 100644 library/axi_vcxo_ctrl/component.xml
+ create mode 100644 library/axi_vcxo_ctrl/src/ad5662_auto_spi.v
+ create mode 100644 library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v
+ create mode 100644 library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0_S00_AXI.v
+ create mode 100644 library/axi_vcxo_ctrl/src/b205_ref_pll.v
+ create mode 100644 library/axi_vcxo_ctrl/src/ltc2630_spi.v
+ create mode 100644 library/axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0.tcl
+ create mode 100644 library/axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0_v1_0.tcl
  create mode 100644 projects/ant/Makefile
  create mode 100644 projects/ant/system_bd.tcl
  create mode 100644 projects/ant/system_constr.xdc
@@ -76,709 +52,928 @@ Subject: [PATCH] 0001-add-ant-hdl-support-bump-to-version-v0.38
  create mode 100644 projects/e310v2/system_project.tcl
  create mode 100644 projects/e310v2/system_top.v
 
-diff --git a/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.mdd b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.mdd
+diff --git a/library/axi_vcxo_ctrl/component.xml b/library/axi_vcxo_ctrl/component.xml
 new file mode 100644
-index 000000000..6d1e57326
+index 000000000..145d3f643
 --- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.mdd
-@@ -0,0 +1,10 @@
-+
-+
-+OPTION psf_version = 2.1;
-+
-+BEGIN DRIVER axi_vcxo_ctrl
-+	OPTION supported_peripherals = (axi_vcxo_ctrl);
-+	OPTION copyfiles = all;
-+	OPTION VERSION = 1.0;
-+	OPTION NAME = axi_vcxo_ctrl;
-+END DRIVER
-diff --git a/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.tcl b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.tcl
-new file mode 100644
-index 000000000..8a6c5c3ff
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/data/axi_vcxo_ctrl.tcl
-@@ -0,0 +1,5 @@
-+
-+
-+proc generate {drv_handle} {
-+	xdefine_include_file $drv_handle "xparameters.h" "axi_vcxo_ctrl" "NUM_INSTANCES" "DEVICE_ID"  "C_S00_AXI_BASEADDR" "C_S00_AXI_HIGHADDR"
-+}
-diff --git a/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/Makefile b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/Makefile
-new file mode 100644
-index 000000000..a515fe497
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/Makefile
-@@ -0,0 +1,26 @@
-+COMPILER=
-+ARCHIVER=
-+CP=cp
-+COMPILER_FLAGS=
-+EXTRA_COMPILER_FLAGS=
-+LIB=libxil.a
-+
-+RELEASEDIR=../../../lib
-+INCLUDEDIR=../../../include
-+INCLUDES=-I./. -I${INCLUDEDIR}
-+
-+INCLUDEFILES=*.h
-+LIBSOURCES=*.c
-+OUTS = *.o
-+
-+libs:
-+	echo "Compiling axi_vcxo_ctrl..."
-+	$(COMPILER) $(COMPILER_FLAGS) $(EXTRA_COMPILER_FLAGS) $(INCLUDES) $(LIBSOURCES)
-+	$(ARCHIVER) -r ${RELEASEDIR}/${LIB} ${OUTS}
-+	make clean
-+
-+include:
-+	${CP} $(INCLUDEFILES) $(INCLUDEDIR)
-+
-+clean:
-+	rm -rf ${OUTS}
-diff --git a/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl.c b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl.c
-new file mode 100644
-index 000000000..f0177eb13
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl.c
-@@ -0,0 +1,6 @@
-+
-+
-+/***************************** Include Files *******************************/
-+#include "axi_vcxo_ctrl.h"
-+
-+/************************** Function Definitions ***************************/
-diff --git a/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl.h b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl.h
-new file mode 100644
-index 000000000..89eb186f8
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl.h
-@@ -0,0 +1,83 @@
-+
-+#ifndef AXI_VCXO_CTRL_H
-+#define AXI_VCXO_CTRL_H
-+
-+
-+/****************** Include Files ********************/
-+#include "xil_types.h"
-+#include "xstatus.h"
-+
-+#define AXI_VCXO_CTRL_S00_AXI_SLV_REG0_OFFSET 0
-+#define AXI_VCXO_CTRL_S00_AXI_SLV_REG1_OFFSET 4
-+#define AXI_VCXO_CTRL_S00_AXI_SLV_REG2_OFFSET 8
-+#define AXI_VCXO_CTRL_S00_AXI_SLV_REG3_OFFSET 12
-+#define AXI_VCXO_CTRL_S00_AXI_SLV_REG4_OFFSET 16
-+#define AXI_VCXO_CTRL_S00_AXI_SLV_REG5_OFFSET 20
-+#define AXI_VCXO_CTRL_S00_AXI_SLV_REG6_OFFSET 24
-+#define AXI_VCXO_CTRL_S00_AXI_SLV_REG7_OFFSET 28
-+
-+
-+/**************************** Type Definitions *****************************/
-+/**
-+ *
-+ * Write a value to a AXI_VCXO_CTRL register. A 32 bit write is performed.
-+ * If the component is implemented in a smaller width, only the least
-+ * significant data is written.
-+ *
-+ * @param   BaseAddress is the base address of the AXI_VCXO_CTRLdevice.
-+ * @param   RegOffset is the register offset from the base to write to.
-+ * @param   Data is the data written to the register.
-+ *
-+ * @return  None.
-+ *
-+ * @note
-+ * C-style signature:
-+ * 	void AXI_VCXO_CTRL_mWriteReg(u32 BaseAddress, unsigned RegOffset, u32 Data)
-+ *
-+ */
-+#define AXI_VCXO_CTRL_mWriteReg(BaseAddress, RegOffset, Data) \
-+  	Xil_Out32((BaseAddress) + (RegOffset), (u32)(Data))
-+
-+/**
-+ *
-+ * Read a value from a AXI_VCXO_CTRL register. A 32 bit read is performed.
-+ * If the component is implemented in a smaller width, only the least
-+ * significant data is read from the register. The most significant data
-+ * will be read as 0.
-+ *
-+ * @param   BaseAddress is the base address of the AXI_VCXO_CTRL device.
-+ * @param   RegOffset is the register offset from the base to write to.
-+ *
-+ * @return  Data is the data from the register.
-+ *
-+ * @note
-+ * C-style signature:
-+ * 	u32 AXI_VCXO_CTRL_mReadReg(u32 BaseAddress, unsigned RegOffset)
-+ *
-+ */
-+#define AXI_VCXO_CTRL_mReadReg(BaseAddress, RegOffset) \
-+    Xil_In32((BaseAddress) + (RegOffset))
-+
-+/************************** Function Prototypes ****************************/
-+/**
-+ *
-+ * Run a self-test on the driver/device. Note this may be a destructive test if
-+ * resets of the device are performed.
-+ *
-+ * If the hardware system is not built correctly, this function may never
-+ * return to the caller.
-+ *
-+ * @param   baseaddr_p is the base address of the AXI_VCXO_CTRL instance to be worked on.
-+ *
-+ * @return
-+ *
-+ *    - XST_SUCCESS   if all self-test code passed
-+ *    - XST_FAILURE   if any self-test code failed
-+ *
-+ * @note    Caching must be turned off for this function to work.
-+ * @note    Self test may fail if data memory and device are not on the same bus.
-+ *
-+ */
-+XStatus AXI_VCXO_CTRL_Reg_SelfTest(void * baseaddr_p);
-+
-+#endif // AXI_VCXO_CTRL_H
-diff --git a/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl_selftest.c b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl_selftest.c
-new file mode 100644
-index 000000000..eb5213308
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/drivers/axi_vcxo_ctrl_v1_0/src/axi_vcxo_ctrl_selftest.c
-@@ -0,0 +1,60 @@
-+
-+/***************************** Include Files *******************************/
-+#include "axi_vcxo_ctrl.h"
-+#include "xparameters.h"
-+#include "stdio.h"
-+#include "xil_io.h"
-+
-+/************************** Constant Definitions ***************************/
-+#define READ_WRITE_MUL_FACTOR 0x10
-+
-+/************************** Function Definitions ***************************/
-+/**
-+ *
-+ * Run a self-test on the driver/device. Note this may be a destructive test if
-+ * resets of the device are performed.
-+ *
-+ * If the hardware system is not built correctly, this function may never
-+ * return to the caller.
-+ *
-+ * @param   baseaddr_p is the base address of the AXI_VCXO_CTRLinstance to be worked on.
-+ *
-+ * @return
-+ *
-+ *    - XST_SUCCESS   if all self-test code passed
-+ *    - XST_FAILURE   if any self-test code failed
-+ *
-+ * @note    Caching must be turned off for this function to work.
-+ * @note    Self test may fail if data memory and device are not on the same bus.
-+ *
-+ */
-+XStatus AXI_VCXO_CTRL_Reg_SelfTest(void * baseaddr_p)
-+{
-+	u32 baseaddr;
-+	int write_loop_index;
-+	int read_loop_index;
-+	int Index;
-+
-+	baseaddr = (u32) baseaddr_p;
-+
-+	xil_printf("******************************\n\r");
-+	xil_printf("* User Peripheral Self Test\n\r");
-+	xil_printf("******************************\n\n\r");
-+
-+	/*
-+	 * Write to user logic slave module register(s) and read back
-+	 */
-+	xil_printf("User logic slave module test...\n\r");
-+
-+	for (write_loop_index = 0 ; write_loop_index < 4; write_loop_index++)
-+	  AXI_VCXO_CTRL_mWriteReg (baseaddr, write_loop_index*4, (write_loop_index+1)*READ_WRITE_MUL_FACTOR);
-+	for (read_loop_index = 0 ; read_loop_index < 4; read_loop_index++)
-+	  if ( AXI_VCXO_CTRL_mReadReg (baseaddr, read_loop_index*4) != (read_loop_index+1)*READ_WRITE_MUL_FACTOR){
-+	    xil_printf ("Error reading register value at address %x\n", (int)baseaddr + read_loop_index*4);
-+	    return XST_FAILURE;
-+	  }
-+
-+	xil_printf("   - slave register write/read passed\n\n\r");
-+
-+	return XST_SUCCESS;
-+}
-diff --git a/library/axi_vcxo_ctrl_1.0/example_designs/bfm_design/axi_vcxo_ctrl_v1_0_tb.sv b/library/axi_vcxo_ctrl_1.0/example_designs/bfm_design/axi_vcxo_ctrl_v1_0_tb.sv
-new file mode 100644
-index 000000000..6c2fd8ea8
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/example_designs/bfm_design/axi_vcxo_ctrl_v1_0_tb.sv
-@@ -0,0 +1,197 @@
-+
-+`timescale 1ns / 1ps
-+`include "axi_vcxo_ctrl_v1_0_tb_include.svh"
-+
-+import axi_vip_pkg::*;
-+import axi_vcxo_ctrl_v1_0_bfm_1_master_0_0_pkg::*;
-+
-+module axi_vcxo_ctrl_v1_0_tb();
-+
-+
-+xil_axi_uint                            error_cnt = 0;
-+xil_axi_uint                            comparison_cnt = 0;
-+axi_transaction                         wr_transaction;   
-+axi_transaction                         rd_transaction;   
-+axi_monitor_transaction                 mst_monitor_transaction;  
-+axi_monitor_transaction                 master_moniter_transaction_queue[$];  
-+xil_axi_uint                            master_moniter_transaction_queue_size =0;  
-+axi_monitor_transaction                 mst_scb_transaction;  
-+axi_monitor_transaction                 passthrough_monitor_transaction;  
-+axi_monitor_transaction                 passthrough_master_moniter_transaction_queue[$];  
-+xil_axi_uint                            passthrough_master_moniter_transaction_queue_size =0;  
-+axi_monitor_transaction                 passthrough_mst_scb_transaction;  
-+axi_monitor_transaction                 passthrough_slave_moniter_transaction_queue[$];  
-+xil_axi_uint                            passthrough_slave_moniter_transaction_queue_size =0;  
-+axi_monitor_transaction                 passthrough_slv_scb_transaction;  
-+axi_monitor_transaction                 slv_monitor_transaction;  
-+axi_monitor_transaction                 slave_moniter_transaction_queue[$];  
-+xil_axi_uint                            slave_moniter_transaction_queue_size =0;  
-+axi_monitor_transaction                 slv_scb_transaction;  
-+xil_axi_uint                           mst_agent_verbosity = 0;  
-+xil_axi_uint                           slv_agent_verbosity = 0;  
-+xil_axi_uint                           passthrough_agent_verbosity = 0;  
-+bit                                     clock;
-+bit                                     reset;
-+integer result_slave;  
-+bit [31:0] S00_AXI_test_data[3:0]; 
-+ localparam LC_AXI_BURST_LENGTH = 8; 
-+ localparam LC_AXI_DATA_WIDTH = 32; 
-+task automatic COMPARE_DATA; 
-+  input [(LC_AXI_BURST_LENGTH * LC_AXI_DATA_WIDTH)-1:0]expected; 
-+  input [(LC_AXI_BURST_LENGTH * LC_AXI_DATA_WIDTH)-1:0]actual; 
-+  begin 
-+    if (expected === 'hx || actual === 'hx) begin 
-+      $display("TESTBENCH ERROR! COMPARE_DATA cannot be performed with an expected or actual vector that is all 'x'!"); 
-+ result_slave = 0;    $stop; 
-+  end 
-+  if (actual != expected) begin 
-+    $display("TESTBENCH ERROR! Data expected is not equal to actual.",     " expected = 0x%h",expected,     " actual   = 0x%h",actual); 
-+    result_slave = 0; 
-+    $stop; 
-+  end 
-+  else  
-+    begin 
-+     $display("TESTBENCH Passed! Data expected is equal to actual.", 
-+              " expected = 0x%h",expected,               " actual   = 0x%h",actual); 
-+    end 
-+  end 
-+endtask 
-+integer                                 i; 
-+integer                                 j;  
-+xil_axi_uint                            trans_cnt_before_switch = 48;  
-+xil_axi_uint                            passthrough_cmd_switch_cnt = 0;  
-+event                                   passthrough_mastermode_start_event;  
-+event                                   passthrough_mastermode_end_event;  
-+event                                   passthrough_slavemode_end_event;  
-+xil_axi_uint                            mtestID;  
-+xil_axi_ulong                           mtestADDR;  
-+xil_axi_len_t                           mtestBurstLength;  
-+xil_axi_size_t                          mtestDataSize;   
-+xil_axi_burst_t                         mtestBurstType;   
-+xil_axi_lock_t                          mtestLOCK;  
-+xil_axi_cache_t                         mtestCacheType = 0;  
-+xil_axi_prot_t                          mtestProtectionType = 3'b000;  
-+xil_axi_region_t                        mtestRegion = 4'b000;  
-+xil_axi_qos_t                           mtestQOS = 4'b000;  
-+xil_axi_data_beat                       dbeat;  
-+xil_axi_data_beat [255:0]               mtestWUSER;   
-+xil_axi_data_beat                       mtestAWUSER = 'h0;  
-+xil_axi_data_beat                       mtestARUSER = 0;  
-+xil_axi_data_beat [255:0]               mtestRUSER;      
-+xil_axi_uint                            mtestBUSER = 0;  
-+xil_axi_resp_t                          mtestBresp;  
-+xil_axi_resp_t[255:0]                   mtestRresp;  
-+bit [63:0]                              mtestWDataL; 
-+bit [63:0]                              mtestRDataL; 
-+axi_transaction                         pss_wr_transaction;   
-+axi_transaction                         pss_rd_transaction;   
-+axi_transaction                         reactive_transaction;   
-+axi_transaction                         rd_payload_transaction;  
-+axi_transaction                         wr_rand;  
-+axi_transaction                         rd_rand;  
-+axi_transaction                         wr_reactive;  
-+axi_transaction                         rd_reactive;  
-+axi_transaction                         wr_reactive2;   
-+axi_transaction                         rd_reactive2;  
-+axi_ready_gen                           bready_gen;  
-+axi_ready_gen                           rready_gen;  
-+axi_ready_gen                           awready_gen;  
-+axi_ready_gen                           wready_gen;  
-+axi_ready_gen                           arready_gen;  
-+axi_ready_gen                           bready_gen2;  
-+axi_ready_gen                           rready_gen2;  
-+axi_ready_gen                           awready_gen2;  
-+axi_ready_gen                           wready_gen2;  
-+axi_ready_gen                           arready_gen2;  
-+xil_axi_payload_byte                    data_mem[xil_axi_ulong];  
-+axi_vcxo_ctrl_v1_0_bfm_1_master_0_0_mst_t          mst_agent_0;
-+
-+  `BD_WRAPPER DUT(
-+      .ARESETN(reset), 
-+      .ACLK(clock) 
-+    ); 
-+  
-+initial begin
-+     mst_agent_0 = new("master vip agent",DUT.`BD_INST_NAME.master_0.inst.IF);//ms  
-+   mst_agent_0.vif_proxy.set_dummy_drive_type(XIL_AXI_VIF_DRIVE_NONE); 
-+   mst_agent_0.set_agent_tag("Master VIP"); 
-+   mst_agent_0.set_verbosity(mst_agent_verbosity); 
-+   mst_agent_0.start_master(); 
-+     $timeformat (-12, 1, " ps", 1);
-+  end
-+  initial begin
-+    reset <= 1'b0;
-+    #200ns;
-+    reset <= 1'b1;
-+    repeat (5) @(negedge clock); 
-+  end
-+  always #5 clock <= ~clock;
-+  initial begin
-+      S_AXI_TEST ( );
-+
-+      #1ns;
-+      $finish;
-+  end
-+task automatic S_AXI_TEST;  
-+begin   
-+#1; 
-+   $display("Sequential write transfers example similar to  AXI BFM WRITE_BURST method starts"); 
-+   mtestID = 0; 
-+   mtestADDR = 64'h00000000; 
-+   mtestBurstLength = 0; 
-+   mtestDataSize = xil_axi_size_t'(xil_clog2(32/8)); 
-+   mtestBurstType = XIL_AXI_BURST_TYPE_INCR;  
-+   mtestLOCK = XIL_AXI_ALOCK_NOLOCK;  
-+   mtestCacheType = 0;  
-+   mtestProtectionType = 0;  
-+   mtestRegion = 0; 
-+   mtestQOS = 0; 
-+   result_slave = 1; 
-+  mtestWDataL[31:0] = 32'h00000001; 
-+  for(int i = 0; i < 4;i++) begin 
-+  S00_AXI_test_data[i] <= mtestWDataL[31:0];   
-+  mst_agent_0.AXI4LITE_WRITE_BURST( 
-+  mtestADDR, 
-+  mtestProtectionType, 
-+  mtestWDataL, 
-+  mtestBresp 
-+  );   
-+  mtestWDataL[31:0] = mtestWDataL[31:0] + 1; 
-+  mtestADDR = mtestADDR + 64'h4; 
-+  end 
-+     $display("Sequential write transfers example similar to  AXI BFM WRITE_BURST method completes"); 
-+     $display("Sequential read transfers example similar to  AXI BFM READ_BURST method starts"); 
-+     mtestID = 0; 
-+     mtestADDR = 64'h00000000; 
-+     mtestBurstLength = 0; 
-+     mtestDataSize = xil_axi_size_t'(xil_clog2(32/8)); 
-+     mtestBurstType = XIL_AXI_BURST_TYPE_INCR;  
-+     mtestLOCK = XIL_AXI_ALOCK_NOLOCK;  
-+     mtestCacheType = 0;  
-+     mtestProtectionType = 0;  
-+     mtestRegion = 0; 
-+     mtestQOS = 0; 
-+ for(int i = 0; i < 4;i++) begin 
-+   mst_agent_0.AXI4LITE_READ_BURST( 
-+        mtestADDR, 
-+        mtestProtectionType, 
-+        mtestRDataL, 
-+        mtestRresp 
-+      ); 
-+   mtestADDR = mtestADDR + 64'h4; 
-+   COMPARE_DATA(S00_AXI_test_data[i],mtestRDataL); 
-+ end 
-+     $display("Sequential read transfers example similar to  AXI BFM READ_BURST method completes"); 
-+     $display("Sequential read transfers example similar to  AXI VIP READ_BURST method completes"); 
-+     $display("---------------------------------------------------------"); 
-+     $display("EXAMPLE TEST S00_AXI: PTGEN_TEST_FINISHED!"); 
-+     if ( result_slave ) begin                    
-+       $display("PTGEN_TEST: PASSED!");                  
-+     end    else begin                                       
-+       $display("PTGEN_TEST: FAILED!");                  
-+     end                                
-+     $display("---------------------------------------------------------"); 
-+  end 
-+endtask  
-+
-+endmodule
-diff --git a/library/axi_vcxo_ctrl_1.0/example_designs/bfm_design/design.tcl b/library/axi_vcxo_ctrl_1.0/example_designs/bfm_design/design.tcl
-new file mode 100644
-index 000000000..5f5073856
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/example_designs/bfm_design/design.tcl
-@@ -0,0 +1,88 @@
-+proc create_ipi_design { offsetfile design_name } {
-+	create_bd_design $design_name
-+	open_bd_design $design_name
-+
-+	# Create Clock and Reset Ports
-+	set ACLK [ create_bd_port -dir I -type clk ACLK ]
-+	set_property -dict [ list CONFIG.FREQ_HZ {100000000} CONFIG.PHASE {0.000} CONFIG.CLK_DOMAIN "${design_name}_ACLK" ] $ACLK
-+	set ARESETN [ create_bd_port -dir I -type rst ARESETN ]
-+	set_property -dict [ list CONFIG.POLARITY {ACTIVE_LOW}  ] $ARESETN
-+	set_property CONFIG.ASSOCIATED_RESET ARESETN $ACLK
-+
-+	# Create instance: axi_vcxo_ctrl_0, and set properties
-+	set axi_vcxo_ctrl_0 [ create_bd_cell -type ip -vlnv user.org:user:axi_vcxo_ctrl:1.0 axi_vcxo_ctrl_0]
-+
-+	# Create instance: master_0, and set properties
-+	set master_0 [ create_bd_cell -type ip -vlnv  xilinx.com:ip:axi_vip master_0]
-+	set_property -dict [ list CONFIG.PROTOCOL {AXI4LITE} CONFIG.INTERFACE_MODE {MASTER} ] $master_0
-+
-+	# Create interface connections
-+	connect_bd_intf_net [get_bd_intf_pins master_0/M_AXI ] [get_bd_intf_pins axi_vcxo_ctrl_0/S00_AXI]
-+
-+	# Create port connections
-+	connect_bd_net -net aclk_net [get_bd_ports ACLK] [get_bd_pins master_0/ACLK] [get_bd_pins axi_vcxo_ctrl_0/S00_AXI_ACLK]
-+	connect_bd_net -net aresetn_net [get_bd_ports ARESETN] [get_bd_pins master_0/ARESETN] [get_bd_pins axi_vcxo_ctrl_0/S00_AXI_ARESETN]
-+set_property target_simulator XSim [current_project]
-+set_property -name {xsim.simulate.runtime} -value {100ms} -objects [get_filesets sim_1]
-+
-+	# Auto assign address
-+	assign_bd_address
-+
-+	# Copy all address to interface_address.vh file
-+	set bd_path [file dirname [get_property NAME [get_files ${design_name}.bd]]]
-+	upvar 1 $offsetfile offset_file
-+	set offset_file "${bd_path}/axi_vcxo_ctrl_v1_0_tb_include.svh"
-+	set fp [open $offset_file "w"]
-+	puts $fp "`ifndef axi_vcxo_ctrl_v1_0_tb_include_vh_"
-+	puts $fp "`define axi_vcxo_ctrl_v1_0_tb_include_vh_\n"
-+	puts $fp "//Configuration current bd names"
-+	puts $fp "`define BD_NAME ${design_name}"
-+	puts $fp "`define BD_INST_NAME ${design_name}_i"
-+	puts $fp "`define BD_WRAPPER ${design_name}_wrapper\n"
-+	puts $fp "//Configuration address parameters"
-+
-+	puts $fp "`endif"
-+	close $fp
-+}
-+
-+set ip_path [file dirname [file normalize [get_property XML_FILE_NAME [ipx::get_cores user.org:user:axi_vcxo_ctrl:1.0]]]]
-+set test_bench_file ${ip_path}/example_designs/bfm_design/axi_vcxo_ctrl_v1_0_tb.sv
-+set interface_address_vh_file ""
-+
-+# Set IP Repository and Update IP Catalogue 
-+set repo_paths [get_property ip_repo_paths [current_fileset]] 
-+if { [lsearch -exact -nocase $repo_paths $ip_path ] == -1 } {
-+	set_property ip_repo_paths "$ip_path [get_property ip_repo_paths [current_fileset]]" [current_fileset]
-+	update_ip_catalog
-+}
-+
-+set design_name ""
-+set all_bd {}
-+set all_bd_files [get_files *.bd -quiet]
-+foreach file $all_bd_files {
-+set file_name [string range $file [expr {[string last "/" $file] + 1}] end]
-+set bd_name [string range $file_name 0 [expr {[string last "." $file_name] -1}]]
-+lappend all_bd $bd_name
-+}
-+
-+for { set i 1 } { 1 } { incr i } {
-+	set design_name "axi_vcxo_ctrl_v1_0_bfm_${i}"
-+	if { [lsearch -exact -nocase $all_bd $design_name ] == -1 } {
-+		break
-+	}
-+}
-+
-+create_ipi_design interface_address_vh_file ${design_name}
-+validate_bd_design
-+
-+set wrapper_file [make_wrapper -files [get_files ${design_name}.bd] -top -force]
-+import_files -force -norecurse $wrapper_file
-+
-+set_property SOURCE_SET sources_1 [get_filesets sim_1]
-+import_files -fileset sim_1 -norecurse -force $test_bench_file
-+remove_files -quiet -fileset sim_1 axi_vcxo_ctrl_v1_0_tb_include.vh
-+import_files -fileset sim_1 -norecurse -force $interface_address_vh_file
-+set_property top axi_vcxo_ctrl_v1_0_tb [get_filesets sim_1]
-+set_property top_lib {} [get_filesets sim_1]
-+set_property top_file {} [get_filesets sim_1]
-+launch_simulation -simset sim_1 -mode behavioral
-diff --git a/library/axi_vcxo_ctrl_1.0/example_designs/debug_hw_design/axi_vcxo_ctrl_v1_0_hw_test.tcl b/library/axi_vcxo_ctrl_1.0/example_designs/debug_hw_design/axi_vcxo_ctrl_v1_0_hw_test.tcl
-new file mode 100644
-index 000000000..d9cdc6171
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/example_designs/debug_hw_design/axi_vcxo_ctrl_v1_0_hw_test.tcl
-@@ -0,0 +1,45 @@
-+# Runtime Tcl commands to interact with - axi_vcxo_ctrl_v1_0
-+
-+# Sourcing design address info tcl
-+set bd_path [get_property DIRECTORY [current_project]]/[current_project].srcs/[current_fileset]/bd
-+source ${bd_path}/axi_vcxo_ctrl_v1_0_include.tcl
-+
-+# jtag axi master interface hardware name, change as per your design.
-+set jtag_axi_master hw_axi_1
-+set ec 0
-+
-+# hw test script
-+# Delete all previous axis transactions
-+if { [llength [get_hw_axi_txns -quiet]] } {
-+	delete_hw_axi_txn [get_hw_axi_txns -quiet]
-+}
-+
-+
-+# Test all lite slaves.
-+set wdata_1 abcd1234
-+
-+# Test: S00_AXI
-+# Create a write transaction at s00_axi_addr address
-+create_hw_axi_txn w_s00_axi_addr [get_hw_axis $jtag_axi_master] -type write -address $s00_axi_addr -data $wdata_1
-+# Create a read transaction at s00_axi_addr address
-+create_hw_axi_txn r_s00_axi_addr [get_hw_axis $jtag_axi_master] -type read -address $s00_axi_addr
-+# Initiate transactions
-+run_hw_axi r_s00_axi_addr
-+run_hw_axi w_s00_axi_addr
-+run_hw_axi r_s00_axi_addr
-+set rdata_tmp [get_property DATA [get_hw_axi_txn r_s00_axi_addr]]
-+# Compare read data
-+if { $rdata_tmp == $wdata_1 } {
-+	puts "Data comparison test pass for - S00_AXI"
-+} else {
-+	puts "Data comparison test fail for - S00_AXI, expected-$wdata_1 actual-$rdata_tmp"
-+	inc ec
-+}
-+
-+# Check error flag
-+if { $ec == 0 } {
-+	 puts "PTGEN_TEST: PASSED!" 
-+} else {
-+	 puts "PTGEN_TEST: FAILED!" 
-+}
-+
-diff --git a/library/axi_vcxo_ctrl_1.0/example_designs/debug_hw_design/design.tcl b/library/axi_vcxo_ctrl_1.0/example_designs/debug_hw_design/design.tcl
-new file mode 100644
-index 000000000..8c7ce676a
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/example_designs/debug_hw_design/design.tcl
-@@ -0,0 +1,118 @@
-+
-+proc create_ipi_design { offsetfile design_name } {
-+
-+	create_bd_design $design_name
-+	open_bd_design $design_name
-+
-+	# Create and configure Clock/Reset
-+	create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz sys_clk_0
-+	create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset sys_reset_0
-+
-+	#Constraints will be provided manually while pin planning.
-+		create_bd_port -dir I -type rst reset_rtl
-+		set_property CONFIG.POLARITY [get_property CONFIG.POLARITY [get_bd_pins sys_clk_0/reset]] [get_bd_ports reset_rtl]
-+		connect_bd_net [get_bd_pins sys_reset_0/ext_reset_in] [get_bd_ports reset_rtl]
-+		connect_bd_net [get_bd_ports reset_rtl] [get_bd_pins sys_clk_0/reset]
-+		set external_reset_port reset_rtl
-+		create_bd_port -dir I -type clk clock_rtl
-+		connect_bd_net [get_bd_pins sys_clk_0/clk_in1] [get_bd_ports clock_rtl]
-+		set external_clock_port clock_rtl
-+	
-+	#Avoid IPI DRC, make clock port synchronous to reset
-+	if { $external_clock_port ne "" && $external_reset_port ne "" } {
-+		set_property CONFIG.ASSOCIATED_RESET $external_reset_port [get_bd_ports $external_clock_port]
-+	}
-+
-+	# Connect other sys_reset pins
-+	connect_bd_net [get_bd_pins sys_reset_0/slowest_sync_clk] [get_bd_pins sys_clk_0/clk_out1]
-+	connect_bd_net [get_bd_pins sys_clk_0/locked] [get_bd_pins sys_reset_0/dcm_locked]
-+
-+	# Create instance: axi_vcxo_ctrl_0, and set properties
-+	set axi_vcxo_ctrl_0 [ create_bd_cell -type ip -vlnv user.org:user:axi_vcxo_ctrl:1.0 axi_vcxo_ctrl_0 ]
-+
-+	# Create instance: jtag_axi_0, and set properties
-+	set jtag_axi_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:jtag_axi jtag_axi_0 ]
-+	set_property -dict [list CONFIG.PROTOCOL {0}] [get_bd_cells jtag_axi_0]
-+	connect_bd_net [get_bd_pins jtag_axi_0/aclk] [get_bd_pins sys_clk_0/clk_out1]
-+	connect_bd_net [get_bd_pins jtag_axi_0/aresetn] [get_bd_pins sys_reset_0/peripheral_aresetn]
-+
-+	# Create instance: axi_peri_interconnect, and set properties
-+	set axi_peri_interconnect [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect axi_peri_interconnect ]
-+	connect_bd_net [get_bd_pins axi_peri_interconnect/ACLK] [get_bd_pins sys_clk_0/clk_out1]
-+	connect_bd_net [get_bd_pins axi_peri_interconnect/ARESETN] [get_bd_pins sys_reset_0/interconnect_aresetn]
-+	set_property -dict [ list CONFIG.NUM_SI {1}  ] $axi_peri_interconnect
-+	connect_bd_net [get_bd_pins axi_peri_interconnect/S00_ACLK] [get_bd_pins sys_clk_0/clk_out1]
-+	connect_bd_net [get_bd_pins axi_peri_interconnect/S00_ARESETN] [get_bd_pins sys_reset_0/peripheral_aresetn]
-+	connect_bd_intf_net [get_bd_intf_pins jtag_axi_0/M_AXI] [get_bd_intf_pins axi_peri_interconnect/S00_AXI]
-+
-+	set_property -dict [ list CONFIG.NUM_MI {1} ] $axi_peri_interconnect
-+	connect_bd_net [get_bd_pins axi_peri_interconnect/M00_ACLK] [get_bd_pins sys_clk_0/clk_out1]
-+	connect_bd_net [get_bd_pins axi_peri_interconnect/M00_ARESETN] [get_bd_pins sys_reset_0/peripheral_aresetn]
-+
-+	# Connect all clock & reset of axi_vcxo_ctrl_0 slave interfaces..
-+	connect_bd_intf_net [get_bd_intf_pins axi_peri_interconnect/M00_AXI] [get_bd_intf_pins axi_vcxo_ctrl_0/S00_AXI]
-+	connect_bd_net [get_bd_pins axi_vcxo_ctrl_0/s00_axi_aclk] [get_bd_pins sys_clk_0/clk_out1]
-+	connect_bd_net [get_bd_pins axi_vcxo_ctrl_0/s00_axi_aresetn] [get_bd_pins sys_reset_0/peripheral_aresetn]
-+
-+
-+	# Auto assign address
-+	assign_bd_address
-+
-+	# Copy all address to axi_vcxo_ctrl_v1_0_include.tcl file
-+	set bd_path [get_property DIRECTORY [current_project]]/[current_project].srcs/[current_fileset]/bd
-+	upvar 1 $offsetfile offset_file
-+	set offset_file "${bd_path}/axi_vcxo_ctrl_v1_0_include.tcl"
-+	set fp [open $offset_file "w"]
-+	puts $fp "# Configuration address parameters"
-+
-+	set offset [get_property OFFSET [get_bd_addr_segs /jtag_axi_0/Data/SEG_axi_vcxo_ctrl_0_S00_AXI_* ]]
-+	puts $fp "set s00_axi_addr ${offset}"
-+
-+	close $fp
-+}
-+
-+# Set IP Repository and Update IP Catalogue 
-+set ip_path [file dirname [file normalize [get_property XML_FILE_NAME [ipx::get_cores user.org:user:axi_vcxo_ctrl:1.0]]]]
-+set hw_test_file ${ip_path}/example_designs/debug_hw_design/axi_vcxo_ctrl_v1_0_hw_test.tcl
-+
-+set repo_paths [get_property ip_repo_paths [current_fileset]] 
-+if { [lsearch -exact -nocase $repo_paths $ip_path ] == -1 } {
-+	set_property ip_repo_paths "$ip_path [get_property ip_repo_paths [current_fileset]]" [current_fileset]
-+	update_ip_catalog
-+}
-+
-+set design_name ""
-+set all_bd {}
-+set all_bd_files [get_files *.bd -quiet]
-+foreach file $all_bd_files {
-+set file_name [string range $file [expr {[string last "/" $file] + 1}] end]
-+set bd_name [string range $file_name 0 [expr {[string last "." $file_name] -1}]]
-+lappend all_bd $bd_name
-+}
-+
-+for { set i 1 } { 1 } { incr i } {
-+	set design_name "axi_vcxo_ctrl_v1_0_hw_${i}"
-+	if { [lsearch -exact -nocase $all_bd $design_name ] == -1 } {
-+		break
-+	}
-+}
-+
-+set intf_address_include_file ""
-+create_ipi_design intf_address_include_file ${design_name}
-+save_bd_design
-+validate_bd_design
-+
-+set wrapper_file [make_wrapper -files [get_files ${design_name}.bd] -top -force]
-+import_files -force -norecurse $wrapper_file
-+
-+puts "-------------------------------------------------------------------------------------------------"
-+puts "INFO NEXT STEPS : Until this stage, debug hardware design has been created, "
-+puts "   please perform following steps to test design in targeted board."
-+puts "1. Generate bitstream"
-+puts "2. Setup your targeted board, open hardware manager and open new(or existing) hardware target"
-+puts "3. Download generated bitstream"
-+puts "4. Run generated hardware test using below command, this invokes basic read/write operation"
-+puts "   to every interface present in the peripheral : xilinx.com:user:myip:1.0"
-+puts "   : source -notrace ${hw_test_file}"
-+puts "-------------------------------------------------------------------------------------------------"
-+
-diff --git a/library/axi_vcxo_ctrl_1.0/hdl/ad5662_auto_spi.v b/library/axi_vcxo_ctrl_1.0/hdl/ad5662_auto_spi.v
++++ b/library/axi_vcxo_ctrl/component.xml
+@@ -0,0 +1,911 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
++  <spirit:vendor>user.org</spirit:vendor>
++  <spirit:library>user</spirit:library>
++  <spirit:name>axi_vcxo_ctrl</spirit:name>
++  <spirit:version>1.0</spirit:version>
++  <spirit:busInterfaces>
++    <spirit:busInterface>
++      <spirit:name>s00_axi</spirit:name>
++      <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0"/>
++      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm_rtl" spirit:version="1.0"/>
++      <spirit:slave>
++        <spirit:memoryMapRef spirit:memoryMapRef="s00_axi"/>
++      </spirit:slave>
++      <spirit:portMaps>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>AWADDR</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_awaddr</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>AWPROT</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_awprot</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>AWVALID</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_awvalid</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>AWREADY</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_awready</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>WDATA</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_wdata</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>WSTRB</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_wstrb</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>WVALID</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_wvalid</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>WREADY</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_wready</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>BRESP</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_bresp</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>BVALID</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_bvalid</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>BREADY</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_bready</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>ARADDR</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_araddr</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>ARPROT</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_arprot</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>ARVALID</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_arvalid</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>ARREADY</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_arready</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>RDATA</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_rdata</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>RRESP</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_rresp</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>RVALID</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_rvalid</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>RREADY</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_rready</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++      </spirit:portMaps>
++    </spirit:busInterface>
++    <spirit:busInterface>
++      <spirit:name>s00_axi_aresetn</spirit:name>
++      <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="reset" spirit:version="1.0"/>
++      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="reset_rtl" spirit:version="1.0"/>
++      <spirit:slave/>
++      <spirit:portMaps>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>RST</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_aresetn</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++      </spirit:portMaps>
++      <spirit:parameters>
++        <spirit:parameter>
++          <spirit:name>POLARITY</spirit:name>
++          <spirit:value spirit:id="BUSIFPARAM_VALUE.S00_AXI_ARESETN.POLARITY" spirit:choiceRef="choice_list_9d8b0d81">ACTIVE_LOW</spirit:value>
++        </spirit:parameter>
++      </spirit:parameters>
++    </spirit:busInterface>
++    <spirit:busInterface>
++      <spirit:name>s00_axi_aclk</spirit:name>
++      <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock" spirit:version="1.0"/>
++      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock_rtl" spirit:version="1.0"/>
++      <spirit:slave/>
++      <spirit:portMaps>
++        <spirit:portMap>
++          <spirit:logicalPort>
++            <spirit:name>CLK</spirit:name>
++          </spirit:logicalPort>
++          <spirit:physicalPort>
++            <spirit:name>s00_axi_aclk</spirit:name>
++          </spirit:physicalPort>
++        </spirit:portMap>
++      </spirit:portMaps>
++      <spirit:parameters>
++        <spirit:parameter>
++          <spirit:name>ASSOCIATED_BUSIF</spirit:name>
++          <spirit:value spirit:id="BUSIFPARAM_VALUE.S00_AXI_ACLK.ASSOCIATED_BUSIF">s00_axi</spirit:value>
++        </spirit:parameter>
++        <spirit:parameter>
++          <spirit:name>ASSOCIATED_RESET</spirit:name>
++          <spirit:value spirit:id="BUSIFPARAM_VALUE.S00_AXI_ACLK.ASSOCIATED_RESET">s00_axi_aresetn</spirit:value>
++        </spirit:parameter>
++      </spirit:parameters>
++    </spirit:busInterface>
++  </spirit:busInterfaces>
++  <spirit:memoryMaps>
++    <spirit:memoryMap>
++      <spirit:name>s00_axi</spirit:name>
++      <spirit:displayName>s00_axi</spirit:displayName>
++      <spirit:addressBlock>
++        <spirit:name>reg0</spirit:name>
++        <spirit:displayName>reg0</spirit:displayName>
++        <spirit:baseAddress spirit:format="bitString" spirit:bitStringLength="1">0x0</spirit:baseAddress>
++        <spirit:range spirit:format="long" spirit:resolve="dependent" spirit:dependency="pow(2,(spirit:decode(id(&apos;MODELPARAM_VALUE.C_S00_AXI_ADDR_WIDTH&apos;)) - 1) - 0 + 1)" spirit:minimum="4096" spirit:rangeType="long">4096</spirit:range>
++        <spirit:width spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH&apos;)) - 1) - 0 + 1">32</spirit:width>
++        <spirit:usage>register</spirit:usage>
++      </spirit:addressBlock>
++    </spirit:memoryMap>
++  </spirit:memoryMaps>
++  <spirit:model>
++    <spirit:views>
++      <spirit:view>
++        <spirit:name>xilinx_anylanguagesynthesis</spirit:name>
++        <spirit:displayName>Synthesis</spirit:displayName>
++        <spirit:envIdentifier>:vivado.xilinx.com:synthesis</spirit:envIdentifier>
++        <spirit:language>Verilog</spirit:language>
++        <spirit:modelName>axi_vcxo_ctrl</spirit:modelName>
++        <spirit:fileSetRef>
++          <spirit:localName>xilinx_anylanguagesynthesis_view_fileset</spirit:localName>
++        </spirit:fileSetRef>
++        <spirit:parameters>
++          <spirit:parameter>
++            <spirit:name>viewChecksum</spirit:name>
++            <spirit:value>c50e753f</spirit:value>
++          </spirit:parameter>
++        </spirit:parameters>
++      </spirit:view>
++      <spirit:view>
++        <spirit:name>xilinx_anylanguagebehavioralsimulation</spirit:name>
++        <spirit:displayName>Simulation</spirit:displayName>
++        <spirit:envIdentifier>:vivado.xilinx.com:simulation</spirit:envIdentifier>
++        <spirit:language>Verilog</spirit:language>
++        <spirit:modelName>axi_vcxo_ctrl</spirit:modelName>
++        <spirit:fileSetRef>
++          <spirit:localName>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:localName>
++        </spirit:fileSetRef>
++        <spirit:parameters>
++          <spirit:parameter>
++            <spirit:name>viewChecksum</spirit:name>
++            <spirit:value>c50e753f</spirit:value>
++          </spirit:parameter>
++        </spirit:parameters>
++      </spirit:view>
++      <spirit:view>
++        <spirit:name>xilinx_xpgui</spirit:name>
++        <spirit:displayName>UI Layout</spirit:displayName>
++        <spirit:envIdentifier>:vivado.xilinx.com:xgui.ui</spirit:envIdentifier>
++        <spirit:fileSetRef>
++          <spirit:localName>xilinx_xpgui_view_fileset</spirit:localName>
++        </spirit:fileSetRef>
++        <spirit:parameters>
++          <spirit:parameter>
++            <spirit:name>viewChecksum</spirit:name>
++            <spirit:value>bc6665fc</spirit:value>
++          </spirit:parameter>
++        </spirit:parameters>
++      </spirit:view>
++    </spirit:views>
++    <spirit:ports>
++      <spirit:port>
++        <spirit:name>CLK_40MHz_FPGA</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>PPS_IN</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>CLKIN_10MHz</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>PPS_GPS</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>PPS_LED</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>PPS_LOCKED</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>REF_10M_LOCKED</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>CLK_40M_DAC_nSYNC</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>CLK_40M_DAC_SCLK</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>CLK_40M_DAC_DIN</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_aclk</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_aresetn</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_awaddr</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:vector>
++            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_S00_AXI_ADDR_WIDTH&apos;)) - 1)">4</spirit:left>
++            <spirit:right spirit:format="long">0</spirit:right>
++          </spirit:vector>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_awprot</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:vector>
++            <spirit:left spirit:format="long">2</spirit:left>
++            <spirit:right spirit:format="long">0</spirit:right>
++          </spirit:vector>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_awvalid</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_awready</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_wdata</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:vector>
++            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH&apos;)) - 1)">31</spirit:left>
++            <spirit:right spirit:format="long">0</spirit:right>
++          </spirit:vector>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_wstrb</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:vector>
++            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="((spirit:decode(id(&apos;MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH&apos;)) / 8) - 1)">3</spirit:left>
++            <spirit:right spirit:format="long">0</spirit:right>
++          </spirit:vector>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">1</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_wvalid</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_wready</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_bresp</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:vector>
++            <spirit:left spirit:format="long">1</spirit:left>
++            <spirit:right spirit:format="long">0</spirit:right>
++          </spirit:vector>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_bvalid</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_bready</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_araddr</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:vector>
++            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_S00_AXI_ADDR_WIDTH&apos;)) - 1)">4</spirit:left>
++            <spirit:right spirit:format="long">0</spirit:right>
++          </spirit:vector>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_arprot</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:vector>
++            <spirit:left spirit:format="long">2</spirit:left>
++            <spirit:right spirit:format="long">0</spirit:right>
++          </spirit:vector>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_arvalid</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_arready</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_rdata</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:vector>
++            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH&apos;)) - 1)">31</spirit:left>
++            <spirit:right spirit:format="long">0</spirit:right>
++          </spirit:vector>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_rresp</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:vector>
++            <spirit:left spirit:format="long">1</spirit:left>
++            <spirit:right spirit:format="long">0</spirit:right>
++          </spirit:vector>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_rvalid</spirit:name>
++        <spirit:wire>
++          <spirit:direction>out</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++        </spirit:wire>
++      </spirit:port>
++      <spirit:port>
++        <spirit:name>s00_axi_rready</spirit:name>
++        <spirit:wire>
++          <spirit:direction>in</spirit:direction>
++          <spirit:wireTypeDefs>
++            <spirit:wireTypeDef>
++              <spirit:typeName>wire</spirit:typeName>
++              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
++              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
++            </spirit:wireTypeDef>
++          </spirit:wireTypeDefs>
++          <spirit:driver>
++            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
++          </spirit:driver>
++        </spirit:wire>
++      </spirit:port>
++    </spirit:ports>
++    <spirit:modelParameters>
++      <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="string">
++        <spirit:name>DEVICE</spirit:name>
++        <spirit:displayName>Device</spirit:displayName>
++        <spirit:value spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.DEVICE">LTC2630</spirit:value>
++      </spirit:modelParameter>
++      <spirit:modelParameter spirit:dataType="integer">
++        <spirit:name>C_S00_AXI_DATA_WIDTH</spirit:name>
++        <spirit:displayName>C S00 Axi Data Width</spirit:displayName>
++        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH">32</spirit:value>
++      </spirit:modelParameter>
++      <spirit:modelParameter spirit:dataType="integer">
++        <spirit:name>C_S00_AXI_ADDR_WIDTH</spirit:name>
++        <spirit:displayName>C S00 Axi Addr Width</spirit:displayName>
++        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.C_S00_AXI_ADDR_WIDTH">5</spirit:value>
++      </spirit:modelParameter>
++    </spirit:modelParameters>
++  </spirit:model>
++  <spirit:choices>
++    <spirit:choice>
++      <spirit:name>choice_list_9d8b0d81</spirit:name>
++      <spirit:enumeration>ACTIVE_HIGH</spirit:enumeration>
++      <spirit:enumeration>ACTIVE_LOW</spirit:enumeration>
++    </spirit:choice>
++  </spirit:choices>
++  <spirit:fileSets>
++    <spirit:fileSet>
++      <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
++      <spirit:file>
++        <spirit:name>src/ad5662_auto_spi.v</spirit:name>
++        <spirit:fileType>verilogSource</spirit:fileType>
++      </spirit:file>
++      <spirit:file>
++        <spirit:name>src/axi_vcxo_ctrl_v1_0_S00_AXI.v</spirit:name>
++        <spirit:fileType>verilogSource</spirit:fileType>
++      </spirit:file>
++      <spirit:file>
++        <spirit:name>src/b205_ref_pll.v</spirit:name>
++        <spirit:fileType>verilogSource</spirit:fileType>
++      </spirit:file>
++      <spirit:file>
++        <spirit:name>src/ltc2630_spi.v</spirit:name>
++        <spirit:fileType>verilogSource</spirit:fileType>
++      </spirit:file>
++      <spirit:file>
++        <spirit:name>src/axi_vcxo_ctrl_v1_0.v</spirit:name>
++        <spirit:fileType>verilogSource</spirit:fileType>
++        <spirit:userFileType>CHECKSUM_bddef366</spirit:userFileType>
++      </spirit:file>
++    </spirit:fileSet>
++    <spirit:fileSet>
++      <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
++      <spirit:file>
++        <spirit:name>src/ad5662_auto_spi.v</spirit:name>
++        <spirit:fileType>verilogSource</spirit:fileType>
++      </spirit:file>
++      <spirit:file>
++        <spirit:name>src/axi_vcxo_ctrl_v1_0_S00_AXI.v</spirit:name>
++        <spirit:fileType>verilogSource</spirit:fileType>
++      </spirit:file>
++      <spirit:file>
++        <spirit:name>src/b205_ref_pll.v</spirit:name>
++        <spirit:fileType>verilogSource</spirit:fileType>
++      </spirit:file>
++      <spirit:file>
++        <spirit:name>src/ltc2630_spi.v</spirit:name>
++        <spirit:fileType>verilogSource</spirit:fileType>
++      </spirit:file>
++      <spirit:file>
++        <spirit:name>src/axi_vcxo_ctrl_v1_0.v</spirit:name>
++        <spirit:fileType>verilogSource</spirit:fileType>
++      </spirit:file>
++    </spirit:fileSet>
++    <spirit:fileSet>
++      <spirit:name>xilinx_xpgui_view_fileset</spirit:name>
++      <spirit:file>
++        <spirit:name>xgui/axi_vcxo_ctrl_v1_0.tcl</spirit:name>
++        <spirit:fileType>tclSource</spirit:fileType>
++        <spirit:userFileType>CHECKSUM_bc6665fc</spirit:userFileType>
++        <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
++      </spirit:file>
++    </spirit:fileSet>
++  </spirit:fileSets>
++  <spirit:description>axi_vcxo_ctrl</spirit:description>
++  <spirit:parameters>
++    <spirit:parameter>
++      <spirit:name>DEVICE</spirit:name>
++      <spirit:displayName>Device</spirit:displayName>
++      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.DEVICE">LTC2630</spirit:value>
++    </spirit:parameter>
++    <spirit:parameter>
++      <spirit:name>C_S00_AXI_DATA_WIDTH</spirit:name>
++      <spirit:displayName>C S00 Axi Data Width</spirit:displayName>
++      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.C_S00_AXI_DATA_WIDTH">32</spirit:value>
++    </spirit:parameter>
++    <spirit:parameter>
++      <spirit:name>C_S00_AXI_ADDR_WIDTH</spirit:name>
++      <spirit:displayName>C S00 Axi Addr Width</spirit:displayName>
++      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.C_S00_AXI_ADDR_WIDTH">5</spirit:value>
++    </spirit:parameter>
++    <spirit:parameter>
++      <spirit:name>Component_Name</spirit:name>
++      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.Component_Name" spirit:order="1">axi_vcxo_ctrl_v1_0_v1_0</spirit:value>
++    </spirit:parameter>
++  </spirit:parameters>
++  <spirit:vendorExtensions>
++    <xilinx:coreExtensions>
++      <xilinx:supportedFamilies>
++        <xilinx:family xilinx:lifeCycle="Production">virtex7</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">qvirtex7</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">kintex7</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">kintex7l</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">qkintex7</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">qkintex7l</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">akintex7</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">artix7</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">artix7l</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">aartix7</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">qartix7</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">zynq</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">qzynq</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">azynq</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">spartan7</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">aspartan7</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">virtexu</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">zynquplus</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">virtexuplus</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">kintexuplus</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">artixuplus</xilinx:family>
++        <xilinx:family xilinx:lifeCycle="Production">kintexu</xilinx:family>
++      </xilinx:supportedFamilies>
++      <xilinx:taxonomies>
++        <xilinx:taxonomy>/UserIP</xilinx:taxonomy>
++      </xilinx:taxonomies>
++      <xilinx:displayName>axi_vcxo_ctrl</xilinx:displayName>
++      <xilinx:definitionSource>package_project</xilinx:definitionSource>
++      <xilinx:coreRevision>1</xilinx:coreRevision>
++      <xilinx:upgrades>
++        <xilinx:canUpgradeFrom>user.org:user:axi_vcxo_ctrl_v1_0:1.0</xilinx:canUpgradeFrom>
++      </xilinx:upgrades>
++      <xilinx:coreCreationDateTime>2023-11-22T02:24:09Z</xilinx:coreCreationDateTime>
++      <xilinx:tags>
++        <xilinx:tag xilinx:name="nopcore"/>
++      </xilinx:tags>
++    </xilinx:coreExtensions>
++    <xilinx:packagingInfo>
++      <xilinx:xilinxVersion>2022.2</xilinx:xilinxVersion>
++      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="9add38af"/>
++      <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="0c04c4c2"/>
++      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="754df6ea"/>
++      <xilinx:checksum xilinx:scope="ports" xilinx:value="dde6159c"/>
++      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="e1649165"/>
++      <xilinx:checksum xilinx:scope="parameters" xilinx:value="d9bf9c9f"/>
++    </xilinx:packagingInfo>
++  </spirit:vendorExtensions>
++</spirit:component>
+diff --git a/library/axi_vcxo_ctrl/src/ad5662_auto_spi.v b/library/axi_vcxo_ctrl/src/ad5662_auto_spi.v
 new file mode 100644
 index 000000000..d9f2e53be
 --- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/hdl/ad5662_auto_spi.v
++++ b/library/axi_vcxo_ctrl/src/ad5662_auto_spi.v
 @@ -0,0 +1,99 @@
 +//
 +// Copyright 2015 Ettus Research
@@ -879,1235 +1074,16 @@ index 000000000..d9f2e53be
 +  always @(posedge clk) if (sena | hena) sclk <= nxt_sclk;
 +
 +endmodule
-diff --git a/library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0.v b/library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0.v
+diff --git a/library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v b/library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v
 new file mode 100644
-index 000000000..34934f4c6
+index 000000000..d993680e8
 --- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0.v
-@@ -0,0 +1,153 @@
-+
-+`timescale 1 ns / 1 ps
-+
-+	module axi_vcxo_ctrl_v1_0 #
-+	(
-+		// Users to add parameters here
-+
-+		// User parameters ends
-+		// Do not modify the parameters beyond this line
-+
-+
-+		// Parameters of Axi Slave Bus Interface S00_AXI
-+		parameter integer C_S00_AXI_DATA_WIDTH	= 32,
-+		parameter integer C_S00_AXI_ADDR_WIDTH	= 5
-+	)
-+	(
-+		// Users to add ports here
-+		input  wire	 			CLK_40MHz_FPGA  ,
-+		// PPS or 10 MHz (need to choose from SW)
-+		input  wire             PPS_IN          ,
-+		input  wire             CLKIN_10MHz     ,
-+		input  wire             PPS_GPS         ,
-+		output wire             PPS_LED         ,
-+		output wire             PPS_LOCKED      ,
-+		output wire             REF_10M_LOCKED  ,
-+		output wire             CLK_40M_DAC_nSYNC,
-+		output wire             CLK_40M_DAC_SCLK ,
-+		output wire             CLK_40M_DAC_DIN ,
-+
-+		// User ports ends
-+		// Do not modify the ports beyond this line
-+
-+
-+		// Ports of Axi Slave Bus Interface S00_AXI
-+		input wire  s00_axi_aclk,
-+		input wire  s00_axi_aresetn,
-+		input wire [C_S00_AXI_ADDR_WIDTH-1 : 0] s00_axi_awaddr,
-+		input wire [2 : 0] s00_axi_awprot,
-+		input wire  s00_axi_awvalid,
-+		output wire  s00_axi_awready,
-+		input wire [C_S00_AXI_DATA_WIDTH-1 : 0] s00_axi_wdata,
-+		input wire [(C_S00_AXI_DATA_WIDTH/8)-1 : 0] s00_axi_wstrb,
-+		input wire  s00_axi_wvalid,
-+		output wire  s00_axi_wready,
-+		output wire [1 : 0] s00_axi_bresp,
-+		output wire  s00_axi_bvalid,
-+		input wire  s00_axi_bready,
-+		input wire [C_S00_AXI_ADDR_WIDTH-1 : 0] s00_axi_araddr,
-+		input wire [2 : 0] s00_axi_arprot,
-+		input wire  s00_axi_arvalid,
-+		output wire  s00_axi_arready,
-+		output wire [C_S00_AXI_DATA_WIDTH-1 : 0] s00_axi_rdata,
-+		output wire [1 : 0] s00_axi_rresp,
-+		output wire  s00_axi_rvalid,
-+		input wire  s00_axi_rready
-+	);
-+
-+
-+	wire  	[0:0]	dac_mode 			;
-+	wire 	[15:0]	dac_user_set_value	;
-+	wire 	[15:0]	dac_dyn_value 		;
-+	wire  	[1:0]	dac_ref_sel 		;
-+	wire 			dac_locked 			;
-+
-+	wire 		clk_200M;
-+	wire 		clk_40M;
-+	wire 		plllck;
-+	wire 		ref_sync 	;
-+	wire 		ref_ext_pll_locked;
-+	wire 		ref_is_10M;
-+	wire 		ref_is_pps;
-+	wire [15:0]	dyn_dac_value	;
-+
-+
-+// Instantiation of Axi Bus Interface S00_AXI
-+	axi_vcxo_ctrl_v1_0_S00_AXI # ( 
-+		.C_S_AXI_DATA_WIDTH(C_S00_AXI_DATA_WIDTH),
-+		.C_S_AXI_ADDR_WIDTH(C_S00_AXI_ADDR_WIDTH)
-+	) axi_vcxo_ctrl_v1_0_S00_AXI_inst (
-+		.dac_mode(dac_mode) 			,
-+		.dac_user_set_value(dac_user_set_value)	,
-+		.dac_dyn_value(dac_dyn_value) 		,
-+		.dac_ref_sel(dac_ref_sel) 		,
-+		.dac_locked(ref_ext_pll_locked) 			,
-+		.S_AXI_ACLK(s00_axi_aclk),
-+		.S_AXI_ARESETN(s00_axi_aresetn),
-+		.S_AXI_AWADDR(s00_axi_awaddr),
-+		.S_AXI_AWPROT(s00_axi_awprot),
-+		.S_AXI_AWVALID(s00_axi_awvalid),
-+		.S_AXI_AWREADY(s00_axi_awready),
-+		.S_AXI_WDATA(s00_axi_wdata),
-+		.S_AXI_WSTRB(s00_axi_wstrb),
-+		.S_AXI_WVALID(s00_axi_wvalid),
-+		.S_AXI_WREADY(s00_axi_wready),
-+		.S_AXI_BRESP(s00_axi_bresp),
-+		.S_AXI_BVALID(s00_axi_bvalid),
-+		.S_AXI_BREADY(s00_axi_bready),
-+		.S_AXI_ARADDR(s00_axi_araddr),
-+		.S_AXI_ARPROT(s00_axi_arprot),
-+		.S_AXI_ARVALID(s00_axi_arvalid),
-+		.S_AXI_ARREADY(s00_axi_arready),
-+		.S_AXI_RDATA(s00_axi_rdata),
-+		.S_AXI_RRESP(s00_axi_rresp),
-+		.S_AXI_RVALID(s00_axi_rvalid),
-+		.S_AXI_RREADY(s00_axi_rready)
-+	);
-+
-+	// Add user logic here
-+	
-+
-+	assign REF_10M_LOCKED = ref_ext_pll_locked & ref_is_10M;
-+	assign PPS_LOCKED = ref_ext_pll_locked & ref_is_pps;
-+	assign ref_sync = (dac_ref_sel==2'b00) ? CLKIN_10MHz :
-+					  (dac_ref_sel==2'b01) ? PPS_IN :
-+					  (dac_ref_sel==2'b10) ? PPS_GPS: 1'b0;
-+
-+	PLLE2_ADV #(.BANDWIDTH("OPTIMIZED"), .COMPENSATION("INTERNAL"),
-+		.DIVCLK_DIVIDE(1),
-+		.CLKFBOUT_MULT(30),
-+		.CLKOUT0_DIVIDE(6),
-+		.CLKOUT1_DIVIDE(30),
-+		.CLKIN1_PERIOD(25.0)
-+	)
-+	clkgen (
-+		.PWRDWN(1'b0), .RST(1'b0),
-+		.CLKIN1(CLK_40MHz_FPGA),
-+		.CLKOUT0(clk_200M),
-+		.CLKOUT1(clk_40M),
-+		.LOCKED(plllck)
-+	);
-+
-+	b205_ref_pll#(
-+		.DEVICE("LTC2630" )
-+	)u_b205_ref_pll(
-+		.reset      ( ~plllck    ),
-+		.clk        ( clk_200M   ),
-+		.refclk     ( clk_40M    ),
-+		.ref        ( ref_sync        ),
-+		.locked     ( ref_ext_pll_locked     ),
-+		.ref_is_10M ( ref_is_10M ),
-+		.ref_is_pps ( ref_is_pps ),
-+		.dac_mode   ( dac_mode   ),
-+		.dyn_dac    ( dyn_dac_value    ),
-+		.dac_dft    ( 16'd42580	),
-+		.dac_user_set_value(dac_user_set_value),
-+		.sclk       ( CLK_40M_DAC_SCLK       ),
-+		.mosi       ( CLK_40M_DAC_DIN       ),
-+		.sync_n     ( CLK_40M_DAC_nSYNC     )
-+	);
-+
-+	// User logic ends
-+
-+	endmodule
-diff --git a/library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0_S00_AXI.v b/library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0_S00_AXI.v
-new file mode 100644
-index 000000000..22ebf7eb8
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/hdl/axi_vcxo_ctrl_v1_0_S00_AXI.v
-@@ -0,0 +1,458 @@
-+
-+`timescale 1 ns / 1 ps
-+
-+	module axi_vcxo_ctrl_v1_0_S00_AXI #
-+	(
-+		// Users to add parameters here
-+
-+		// User parameters ends
-+		// Do not modify the parameters beyond this line
-+
-+		// Width of S_AXI data bus
-+		parameter integer C_S_AXI_DATA_WIDTH	= 32,
-+		// Width of S_AXI address bus
-+		parameter integer C_S_AXI_ADDR_WIDTH	= 5
-+	)
-+	(
-+		// Users to add ports here
-+		output 	wire  	[0:0]	dac_mode 			,
-+		output 	wire 	[15:0]	dac_user_set_value	,
-+		input 	wire 	[15:0]	dac_dyn_value 		,
-+		output 	wire  	[1:0]	dac_ref_sel 		,
-+		input 	wire 			dac_locked 			,
-+
-+		// User ports ends
-+		// Do not modify the ports beyond this line
-+
-+		// Global Clock Signal
-+		input wire  S_AXI_ACLK,
-+		// Global Reset Signal. This Signal is Active LOW
-+		input wire  S_AXI_ARESETN,
-+		// Write address (issued by master, acceped by Slave)
-+		input wire [C_S_AXI_ADDR_WIDTH-1 : 0] S_AXI_AWADDR,
-+		// Write channel Protection type. This signal indicates the
-+    		// privilege and security level of the transaction, and whether
-+    		// the transaction is a data access or an instruction access.
-+		input wire [2 : 0] S_AXI_AWPROT,
-+		// Write address valid. This signal indicates that the master signaling
-+    		// valid write address and control information.
-+		input wire  S_AXI_AWVALID,
-+		// Write address ready. This signal indicates that the slave is ready
-+    		// to accept an address and associated control signals.
-+		output wire  S_AXI_AWREADY,
-+		// Write data (issued by master, acceped by Slave) 
-+		input wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_WDATA,
-+		// Write strobes. This signal indicates which byte lanes hold
-+    		// valid data. There is one write strobe bit for each eight
-+    		// bits of the write data bus.    
-+		input wire [(C_S_AXI_DATA_WIDTH/8)-1 : 0] S_AXI_WSTRB,
-+		// Write valid. This signal indicates that valid write
-+    		// data and strobes are available.
-+		input wire  S_AXI_WVALID,
-+		// Write ready. This signal indicates that the slave
-+    		// can accept the write data.
-+		output wire  S_AXI_WREADY,
-+		// Write response. This signal indicates the status
-+    		// of the write transaction.
-+		output wire [1 : 0] S_AXI_BRESP,
-+		// Write response valid. This signal indicates that the channel
-+    		// is signaling a valid write response.
-+		output wire  S_AXI_BVALID,
-+		// Response ready. This signal indicates that the master
-+    		// can accept a write response.
-+		input wire  S_AXI_BREADY,
-+		// Read address (issued by master, acceped by Slave)
-+		input wire [C_S_AXI_ADDR_WIDTH-1 : 0] S_AXI_ARADDR,
-+		// Protection type. This signal indicates the privilege
-+    		// and security level of the transaction, and whether the
-+    		// transaction is a data access or an instruction access.
-+		input wire [2 : 0] S_AXI_ARPROT,
-+		// Read address valid. This signal indicates that the channel
-+    		// is signaling valid read address and control information.
-+		input wire  S_AXI_ARVALID,
-+		// Read address ready. This signal indicates that the slave is
-+    		// ready to accept an address and associated control signals.
-+		output wire  S_AXI_ARREADY,
-+		// Read data (issued by slave)
-+		output wire [C_S_AXI_DATA_WIDTH-1 : 0] S_AXI_RDATA,
-+		// Read response. This signal indicates the status of the
-+    		// read transfer.
-+		output wire [1 : 0] S_AXI_RRESP,
-+		// Read valid. This signal indicates that the channel is
-+    		// signaling the required read data.
-+		output wire  S_AXI_RVALID,
-+		// Read ready. This signal indicates that the master can
-+    		// accept the read data and response information.
-+		input wire  S_AXI_RREADY
-+	);
-+
-+	// AXI4LITE signals
-+	reg [C_S_AXI_ADDR_WIDTH-1 : 0] 	axi_awaddr;
-+	reg  	axi_awready;
-+	reg  	axi_wready;
-+	reg [1 : 0] 	axi_bresp;
-+	reg  	axi_bvalid;
-+	reg [C_S_AXI_ADDR_WIDTH-1 : 0] 	axi_araddr;
-+	reg  	axi_arready;
-+	reg [C_S_AXI_DATA_WIDTH-1 : 0] 	axi_rdata;
-+	reg [1 : 0] 	axi_rresp;
-+	reg  	axi_rvalid;
-+
-+	// Example-specific design signals
-+	// local parameter for addressing 32 bit / 64 bit C_S_AXI_DATA_WIDTH
-+	// ADDR_LSB is used for addressing 32/64 bit registers/memories
-+	// ADDR_LSB = 2 for 32 bits (n downto 2)
-+	// ADDR_LSB = 3 for 64 bits (n downto 3)
-+	localparam integer ADDR_LSB = (C_S_AXI_DATA_WIDTH/32) + 1;
-+	localparam integer OPT_MEM_ADDR_BITS = 2;
-+	//----------------------------------------------
-+	//-- Signals for user logic register space example
-+	//------------------------------------------------
-+	//-- Number of Slave Registers 8
-+	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg0;
-+	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg1;
-+	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg2;
-+	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg3;
-+	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg4;
-+	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg5;
-+	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg6;
-+	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg7;
-+	wire	 slv_reg_rden;
-+	wire	 slv_reg_wren;
-+	reg [C_S_AXI_DATA_WIDTH-1:0]	 reg_data_out;
-+	integer	 byte_index;
-+	reg	 aw_en;
-+
-+	// I/O Connections assignments
-+
-+	assign S_AXI_AWREADY	= axi_awready;
-+	assign S_AXI_WREADY	= axi_wready;
-+	assign S_AXI_BRESP	= axi_bresp;
-+	assign S_AXI_BVALID	= axi_bvalid;
-+	assign S_AXI_ARREADY	= axi_arready;
-+	assign S_AXI_RDATA	= axi_rdata;
-+	assign S_AXI_RRESP	= axi_rresp;
-+	assign S_AXI_RVALID	= axi_rvalid;
-+	// Implement axi_awready generation
-+	// axi_awready is asserted for one S_AXI_ACLK clock cycle when both
-+	// S_AXI_AWVALID and S_AXI_WVALID are asserted. axi_awready is
-+	// de-asserted when reset is low.
-+
-+	always @( posedge S_AXI_ACLK )
-+	begin
-+	  if ( S_AXI_ARESETN == 1'b0 )
-+	    begin
-+	      axi_awready <= 1'b0;
-+	      aw_en <= 1'b1;
-+	    end 
-+	  else
-+	    begin    
-+	      if (~axi_awready && S_AXI_AWVALID && S_AXI_WVALID && aw_en)
-+	        begin
-+	          // slave is ready to accept write address when 
-+	          // there is a valid write address and write data
-+	          // on the write address and data bus. This design 
-+	          // expects no outstanding transactions. 
-+	          axi_awready <= 1'b1;
-+	          aw_en <= 1'b0;
-+	        end
-+	        else if (S_AXI_BREADY && axi_bvalid)
-+	            begin
-+	              aw_en <= 1'b1;
-+	              axi_awready <= 1'b0;
-+	            end
-+	      else           
-+	        begin
-+	          axi_awready <= 1'b0;
-+	        end
-+	    end 
-+	end       
-+
-+	// Implement axi_awaddr latching
-+	// This process is used to latch the address when both 
-+	// S_AXI_AWVALID and S_AXI_WVALID are valid. 
-+
-+	always @( posedge S_AXI_ACLK )
-+	begin
-+	  if ( S_AXI_ARESETN == 1'b0 )
-+	    begin
-+	      axi_awaddr <= 0;
-+	    end 
-+	  else
-+	    begin    
-+	      if (~axi_awready && S_AXI_AWVALID && S_AXI_WVALID && aw_en)
-+	        begin
-+	          // Write Address latching 
-+	          axi_awaddr <= S_AXI_AWADDR;
-+	        end
-+	    end 
-+	end       
-+
-+	// Implement axi_wready generation
-+	// axi_wready is asserted for one S_AXI_ACLK clock cycle when both
-+	// S_AXI_AWVALID and S_AXI_WVALID are asserted. axi_wready is 
-+	// de-asserted when reset is low. 
-+
-+	always @( posedge S_AXI_ACLK )
-+	begin
-+	  if ( S_AXI_ARESETN == 1'b0 )
-+	    begin
-+	      axi_wready <= 1'b0;
-+	    end 
-+	  else
-+	    begin    
-+	      if (~axi_wready && S_AXI_WVALID && S_AXI_AWVALID && aw_en )
-+	        begin
-+	          // slave is ready to accept write data when 
-+	          // there is a valid write address and write data
-+	          // on the write address and data bus. This design 
-+	          // expects no outstanding transactions. 
-+	          axi_wready <= 1'b1;
-+	        end
-+	      else
-+	        begin
-+	          axi_wready <= 1'b0;
-+	        end
-+	    end 
-+	end       
-+
-+	// Implement memory mapped register select and write logic generation
-+	// The write data is accepted and written to memory mapped registers when
-+	// axi_awready, S_AXI_WVALID, axi_wready and S_AXI_WVALID are asserted. Write strobes are used to
-+	// select byte enables of slave registers while writing.
-+	// These registers are cleared when reset (active low) is applied.
-+	// Slave register write enable is asserted when valid address and data are available
-+	// and the slave is ready to accept the write address and write data.
-+	assign slv_reg_wren = axi_wready && S_AXI_WVALID && axi_awready && S_AXI_AWVALID;
-+
-+	always @( posedge S_AXI_ACLK )
-+	begin
-+	  if ( S_AXI_ARESETN == 1'b0 )
-+	    begin
-+	      slv_reg0 <= 0;
-+	      slv_reg1 <= 0;
-+	      slv_reg2 <= 0;
-+	      slv_reg3 <= 0;
-+	      slv_reg4 <= 0;
-+	      slv_reg5 <= 0;
-+	      slv_reg6 <= 0;
-+	      slv_reg7 <= 0;
-+	    end 
-+	  else begin
-+	    if (slv_reg_wren)
-+	      begin
-+	        case ( axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
-+	          3'h0:
-+	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-+	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-+	                // Respective byte enables are asserted as per write strobes 
-+	                // Slave register 0
-+	                slv_reg0[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-+	              end  
-+	          3'h1:
-+	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-+	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-+	                // Respective byte enables are asserted as per write strobes 
-+	                // Slave register 1
-+	                slv_reg1[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-+	              end  
-+	          3'h2:
-+	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-+	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-+	                // Respective byte enables are asserted as per write strobes 
-+	                // Slave register 2
-+	                slv_reg2[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-+	              end  
-+	          3'h3:
-+	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-+	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-+	                // Respective byte enables are asserted as per write strobes 
-+	                // Slave register 3
-+	                slv_reg3[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-+	              end  
-+	          3'h4:
-+	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-+	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-+	                // Respective byte enables are asserted as per write strobes 
-+	                // Slave register 4
-+	                slv_reg4[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-+	              end  
-+	          3'h5:
-+	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-+	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-+	                // Respective byte enables are asserted as per write strobes 
-+	                // Slave register 5
-+	                slv_reg5[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-+	              end  
-+	          3'h6:
-+	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-+	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-+	                // Respective byte enables are asserted as per write strobes 
-+	                // Slave register 6
-+	                slv_reg6[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-+	              end  
-+	          3'h7:
-+	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-+	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-+	                // Respective byte enables are asserted as per write strobes 
-+	                // Slave register 7
-+	                slv_reg7[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-+	              end  
-+	          default : begin
-+	                      slv_reg0 <= slv_reg0;
-+	                      slv_reg1 <= slv_reg1;
-+	                      slv_reg2 <= slv_reg2;
-+	                      slv_reg3 <= slv_reg3;
-+	                      slv_reg4 <= slv_reg4;
-+	                      slv_reg5 <= slv_reg5;
-+	                      slv_reg6 <= slv_reg6;
-+	                      slv_reg7 <= slv_reg7;
-+	                    end
-+	        endcase
-+	      end
-+	  end
-+	end    
-+
-+	// Implement write response logic generation
-+	// The write response and response valid signals are asserted by the slave 
-+	// when axi_wready, S_AXI_WVALID, axi_wready and S_AXI_WVALID are asserted.  
-+	// This marks the acceptance of address and indicates the status of 
-+	// write transaction.
-+
-+	always @( posedge S_AXI_ACLK )
-+	begin
-+	  if ( S_AXI_ARESETN == 1'b0 )
-+	    begin
-+	      axi_bvalid  <= 0;
-+	      axi_bresp   <= 2'b0;
-+	    end 
-+	  else
-+	    begin    
-+	      if (axi_awready && S_AXI_AWVALID && ~axi_bvalid && axi_wready && S_AXI_WVALID)
-+	        begin
-+	          // indicates a valid write response is available
-+	          axi_bvalid <= 1'b1;
-+	          axi_bresp  <= 2'b0; // 'OKAY' response 
-+	        end                   // work error responses in future
-+	      else
-+	        begin
-+	          if (S_AXI_BREADY && axi_bvalid) 
-+	            //check if bready is asserted while bvalid is high) 
-+	            //(there is a possibility that bready is always asserted high)   
-+	            begin
-+	              axi_bvalid <= 1'b0; 
-+	            end  
-+	        end
-+	    end
-+	end   
-+
-+	// Implement axi_arready generation
-+	// axi_arready is asserted for one S_AXI_ACLK clock cycle when
-+	// S_AXI_ARVALID is asserted. axi_awready is 
-+	// de-asserted when reset (active low) is asserted. 
-+	// The read address is also latched when S_AXI_ARVALID is 
-+	// asserted. axi_araddr is reset to zero on reset assertion.
-+
-+	always @( posedge S_AXI_ACLK )
-+	begin
-+	  if ( S_AXI_ARESETN == 1'b0 )
-+	    begin
-+	      axi_arready <= 1'b0;
-+	      axi_araddr  <= 32'b0;
-+	    end 
-+	  else
-+	    begin    
-+	      if (~axi_arready && S_AXI_ARVALID)
-+	        begin
-+	          // indicates that the slave has acceped the valid read address
-+	          axi_arready <= 1'b1;
-+	          // Read address latching
-+	          axi_araddr  <= S_AXI_ARADDR;
-+	        end
-+	      else
-+	        begin
-+	          axi_arready <= 1'b0;
-+	        end
-+	    end 
-+	end       
-+
-+	// Implement axi_arvalid generation
-+	// axi_rvalid is asserted for one S_AXI_ACLK clock cycle when both 
-+	// S_AXI_ARVALID and axi_arready are asserted. The slave registers 
-+	// data are available on the axi_rdata bus at this instance. The 
-+	// assertion of axi_rvalid marks the validity of read data on the 
-+	// bus and axi_rresp indicates the status of read transaction.axi_rvalid 
-+	// is deasserted on reset (active low). axi_rresp and axi_rdata are 
-+	// cleared to zero on reset (active low).  
-+	always @( posedge S_AXI_ACLK )
-+	begin
-+	  if ( S_AXI_ARESETN == 1'b0 )
-+	    begin
-+	      axi_rvalid <= 0;
-+	      axi_rresp  <= 0;
-+	    end 
-+	  else
-+	    begin    
-+	      if (axi_arready && S_AXI_ARVALID && ~axi_rvalid)
-+	        begin
-+	          // Valid read data is available at the read data bus
-+	          axi_rvalid <= 1'b1;
-+	          axi_rresp  <= 2'b0; // 'OKAY' response
-+	        end   
-+	      else if (axi_rvalid && S_AXI_RREADY)
-+	        begin
-+	          // Read data is accepted by the master
-+	          axi_rvalid <= 1'b0;
-+	        end                
-+	    end
-+	end    
-+
-+	// Implement memory mapped register select and read logic generation
-+	// Slave register read enable is asserted when valid address is available
-+	// and the slave is ready to accept the read address.
-+	assign slv_reg_rden = axi_arready & S_AXI_ARVALID & ~axi_rvalid;
-+	always @(*)
-+	begin
-+	      // Address decoding for reading registers
-+	      case ( axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
-+	        3'h0   : reg_data_out <= slv_reg0;
-+	        3'h1   : reg_data_out <= slv_reg1;
-+	        3'h2   : reg_data_out <= dac_dyn_value;
-+	        3'h3   : reg_data_out <= slv_reg3;
-+	        3'h4   : reg_data_out <= dac_locked;
-+	        3'h5   : reg_data_out <= slv_reg5;
-+	        3'h6   : reg_data_out <= slv_reg6;
-+	        3'h7   : reg_data_out <= slv_reg7;
-+	        default : reg_data_out <= 0;
-+	      endcase
-+	end
-+
-+	// Output register or memory read data
-+	always @( posedge S_AXI_ACLK )
-+	begin
-+	  if ( S_AXI_ARESETN == 1'b0 )
-+	    begin
-+	      axi_rdata  <= 0;
-+	    end 
-+	  else
-+	    begin    
-+	      // When there is a valid read address (S_AXI_ARVALID) with 
-+	      // acceptance of read address by the slave (axi_arready), 
-+	      // output the read dada 
-+	      if (slv_reg_rden)
-+	        begin
-+	          axi_rdata <= reg_data_out;     // register read data
-+	        end   
-+	    end
-+	end    
-+
-+	// Add user logic here
-+	assign dac_mode = slv_reg0[0];
-+	assign dac_user_set_value = slv_reg1[15:0];
-+	assign dac_ref_sel = slv_reg3[1:0];
-+	
-+	
-+
-+	// User logic ends
-+
-+	endmodule
-diff --git a/library/axi_vcxo_ctrl_1.0/hdl/b205_ref_pll.v b/library/axi_vcxo_ctrl_1.0/hdl/b205_ref_pll.v
-new file mode 100644
-index 000000000..140c44066
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/hdl/b205_ref_pll.v
-@@ -0,0 +1,327 @@
-+//
-+// Copyright 2015 Ettus Research, a National Instruments Company
-+//
-+// SPDX-License-Identifier: LGPL-3.0-or-later
-+//
-+
-+module b205_ref_pll#(parameter DEVICE="LTC2630")(
-+    input reset,
-+    input clk,      // 200 MHz sample clock
-+    input refclk,   // 40 MHz reference clock
-+    input ref,      // PPS or 10 MHz external reference
-+    output reg locked,
-+    output reg ref_is_10M,
-+    output reg ref_is_pps,
-+
-+    output [15:0] dyn_dac,
-+
-+    // SPI lines to AD5662
-+    output sclk,
-+    output mosi,
-+    output sync_n
-+    );
-+
-+    // Base parameters
-+    localparam SAMPLE_CLOCK_FREQ=200_000_000;
-+    localparam REF_FREQ_PPS=1;
-+    localparam REF_FREQ_10MHZ=10_000_000;
-+    localparam REF_CLK_FREQ=40_000_000;
-+    localparam PFD_FREQ_PPS=1;
-+    localparam PFD_FREQ_10MHZ=10;
-+
-+    // Lock detection parameters
-+    localparam LOCK_TOLERANCE_PPM=1;
-+    localparam LOCK_MARGIN_PPS=(SAMPLE_CLOCK_FREQ/PFD_FREQ_PPS)*LOCK_TOLERANCE_PPM/1_000_000;
-+    localparam LOCK_MARGIN_10MHZ=(SAMPLE_CLOCK_FREQ/PFD_FREQ_10MHZ)*LOCK_TOLERANCE_PPM/1_000_000;
-+
-+    // Reference frequency detection parameters
-+    // References are only valid if they are +/-5ppm because that is the range of the VCTXCO
-+    localparam REF_PERIOD_PPS=SAMPLE_CLOCK_FREQ/REF_FREQ_PPS;
-+    localparam REF_PERIOD_10MHZ=SAMPLE_CLOCK_FREQ/REF_FREQ_10MHZ;
-+    localparam REF_PERIOD_PPS_MIN=REF_PERIOD_PPS-(REF_PERIOD_PPS*5/1_000_000)-1;
-+    localparam REF_PERIOD_PPS_MAX=REF_PERIOD_PPS+(REF_PERIOD_PPS*5/1_000_000)+1;
-+    localparam REF_PERIOD_10MHZ_MIN=REF_PERIOD_10MHZ-(REF_PERIOD_10MHZ*5/1_000_000)-1;
-+    localparam REF_PERIOD_10MHZ_MAX=REF_PERIOD_10MHZ+(REF_PERIOD_10MHZ*5/1_000_000)+1;
-+
-+    // R divider parameters
-+    localparam RDIV_PPS=REF_FREQ_PPS/PFD_FREQ_PPS;
-+    localparam RDIV_10MHZ=REF_FREQ_10MHZ/PFD_FREQ_10MHZ;
-+
-+    // N divider parameters (refclk is divided by 2)
-+    localparam NDIV_PPS=REF_CLK_FREQ/2/PFD_FREQ_PPS;
-+    localparam NDIV_10MHZ=REF_CLK_FREQ/2/PFD_FREQ_10MHZ;
-+
-+    // PFD parameters
-+    localparam PFD_PERIOD_PPS=SAMPLE_CLOCK_FREQ/PFD_FREQ_PPS;
-+    localparam PFD_PERIOD_10MHZ=SAMPLE_CLOCK_FREQ/PFD_FREQ_10MHZ;
-+
-+
-+    // Initial divide by 2 for 40 MHz clock
-+    // (since refclk cannot be sampled directly)
-+    reg refclk_div;
-+    always @(posedge refclk) begin
-+        refclk_div <= ~refclk_div;
-+    end
-+
-+    // flop signals into sample clock domain together
-+    reg [3:0] refsmp;
-+    reg [3:0] refclksmp;
-+    always @(posedge clk) begin
-+        refsmp <= {refsmp[2:0],ref};
-+        refclksmp <= {refclksmp[2:0],refclk_div};
-+    end
-+
-+    // rising edge detection
-+    wire ref_rising = (refsmp[3:2] == 2'b01);
-+    wire refclk_rising = (refclksmp[3:2] == 2'b01);
-+
-+    // reference frequency detection
-+    reg [27:0] refcnt;
-+    reg ref_detected;
-+
-+    wire valid_ref = ref_is_10M | ref_is_pps;
-+    always @(posedge clk) begin
-+        if (reset) begin
-+            refcnt <= 28'd0;
-+            ref_detected <= 1'b0;
-+            ref_is_10M <= 1'b0;
-+            ref_is_pps <= 1'b0;
-+        end
-+        else if (ref_rising) begin
-+            refcnt <= 28'd1;
-+            ref_detected <= 1'b1;
-+            ref_is_10M <= ((refcnt >= REF_PERIOD_10MHZ_MIN) && (refcnt <= REF_PERIOD_10MHZ_MAX));
-+            ref_is_pps <= ((refcnt >= REF_PERIOD_PPS_MIN) && (refcnt <= REF_PERIOD_PPS_MAX));
-+        end
-+        else if ((ref_is_10M && (refcnt > REF_PERIOD_10MHZ_MAX)) || (refcnt > REF_PERIOD_PPS_MAX)) begin
-+            // consider the reference lost
-+            refcnt <= 28'd0;
-+            ref_detected <= 1'b0;
-+            ref_is_10M <= 1'b0;
-+            ref_is_pps <= 1'b0;
-+        end
-+        else if (ref_detected)
-+            refcnt <= refcnt + 28'd1;
-+    end
-+
-+    // R divider
-+    wire [23:0] rdiv = ref_is_10M ? RDIV_10MHZ : RDIV_PPS;
-+    reg [23:0] rcnt;
-+    wire [23:0] next_rcnt = ~valid_ref ? 24'd0 : (rcnt == rdiv) ? 24'd1 : rcnt + 1'b1;
-+    reg r_rising;
-+    always @(posedge clk) begin
-+        if (ref_rising)
-+            rcnt <= next_rcnt;
-+        r_rising <= (ref_rising && ((ref_is_10M && (rcnt == rdiv)) || ref_is_pps));
-+    end
-+
-+    // N divider
-+    // Enable on rising edge of R after valid_ref
-+    // is asserted so R and N signals start aligned.
-+    // Disable if reference lost.
-+    wire [25:0] ndiv = ref_is_10M ? NDIV_10MHZ : NDIV_PPS;
-+    reg [25:0] ncnt;
-+    wire [25:0] next_ncnt = ~valid_ref ? 26'd0 : ncnt == ndiv ? 26'd1 : ncnt + 1'b1;
-+    reg n_rising;
-+    always @(posedge clk) begin
-+		if (refclk_rising)
-+			ncnt <= next_ncnt;
-+		n_rising <= (refclk_rising && (ncnt == ndiv));
-+    end
-+
-+    // Frequency Counter
-+    wire signed [28:0] period = ref_is_10M ? PFD_PERIOD_10MHZ : PFD_PERIOD_PPS;
-+    reg signed [28:0] r_period_cnt;
-+    reg signed [28:0] freq_err;
-+    always @(posedge clk) begin
-+        if (reset | ~valid_ref) begin
-+            r_period_cnt <= 28'd0;
-+            freq_err <= 29'sd0;
-+        end
-+        else if (r_rising) begin
-+            r_period_cnt <= 28'd1;
-+            freq_err <= period - r_period_cnt;
-+        end
-+        else
-+            r_period_cnt <= r_period_cnt + 28'd1;
-+    end
-+
-+    // Phase Counter
-+    reg signed [28:0] lead_cnt;
-+    reg lead_cnt_ena;
-+    reg signed [28:0] lead;
-+    always @(posedge clk) begin
-+        // Count how much N leads R
-+        // The count is negative because it measures
-+        // how much the VCTCXO must be slowed down.
-+        if (~valid_ref | n_rising) begin
-+            lead_cnt <= 29'sd0;
-+            lead_cnt_ena <= 1'b1;
-+            if (r_rising)
-+                lead <= 29'sd0;
-+        end
-+        else if (r_rising) begin
-+            if (lead_cnt_ena)
-+                lead <= lead_cnt - 29'sd1;
-+            else begin
-+                // R rising with no preceding N rising.
-+                // N has changed from leading to lagging R,
-+                // but we don't yet know by how much so
-+                // assume 1.
-+                lead <= 29'sd1;
-+            end
-+            lead_cnt_ena <= 1'b0;
-+        end
-+        else if (lead_cnt_ena)
-+            lead_cnt <= lead_cnt - 29'sd1;
-+    end
-+
-+    // PFD State Machine
-+    localparam MEASURE=4'd0;
-+    localparam CAPTURE=4'd1;
-+    localparam CAPTURE_LAG=4'd2;
-+    localparam CAPTURE_LEAD=4'd3;
-+    localparam CALCULATE_ERROR=4'd4;
-+    localparam CALCULATE_10M_GAIN=4'd5;
-+    localparam CALCULATE_ADJUSTMENT=4'd6;
-+    localparam CALCULATE_OUTPUT_VALUE=4'd7;
-+    localparam APPLY_OUTPUT_VALUE=4'd8;
-+    reg [3:0] state;
-+    reg [15:0] daco = 16'd32767;
-+    wire signed [28:0] lock_margin = ref_is_10M ? LOCK_MARGIN_10MHZ : LOCK_MARGIN_PPS;
-+    wire signed [28:0] lag = lead + period;
-+    reg signed [28:0] phase_err;
-+    reg signed [28:0] err;
-+    reg signed [28:0] shift;
-+    reg signed [28:0] adj;
-+    wire signed [28:0] dacv = {13'd0, daco};
-+    reg signed [28:0] sum;
-+    reg [2:0] ld;
-+    always @(posedge clk) begin
-+        if (reset || ~valid_ref) begin
-+            state <= MEASURE;
-+            daco <= 16'd32767;
-+            err <= 29'sd0;
-+            shift <= 29'sd0;
-+            adj <= 29'sd0;
-+            ld <= 3'd0;
-+        end
-+        else begin
-+            case(state)
-+                MEASURE: begin
-+                    if (r_rising)
-+                        state <= CAPTURE;
-+                end
-+                CAPTURE: begin
-+                    if (lag < -lead)
-+                        state <= CAPTURE_LAG;
-+                    else
-+                        state <= CAPTURE_LEAD;
-+                end
-+                CAPTURE_LAG: begin
-+                    phase_err <= lag;
-+                    ld <= {ld[1:0], (lag <= lock_margin)};
-+                    state <= CALCULATE_ERROR;
-+                end
-+                CAPTURE_LEAD: begin
-+                    phase_err <= lead;
-+                    ld <= {ld[1:0], (-lead <= lock_margin)};
-+                    state <= CALCULATE_ERROR;
-+                end
-+                CALCULATE_ERROR: begin
-+                    err <= phase_err + freq_err;
-+                    state <= ref_is_10M ? CALCULATE_10M_GAIN : CALCULATE_ADJUSTMENT;
-+                end
-+                CALCULATE_10M_GAIN: begin
-+                    shift <= (err < -7 || err > 7) ? 7 : (err < 0 ? -err : err);
-+                    state <= CALCULATE_ADJUSTMENT;
-+                end
-+                CALCULATE_ADJUSTMENT: begin
-+                    // The VCTCXO is +/-5 ppm from 0.3V to 1.5V and the DAC is 16 bits,
-+                    // which works out to 0.000228885 ppm per DAC unit.
-+                    // The 200 MHz sampling clock means each unit of error is 0.005 ppm,
-+                    // which works out to 21.845 DAC units to correct each unit of error.
-+                    // Theory is nice, but the proportional and integral gains used here
-+                    // were determined through manual tuning.
-+                    if (ref_is_10M)
-+                        adj <= (err <<< shift);
-+                    else
-+                        adj <= (err <<< 4) - err;
-+                    state <= CALCULATE_OUTPUT_VALUE;
-+                end
-+                CALCULATE_OUTPUT_VALUE: begin
-+                    sum <= dacv + adj;
-+                    state <= APPLY_OUTPUT_VALUE;
-+                end
-+                APPLY_OUTPUT_VALUE: begin
-+                    // Clip and apply
-+                    if (sum < 29'sd0)
-+                        daco <= 16'd0;
-+                    else if (sum > 29'sd65535)
-+                        daco <= 16'd65535;
-+                    else
-+                        daco <= sum[15:0];
-+                    state <= MEASURE;
-+                end
-+            endcase
-+        end
-+    end
-+
-+    always @(posedge clk)
-+        locked <= (ld == 3'b111);
-+
-+    // ad5660_spi dac
-+    // (
-+    //     .clk(clk),
-+    //     .dat(daco),
-+    //     .sclk(sclk),
-+    //     .mosi(mosi),
-+    //     .sync_n(sync_n)
-+    // );
-+
-+
-+    // ad5662_auto_spi dac
-+    //     (
-+    //       .clk(refclk),
-+    //       .rst  ( reset),
-+    //       .data(daco),
-+    //       .sclk(sclk),
-+    //       .mosi(mosi),
-+    //       .sync_n(sync_n)
-+    //     );
-+
-+
-+    generate
-+        if (DEVICE=="AD5660") begin
-+          ad5662_auto_spi dac
-+          (
-+            .clk(clk),
-+            .dat(daco),
-+            .sclk(sclk),
-+            .mosi(mosi),
-+            .sync_n(sync_n)
-+          );
-+        end  else if (DEVICE=="AD5640") begin
-+          ad5640_spi u_ad5640_spi(
-+              .clk  ( clk  ),
-+              .rst  ( reset  ),
-+              .data ( daco[15:2] ),
-+              .sclk ( sclk ),
-+              .mosi ( mosi ),
-+              .sync_n  ( sync_n  )
-+          ); 
-+        end else begin
-+          ltc2630_spi u_ltc2630_spi(
-+              .clk  ( clk  ),
-+              .rst  ( reset),
-+              .data ( daco ),
-+              .sclk ( sclk ),
-+              .mosi ( mosi ),
-+              .sync_n  ( sync_n  )
-+          );
-+        end
-+    endgenerate
-+  
-+    assign dyn_dac = daco;
-+  
-+endmodule
-diff --git a/library/axi_vcxo_ctrl_1.0/hdl/ltc2630_spi.v b/library/axi_vcxo_ctrl_1.0/hdl/ltc2630_spi.v
-new file mode 100644
-index 000000000..43ee8fcc2
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/hdl/ltc2630_spi.v
-@@ -0,0 +1,151 @@
-+module ltc2630_spi  (
-+    input   wire            clk,
-+    input   wire            rst,
-+    input   wire  [15:0]    data,
-+    output  reg             sclk,
-+    output  wire            mosi,
-+    output  reg             sync_n
-+);
-+
-+    //====================================================
-+    //parameter define
-+    //====================================================
-+    localparam  IDLE        = 4'b0001;
-+    localparam  SYNC_PRE    = 4'b0010;
-+    localparam  DATA        = 4'b0100;
-+    localparam  SYNC_END    = 4'b1000;
-+
-+    //====================================================
-+    // internal signals and registers
-+    //====================================================
-+    reg     [3:0]   state;
-+    reg     [3:0]   cnt_cycle   ;
-+    reg     [5:0]   cnt_bit     ;
-+    reg     [15:0]  last_data   ;
-+    reg     [23:0]  data_shift  ;
-+    wire            rising_edge ;
-+    wire            falling_edge;
-+
-+
-+    //----------------state------------------
-+    always @(posedge clk ) begin
-+        if (rst==1'b1) begin
-+            state <= IDLE;
-+        end
-+        else  begin
-+            case (state)
-+                IDLE : begin
-+                    // detect a new data input, the dac value needs to be updated
-+                    if (last_data != data) begin
-+                        state <= SYNC_PRE;
-+                    end
-+                end
-+
-+                SYNC_PRE : begin
-+                    // The SYNC is low, start to update the value
-+                    if (falling_edge) begin
-+                        state <= DATA;
-+                    end
-+                end
-+
-+                DATA : begin
-+                    if (cnt_bit == 'd23 && falling_edge) begin
-+                        state <= SYNC_END;
-+                    end
-+                end
-+
-+                SYNC_END : begin
-+                    if (rising_edge == 1'b1) begin
-+                        state <= IDLE;
-+                    end
-+                end
-+            endcase
-+        end
-+    end
-+
-+    //----------------cnt_cycle------------------
-+    always @(posedge clk ) begin
-+        if (rst==1'b1) begin
-+            cnt_cycle <= 'd0;
-+        end
-+        else if (state == SYNC_PRE || state == DATA || state == SYNC_END) begin
-+            cnt_cycle <= cnt_cycle + 1'b1;
-+        end
-+        else  begin
-+            cnt_cycle <=  'd0;
-+        end
-+    end
-+
-+    assign rising_edge = cnt_cycle==4'b1000;
-+    assign falling_edge = cnt_cycle==4'b1111;
-+
-+    //----------------data_shift------------------
-+    always @(posedge clk ) begin
-+        if (rst==1'b1) begin
-+            data_shift <= 'd0;
-+        end
-+        else if (state == IDLE && (last_data != data)) begin
-+            data_shift <= {4'b0011, 4'b0000, data};
-+        end
-+        else if (state == DATA && falling_edge) begin
-+            data_shift <=  {data_shift[22:0], 1'b0};
-+        end
-+    end
-+
-+    //----------------cnt_bit------------------
-+    always @(posedge clk ) begin
-+        if (rst==1'b1) begin
-+            cnt_bit <= 'd0;
-+        end
-+        else if (state == DATA ) begin
-+            if (cnt_bit == 'd23 && falling_edge) begin
-+                cnt_bit <= 'd0;
-+            end
-+            else if(falling_edge)begin
-+                cnt_bit <= cnt_bit + 1'b1;
-+            end
-+        end
-+        else  begin
-+            cnt_bit <=  'd0;
-+        end
-+    end
-+
-+    //----------------last_data------------------
-+    always @(posedge clk ) begin
-+        if (rst==1'b1) begin
-+            last_data <= 'd0;
-+        end
-+        else if (state == IDLE && (last_data != data)) begin
-+            last_data <= data;
-+        end
-+    end
-+
-+    //-----------------sclk-----------------
-+    always @(posedge clk ) begin
-+        if (rst==1'b1) begin
-+            sclk <= 1'b0;
-+        end
-+        else if (state==DATA && rising_edge == 1'b1) begin
-+            sclk <= 1'b1;
-+        end
-+        else if (state==DATA && falling_edge == 1'b1) begin
-+            sclk <=  1'b0;
-+        end
-+    end
-+
-+    assign mosi = data_shift[23];
-+
-+    //----------------sync_n------------------
-+    always @(posedge clk ) begin
-+        if (rst==1'b1) begin
-+            sync_n <= 1'b1;
-+        end
-+        else if (state == SYNC_PRE && falling_edge == 1'b1) begin
-+            sync_n <= 1'b0;
-+        end
-+        else if (state == SYNC_END && rising_edge == 1'b1) begin
-+            sync_n <=  1'b1;
-+        end
-+    end
-+    
-+endmodule
-\ No newline at end of file
-diff --git a/library/axi_vcxo_ctrl_1.0/src/ad5662_auto_spi.v b/library/axi_vcxo_ctrl_1.0/src/ad5662_auto_spi.v
-new file mode 100644
-index 000000000..d9f2e53be
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/src/ad5662_auto_spi.v
-@@ -0,0 +1,99 @@
-+//
-+// Copyright 2015 Ettus Research
-+// Copyright 2018 Ettus Research, a National Instruments Company
-+//
-+// SPDX-License-Identifier: LGPL-3.0-or-later
-+//
-+// The AD5662 DAC serial interface uses 24-bit transfers to encode 16-bits
-+// of actual data, two bits for power-down mode, and six pad bits. This
-+// module stores a copy of the last-programmed value, and will generate a
-+// serial stream if ever the input word (dat) changes. It will ignore
-+// changes to (dat) while it is busy with a serial update.
-+//
-+module ad5662_auto_spi
-+(
-+  input clk,
-+  input [15:0] dat,
-+  output reg sclk,
-+  output reg mosi,
-+  output reg sync_n
-+);
-+  // initialize ldat to 0, thus forcing
-+  // a reload on init.
-+  reg [15:0] ldat = 16'd0;
-+  wire upd = (dat != ldat); // new data present, need to update hw
-+
-+  reg [23:0] shft=24'b0;
-+  wire [23:0] nxt_shft;
-+
-+  // clock cycle counter to throttle generated spi cycles
-+  // allowing one spi clock cycle every 16 cycles of clk, with clk at 200 MHz
-+  // gives a spi clock rate of 12 MHz. This can be made more sophisticated
-+  // or parameterized, if more flexibility in clk is needed, of course.
-+  reg [3:0] ccnt=4'b0;
-+  wire [3:0] nxt_ccnt = ccnt + 1'b1;
-+  wire half = ccnt==4'b1000;
-+  wire full = ccnt==4'b1111;
-+  reg sena, hena;
-+  wire cena;
-+  always @(posedge clk) if (cena) ccnt <= nxt_ccnt;
-+  always @(posedge clk) sena <= full; // state updates and rising sclk
-+  always @(posedge clk) hena <= half; // for falling sclk
-+
-+  // transfer state counter
-+  reg [4:0] scnt = 5'b0;
-+  reg [4:0] nxt_scnt;
-+  always @(posedge clk) begin
-+    if (sena) begin
-+      scnt <= nxt_scnt;
-+      shft <= nxt_shft;
-+      mosi <= shft[23];
-+    end
-+  end
-+
-+
-+  // 32 possible states - more than enough to shift-out 24 bits and manage
-+  // the sync_n line
-+
-+  // particular scnt values of interest
-+  localparam READY=5'b00000; // waiting for new data
-+  localparam DCAPT=5'b00001; // new data transfers into ldat
-+  localparam SYNCL=5'b00010; // assert sync_n low
-+  localparam SYNCH=5'b11011; // return sync_n high
-+
-+  assign cena = upd | scnt != READY;
-+
-+  always @(scnt or upd)
-+  begin
-+    case (scnt)
-+    READY:
-+      nxt_scnt = upd ? DCAPT : READY;
-+    SYNCH:
-+      nxt_scnt = READY;
-+    default:
-+      nxt_scnt = scnt + 1'b1;
-+    endcase
-+  end
-+
-+  // note: defining the power-down mode bits to 00 for "normal operation"
-+  assign nxt_shft = (scnt == SYNCL) ? { 8'b000000_00, ldat } : { shft[22:0], 1'b0 };
-+
-+  // Update ldat when dat has changed, but only if READY.
-+  // Changes to dat arriving faster than can be kept up with here are ignored
-+  // until the cycle-in-progress is completed.
-+  wire ldat_ena = sena & (scnt == DCAPT);
-+  always @(posedge clk) begin
-+    if (ldat_ena) ldat <= dat;
-+  end
-+
-+  // keep the sync_n line low when idle to minimize power consumption
-+  // it gets brought high just before beginning each transaction
-+  wire nxt_sync_n = (scnt==SYNCL) | (scnt==SYNCH);
-+  always @(posedge clk) if (sena) sync_n <= nxt_sync_n;
-+
-+  reg sclk_go;
-+  always @(posedge clk) sclk_go <= (scnt > SYNCL);
-+  wire nxt_sclk = ~sclk_go ? 1'b1 : ~sclk;
-+  always @(posedge clk) if (sena | hena) sclk <= nxt_sclk;
-+
-+endmodule
-diff --git a/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0.v b/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0.v
-new file mode 100644
-index 000000000..c22d2b9b6
---- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0.v
++++ b/library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v
 @@ -0,0 +1,154 @@
 +
 +`timescale 1 ns / 1 ps
 +
-+	module axi_vcxo_ctrl_v1_0 #
++	module axi_vcxo_ctrl #
 +	(
 +		// Users to add parameters here
 +		parameter DEVICE="LTC2630",
@@ -2258,11 +1234,11 @@ index 000000000..c22d2b9b6
 +	// User logic ends
 +
 +	endmodule
-diff --git a/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0_S00_AXI.v b/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0_S00_AXI.v
+diff --git a/library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0_S00_AXI.v b/library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0_S00_AXI.v
 new file mode 100644
 index 000000000..22ebf7eb8
 --- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/src/axi_vcxo_ctrl_v1_0_S00_AXI.v
++++ b/library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0_S00_AXI.v
 @@ -0,0 +1,458 @@
 +
 +`timescale 1 ns / 1 ps
@@ -2722,11 +1698,11 @@ index 000000000..22ebf7eb8
 +	// User logic ends
 +
 +	endmodule
-diff --git a/library/axi_vcxo_ctrl_1.0/src/b205_ref_pll.v b/library/axi_vcxo_ctrl_1.0/src/b205_ref_pll.v
+diff --git a/library/axi_vcxo_ctrl/src/b205_ref_pll.v b/library/axi_vcxo_ctrl/src/b205_ref_pll.v
 new file mode 100644
 index 000000000..666c125c4
 --- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/src/b205_ref_pll.v
++++ b/library/axi_vcxo_ctrl/src/b205_ref_pll.v
 @@ -0,0 +1,334 @@
 +//
 +// Copyright 2015 Ettus Research, a National Instruments Company
@@ -3062,11 +2038,11 @@ index 000000000..666c125c4
 +    assign dyn_dac = dac_value;
 +  
 +endmodule
-diff --git a/library/axi_vcxo_ctrl_1.0/src/ltc2630_spi.v b/library/axi_vcxo_ctrl_1.0/src/ltc2630_spi.v
+diff --git a/library/axi_vcxo_ctrl/src/ltc2630_spi.v b/library/axi_vcxo_ctrl/src/ltc2630_spi.v
 new file mode 100644
 index 000000000..43ee8fcc2
 --- /dev/null
-+++ b/library/axi_vcxo_ctrl_1.0/src/ltc2630_spi.v
++++ b/library/axi_vcxo_ctrl/src/ltc2630_spi.v
 @@ -0,0 +1,151 @@
 +module ltc2630_spi  (
 +    input   wire            clk,
@@ -3220,6 +2196,128 @@ index 000000000..43ee8fcc2
 +    
 +endmodule
 \ No newline at end of file
+diff --git a/library/axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0.tcl b/library/axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0.tcl
+new file mode 100644
+index 000000000..1614b6a04
+--- /dev/null
++++ b/library/axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0.tcl
+@@ -0,0 +1,55 @@
++# Definitional proc to organize widgets for parameters.
++proc init_gui { IPINST } {
++  ipgui::add_param $IPINST -name "Component_Name"
++  #Adding Page
++  set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
++  ipgui::add_param $IPINST -name "C_S00_AXI_ADDR_WIDTH" -parent ${Page_0}
++  ipgui::add_param $IPINST -name "C_S00_AXI_DATA_WIDTH" -parent ${Page_0}
++  ipgui::add_param $IPINST -name "DEVICE" -parent ${Page_0}
++
++
++}
++
++proc update_PARAM_VALUE.C_S00_AXI_ADDR_WIDTH { PARAM_VALUE.C_S00_AXI_ADDR_WIDTH } {
++	# Procedure called to update C_S00_AXI_ADDR_WIDTH when any of the dependent parameters in the arguments change
++}
++
++proc validate_PARAM_VALUE.C_S00_AXI_ADDR_WIDTH { PARAM_VALUE.C_S00_AXI_ADDR_WIDTH } {
++	# Procedure called to validate C_S00_AXI_ADDR_WIDTH
++	return true
++}
++
++proc update_PARAM_VALUE.C_S00_AXI_DATA_WIDTH { PARAM_VALUE.C_S00_AXI_DATA_WIDTH } {
++	# Procedure called to update C_S00_AXI_DATA_WIDTH when any of the dependent parameters in the arguments change
++}
++
++proc validate_PARAM_VALUE.C_S00_AXI_DATA_WIDTH { PARAM_VALUE.C_S00_AXI_DATA_WIDTH } {
++	# Procedure called to validate C_S00_AXI_DATA_WIDTH
++	return true
++}
++
++proc update_PARAM_VALUE.DEVICE { PARAM_VALUE.DEVICE } {
++	# Procedure called to update DEVICE when any of the dependent parameters in the arguments change
++}
++
++proc validate_PARAM_VALUE.DEVICE { PARAM_VALUE.DEVICE } {
++	# Procedure called to validate DEVICE
++	return true
++}
++
++
++proc update_MODELPARAM_VALUE.DEVICE { MODELPARAM_VALUE.DEVICE PARAM_VALUE.DEVICE } {
++	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
++	set_property value [get_property value ${PARAM_VALUE.DEVICE}] ${MODELPARAM_VALUE.DEVICE}
++}
++
++proc update_MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH { MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH PARAM_VALUE.C_S00_AXI_DATA_WIDTH } {
++	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
++	set_property value [get_property value ${PARAM_VALUE.C_S00_AXI_DATA_WIDTH}] ${MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH}
++}
++
++proc update_MODELPARAM_VALUE.C_S00_AXI_ADDR_WIDTH { MODELPARAM_VALUE.C_S00_AXI_ADDR_WIDTH PARAM_VALUE.C_S00_AXI_ADDR_WIDTH } {
++	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
++	set_property value [get_property value ${PARAM_VALUE.C_S00_AXI_ADDR_WIDTH}] ${MODELPARAM_VALUE.C_S00_AXI_ADDR_WIDTH}
++}
++
+diff --git a/library/axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0_v1_0.tcl b/library/axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0_v1_0.tcl
+new file mode 100644
+index 000000000..1614b6a04
+--- /dev/null
++++ b/library/axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0_v1_0.tcl
+@@ -0,0 +1,55 @@
++# Definitional proc to organize widgets for parameters.
++proc init_gui { IPINST } {
++  ipgui::add_param $IPINST -name "Component_Name"
++  #Adding Page
++  set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
++  ipgui::add_param $IPINST -name "C_S00_AXI_ADDR_WIDTH" -parent ${Page_0}
++  ipgui::add_param $IPINST -name "C_S00_AXI_DATA_WIDTH" -parent ${Page_0}
++  ipgui::add_param $IPINST -name "DEVICE" -parent ${Page_0}
++
++
++}
++
++proc update_PARAM_VALUE.C_S00_AXI_ADDR_WIDTH { PARAM_VALUE.C_S00_AXI_ADDR_WIDTH } {
++	# Procedure called to update C_S00_AXI_ADDR_WIDTH when any of the dependent parameters in the arguments change
++}
++
++proc validate_PARAM_VALUE.C_S00_AXI_ADDR_WIDTH { PARAM_VALUE.C_S00_AXI_ADDR_WIDTH } {
++	# Procedure called to validate C_S00_AXI_ADDR_WIDTH
++	return true
++}
++
++proc update_PARAM_VALUE.C_S00_AXI_DATA_WIDTH { PARAM_VALUE.C_S00_AXI_DATA_WIDTH } {
++	# Procedure called to update C_S00_AXI_DATA_WIDTH when any of the dependent parameters in the arguments change
++}
++
++proc validate_PARAM_VALUE.C_S00_AXI_DATA_WIDTH { PARAM_VALUE.C_S00_AXI_DATA_WIDTH } {
++	# Procedure called to validate C_S00_AXI_DATA_WIDTH
++	return true
++}
++
++proc update_PARAM_VALUE.DEVICE { PARAM_VALUE.DEVICE } {
++	# Procedure called to update DEVICE when any of the dependent parameters in the arguments change
++}
++
++proc validate_PARAM_VALUE.DEVICE { PARAM_VALUE.DEVICE } {
++	# Procedure called to validate DEVICE
++	return true
++}
++
++
++proc update_MODELPARAM_VALUE.DEVICE { MODELPARAM_VALUE.DEVICE PARAM_VALUE.DEVICE } {
++	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
++	set_property value [get_property value ${PARAM_VALUE.DEVICE}] ${MODELPARAM_VALUE.DEVICE}
++}
++
++proc update_MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH { MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH PARAM_VALUE.C_S00_AXI_DATA_WIDTH } {
++	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
++	set_property value [get_property value ${PARAM_VALUE.C_S00_AXI_DATA_WIDTH}] ${MODELPARAM_VALUE.C_S00_AXI_DATA_WIDTH}
++}
++
++proc update_MODELPARAM_VALUE.C_S00_AXI_ADDR_WIDTH { MODELPARAM_VALUE.C_S00_AXI_ADDR_WIDTH PARAM_VALUE.C_S00_AXI_ADDR_WIDTH } {
++	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
++	set_property value [get_property value ${PARAM_VALUE.C_S00_AXI_ADDR_WIDTH}] ${MODELPARAM_VALUE.C_S00_AXI_ADDR_WIDTH}
++}
++
 diff --git a/projects/ant/Makefile b/projects/ant/Makefile
 new file mode 100644
 index 000000000..4a1ad7e0f
