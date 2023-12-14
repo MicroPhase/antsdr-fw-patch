@@ -1,33 +1,34 @@
-From 3d3aec3756d7b95dba0e2dbe8cbf773e32966174 Mon Sep 17 00:00:00 2001
+From ec0e90ba9982cd48c7eb50970e058ca0d8357cf1 Mon Sep 17 00:00:00 2001
 From: Wei Chaochen <1530604142@qq.com>
-Date: Wed, 22 Nov 2023 10:30:53 +0800
-Subject: [PATCH] add ant hdl support bump to version v0.38
+Date: Mon, 11 Dec 2023 14:03:22 +0800
+Subject: [PATCH] add ant hdl support, bump to v0.38
 
 ---
- library/axi_vcxo_ctrl/component.xml           | 911 ++++++++++++++++++
+ .gitignore                                    |   1 +
+ library/axi_vcxo_ctrl/component.xml           | 937 ++++++++++++++++++
  library/axi_vcxo_ctrl/src/ad5662_auto_spi.v   |  99 ++
- .../axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v    | 154 +++
+ .../axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v    | 175 ++++
  .../src/axi_vcxo_ctrl_v1_0_S00_AXI.v          | 458 +++++++++
- library/axi_vcxo_ctrl/src/b205_ref_pll.v      | 334 +++++++
+ library/axi_vcxo_ctrl/src/b205_ref_pll.v      | 381 +++++++
  library/axi_vcxo_ctrl/src/ltc2630_spi.v       | 151 +++
- .../axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0.tcl |  55 ++
- .../xgui/axi_vcxo_ctrl_v1_0_v1_0.tcl          |  55 ++
+ .../axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0.tcl |  55 +
+ .../xgui/axi_vcxo_ctrl_v1_0_v1_0.tcl          |  55 +
  projects/ant/Makefile                         |  24 +
- projects/ant/system_bd.tcl                    | 376 ++++++++
+ projects/ant/system_bd.tcl                    | 376 +++++++
  projects/ant/system_constr.xdc                |  91 ++
  projects/ant/system_project.tcl               |  15 +
  projects/ant/system_top.v                     | 233 +++++
  projects/e200/Makefile                        |  25 +
  projects/e200/system_bd.tcl                   | 406 ++++++++
- projects/e200/system_constr.xdc               | 108 +++
+ projects/e200/system_constr.xdc               | 108 ++
  projects/e200/system_project.tcl              |  16 +
  projects/e200/system_top.v                    | 251 +++++
  projects/e310v2/Makefile                      |  25 +
  projects/e310v2/system_bd.tcl                 | 409 ++++++++
  projects/e310v2/system_constr.xdc             | 123 +++
  projects/e310v2/system_project.tcl            |  16 +
- projects/e310v2/system_top.v                  | 272 ++++++
- 23 files changed, 4607 insertions(+)
+ projects/e310v2/system_top.v                  | 282 ++++++
+ 24 files changed, 4712 insertions(+)
  create mode 100644 library/axi_vcxo_ctrl/component.xml
  create mode 100644 library/axi_vcxo_ctrl/src/ad5662_auto_spi.v
  create mode 100644 library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v
@@ -52,12 +53,22 @@ Subject: [PATCH] add ant hdl support bump to version v0.38
  create mode 100644 projects/e310v2/system_project.tcl
  create mode 100644 projects/e310v2/system_top.v
 
+diff --git a/.gitignore b/.gitignore
+index c23627338..ef3eef398 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -103,4 +103,5 @@ qdb
+ tmp-clearbox
+ *.bin
+ .qsys_edit
++!library/axi_vcxo_ctrl
+ 
 diff --git a/library/axi_vcxo_ctrl/component.xml b/library/axi_vcxo_ctrl/component.xml
 new file mode 100644
-index 000000000..145d3f643
+index 000000000..3ea232ee1
 --- /dev/null
 +++ b/library/axi_vcxo_ctrl/component.xml
-@@ -0,0 +1,911 @@
+@@ -0,0 +1,937 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 +  <spirit:vendor>user.org</spirit:vendor>
@@ -299,12 +310,15 @@ index 000000000..145d3f643
 +        <spirit:language>Verilog</spirit:language>
 +        <spirit:modelName>axi_vcxo_ctrl</spirit:modelName>
 +        <spirit:fileSetRef>
++          <spirit:localName>xilinx_anylanguagesynthesis_xilinx_com_ip_ila_6_2__ref_view_fileset</spirit:localName>
++        </spirit:fileSetRef>
++        <spirit:fileSetRef>
 +          <spirit:localName>xilinx_anylanguagesynthesis_view_fileset</spirit:localName>
 +        </spirit:fileSetRef>
 +        <spirit:parameters>
 +          <spirit:parameter>
 +            <spirit:name>viewChecksum</spirit:name>
-+            <spirit:value>c50e753f</spirit:value>
++            <spirit:value>99deafd1</spirit:value>
 +          </spirit:parameter>
 +        </spirit:parameters>
 +      </spirit:view>
@@ -315,12 +329,15 @@ index 000000000..145d3f643
 +        <spirit:language>Verilog</spirit:language>
 +        <spirit:modelName>axi_vcxo_ctrl</spirit:modelName>
 +        <spirit:fileSetRef>
++          <spirit:localName>xilinx_anylanguagebehavioralsimulation_xilinx_com_ip_ila_6_2__ref_view_fileset</spirit:localName>
++        </spirit:fileSetRef>
++        <spirit:fileSetRef>
 +          <spirit:localName>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:localName>
 +        </spirit:fileSetRef>
 +        <spirit:parameters>
 +          <spirit:parameter>
 +            <spirit:name>viewChecksum</spirit:name>
-+            <spirit:value>c50e753f</spirit:value>
++            <spirit:value>99deafd1</spirit:value>
 +          </spirit:parameter>
 +        </spirit:parameters>
 +      </spirit:view>
@@ -860,8 +877,18 @@ index 000000000..145d3f643
 +      <spirit:file>
 +        <spirit:name>src/axi_vcxo_ctrl_v1_0.v</spirit:name>
 +        <spirit:fileType>verilogSource</spirit:fileType>
-+        <spirit:userFileType>CHECKSUM_bddef366</spirit:userFileType>
++        <spirit:userFileType>CHECKSUM_fa180719</spirit:userFileType>
 +      </spirit:file>
++    </spirit:fileSet>
++    <spirit:fileSet>
++      <spirit:name>xilinx_anylanguagesynthesis_xilinx_com_ip_ila_6_2__ref_view_fileset</spirit:name>
++      <spirit:vendorExtensions>
++        <xilinx:subCoreRef>
++          <xilinx:componentRef xilinx:vendor="xilinx.com" xilinx:library="ip" xilinx:name="ila" xilinx:version="6.2">
++            <xilinx:mode xilinx:name="create_mode"/>
++          </xilinx:componentRef>
++        </xilinx:subCoreRef>
++      </spirit:vendorExtensions>
 +    </spirit:fileSet>
 +    <spirit:fileSet>
 +      <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
@@ -885,6 +912,16 @@ index 000000000..145d3f643
 +        <spirit:name>src/axi_vcxo_ctrl_v1_0.v</spirit:name>
 +        <spirit:fileType>verilogSource</spirit:fileType>
 +      </spirit:file>
++    </spirit:fileSet>
++    <spirit:fileSet>
++      <spirit:name>xilinx_anylanguagebehavioralsimulation_xilinx_com_ip_ila_6_2__ref_view_fileset</spirit:name>
++      <spirit:vendorExtensions>
++        <xilinx:subCoreRef>
++          <xilinx:componentRef xilinx:vendor="xilinx.com" xilinx:library="ip" xilinx:name="ila" xilinx:version="6.2">
++            <xilinx:mode xilinx:name="create_mode"/>
++          </xilinx:componentRef>
++        </xilinx:subCoreRef>
++      </spirit:vendorExtensions>
 +    </spirit:fileSet>
 +    <spirit:fileSet>
 +      <spirit:name>xilinx_xpgui_view_fileset</spirit:name>
@@ -949,11 +986,11 @@ index 000000000..145d3f643
 +      </xilinx:taxonomies>
 +      <xilinx:displayName>axi_vcxo_ctrl</xilinx:displayName>
 +      <xilinx:definitionSource>package_project</xilinx:definitionSource>
-+      <xilinx:coreRevision>1</xilinx:coreRevision>
++      <xilinx:coreRevision>13</xilinx:coreRevision>
 +      <xilinx:upgrades>
 +        <xilinx:canUpgradeFrom>user.org:user:axi_vcxo_ctrl_v1_0:1.0</xilinx:canUpgradeFrom>
 +      </xilinx:upgrades>
-+      <xilinx:coreCreationDateTime>2023-11-22T02:24:09Z</xilinx:coreCreationDateTime>
++      <xilinx:coreCreationDateTime>2023-12-07T06:46:13Z</xilinx:coreCreationDateTime>
 +      <xilinx:tags>
 +        <xilinx:tag xilinx:name="nopcore"/>
 +      </xilinx:tags>
@@ -962,7 +999,7 @@ index 000000000..145d3f643
 +      <xilinx:xilinxVersion>2022.2</xilinx:xilinxVersion>
 +      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="9add38af"/>
 +      <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="0c04c4c2"/>
-+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="754df6ea"/>
++      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="9bf410d5"/>
 +      <xilinx:checksum xilinx:scope="ports" xilinx:value="dde6159c"/>
 +      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="e1649165"/>
 +      <xilinx:checksum xilinx:scope="parameters" xilinx:value="d9bf9c9f"/>
@@ -1076,10 +1113,10 @@ index 000000000..d9f2e53be
 +endmodule
 diff --git a/library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v b/library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v
 new file mode 100644
-index 000000000..d993680e8
+index 000000000..10befcf5b
 --- /dev/null
 +++ b/library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v
-@@ -0,0 +1,154 @@
+@@ -0,0 +1,175 @@
 +
 +`timescale 1 ns / 1 ps
 +
@@ -1162,7 +1199,7 @@ index 000000000..d993680e8
 +	) axi_vcxo_ctrl_v1_0_S00_AXI_inst (
 +		.dac_mode(dac_mode) 			,
 +		.dac_user_set_value(dac_user_set_value)	,
-+		.dac_dyn_value(dac_dyn_value) 		,
++		.dac_dyn_value(dyn_dac_value) 		,
 +		.dac_ref_sel(dac_ref_sel) 		,
 +		.dac_locked(ref_ext_pll_locked) 			,
 +		.S_AXI_ACLK(s00_axi_aclk),
@@ -1196,6 +1233,7 @@ index 000000000..d993680e8
 +	assign ref_sync = (dac_ref_sel==2'b00) ? CLKIN_10MHz :
 +					  (dac_ref_sel==2'b01) ? PPS_IN :
 +					  (dac_ref_sel==2'b10) ? PPS_GPS: 1'b0;
++	assign PPS_LED = PPS_GPS;
 +
 +	PLLE2_ADV #(.BANDWIDTH("OPTIMIZED"), .COMPENSATION("INTERNAL"),
 +		.DIVCLK_DIVIDE(1),
@@ -1218,7 +1256,7 @@ index 000000000..d993680e8
 +		.reset      ( ~plllck    ),
 +		.clk        ( clk_200M   ),
 +		.refclk     ( clk_40M    ),
-+		.ref        ( ref_sync        ),
++		.ref_x        ( ref_sync        ),
 +		.locked     ( ref_ext_pll_locked     ),
 +		.ref_is_10M ( ref_is_10M ),
 +		.ref_is_pps ( ref_is_pps ),
@@ -1231,6 +1269,26 @@ index 000000000..d993680e8
 +		.sync_n     ( CLK_40M_DAC_nSYNC     )
 +	);
 +
++
++/* 	wire [127:0] probe0;
++	assign probe0={
++		dac_ref_sel,
++		dac_user_set_value,
++		plllck,
++		ref_sync,
++		ref_ext_pll_locked,
++		ref_is_10M,
++		ref_is_pps,
++		dac_mode,
++		dyn_dac_value
++	};
++	ila_0 your_instance_name (
++		.clk(s00_axi_aclk), // input wire clk
++
++
++		.probe0(probe0) // input wire [127:0] probe0
++	);
++ */
 +	// User logic ends
 +
 +	endmodule
@@ -1700,10 +1758,10 @@ index 000000000..22ebf7eb8
 +	endmodule
 diff --git a/library/axi_vcxo_ctrl/src/b205_ref_pll.v b/library/axi_vcxo_ctrl/src/b205_ref_pll.v
 new file mode 100644
-index 000000000..666c125c4
+index 000000000..2ce3f46c5
 --- /dev/null
 +++ b/library/axi_vcxo_ctrl/src/b205_ref_pll.v
-@@ -0,0 +1,334 @@
+@@ -0,0 +1,381 @@
 +//
 +// Copyright 2015 Ettus Research, a National Instruments Company
 +//
@@ -1714,7 +1772,7 @@ index 000000000..666c125c4
 +    input reset,
 +    input clk,      // 200 MHz sample clock
 +    input refclk,   // 40 MHz reference clock
-+    input ref,      // PPS or 10 MHz external reference
++    input ref_x,      // PPS or 10 MHz external reference
 +    output reg locked,
 +    output reg ref_is_10M,
 +    output reg ref_is_pps,
@@ -1744,10 +1802,10 @@ index 000000000..666c125c4
 +
 +    // Reference frequency detection parameters
 +    // References are only valid if they are +/-5ppm because that is the range of the VCTXCO
-+    localparam REF_PERIOD_PPS=SAMPLE_CLOCK_FREQ/REF_FREQ_PPS;
++    localparam REF_PERIOD_PPS=SAMPLE_CLOCK_FREQ/REF_FREQ_PPS; // 200_000_000
 +    localparam REF_PERIOD_10MHZ=SAMPLE_CLOCK_FREQ/REF_FREQ_10MHZ;
-+    localparam REF_PERIOD_PPS_MIN=REF_PERIOD_PPS-(REF_PERIOD_PPS*5/1_000_000)-1;
-+    localparam REF_PERIOD_PPS_MAX=REF_PERIOD_PPS+(REF_PERIOD_PPS*5/1_000_000)+1;
++    localparam REF_PERIOD_PPS_MIN=REF_PERIOD_PPS-((REF_PERIOD_PPS/1_000_000)*200)-1; // 200_000_000-1000
++    localparam REF_PERIOD_PPS_MAX=REF_PERIOD_PPS+((REF_PERIOD_PPS/1_000_000)*200)+1; // 200_000_000+1000
 +    localparam REF_PERIOD_10MHZ_MIN=REF_PERIOD_10MHZ-(REF_PERIOD_10MHZ*5/1_000_000)-1;
 +    localparam REF_PERIOD_10MHZ_MAX=REF_PERIOD_10MHZ+(REF_PERIOD_10MHZ*5/1_000_000)+1;
 +
@@ -1775,7 +1833,7 @@ index 000000000..666c125c4
 +    reg [3:0] refsmp;
 +    reg [3:0] refclksmp;
 +    always @(posedge clk) begin
-+        refsmp <= {refsmp[2:0],ref};
++        refsmp <= {refsmp[2:0],ref_x};
 +        refclksmp <= {refclksmp[2:0],refclk_div};
 +    end
 +
@@ -1784,32 +1842,52 @@ index 000000000..666c125c4
 +    wire refclk_rising = (refclksmp[3:2] == 2'b01);
 +
 +    // reference frequency detection
-+    reg [27:0] refcnt;
++    reg [31:0] refcnt;
 +    reg ref_detected;
 +
 +    wire valid_ref = ref_is_10M | ref_is_pps;
 +    always @(posedge clk) begin
 +        if (reset) begin
-+            refcnt <= 28'd0;
-+            ref_detected <= 1'b0;
 +            ref_is_10M <= 1'b0;
 +            ref_is_pps <= 1'b0;
 +        end
 +        else if (ref_rising) begin
-+            refcnt <= 28'd1;
-+            ref_detected <= 1'b1;
 +            ref_is_10M <= ((refcnt >= REF_PERIOD_10MHZ_MIN) && (refcnt <= REF_PERIOD_10MHZ_MAX));
 +            ref_is_pps <= ((refcnt >= REF_PERIOD_PPS_MIN) && (refcnt <= REF_PERIOD_PPS_MAX));
 +        end
 +        else if ((ref_is_10M && (refcnt > REF_PERIOD_10MHZ_MAX)) || (refcnt > REF_PERIOD_PPS_MAX)) begin
 +            // consider the reference lost
-+            refcnt <= 28'd0;
-+            ref_detected <= 1'b0;
 +            ref_is_10M <= 1'b0;
 +            ref_is_pps <= 1'b0;
 +        end
-+        else if (ref_detected)
-+            refcnt <= refcnt + 28'd1;
++    end
++
++    always @(posedge clk ) begin
++        if (reset==1'b1) begin
++            ref_detected <= 1'b0;
++        end else if (ref_rising) begin
++            ref_detected <= 1'b1;
++        end else if(ref_detected == 1'b1 ) begin
++            if ((ref_is_10M && (refcnt > REF_PERIOD_10MHZ_MAX)) || (refcnt > REF_PERIOD_PPS_MAX)) begin
++                // consider the reference lost
++                ref_detected <= 1'b0;
++            end
++        end
++    end
++
++    always @(posedge clk ) begin
++        if (reset==1'b1) begin
++            refcnt <= 'd0;
++        end else if (ref_rising) begin
++            refcnt <= 'd1;
++        end else if(ref_detected == 1'b1 ) begin
++            if ((ref_is_10M && (refcnt > REF_PERIOD_10MHZ_MAX)) || (refcnt > REF_PERIOD_PPS_MAX)) begin
++                // consider the reference lost
++                refcnt <= 'd0;
++            end else begin
++                refcnt <= refcnt + 1'b1;
++            end
++        end
 +    end
 +
 +    // R divider
@@ -1978,6 +2056,9 @@ index 000000000..666c125c4
 +    always @(posedge clk)
 +        locked <= (ld == 3'b111);
 +
++
++
++
 +    // ad5660_spi dac
 +    // (
 +    //     .clk(clk),
@@ -2036,7 +2117,31 @@ index 000000000..666c125c4
 +    endgenerate
 +  
 +    assign dyn_dac = dac_value;
-+  
++
++
++    // wire [127:0] probe0;
++    // assign probe0={
++    //     ref_x,
++    //     refclk_div,
++    //     refsmp,
++    //     refclksmp,
++    //     refcnt,
++    //     ref_detected,
++    //     ref_is_10M,
++    //     ref_is_pps,
++    //     locked,
++    //     dac_mode,
++    //     dac_value,
++    //     ref_rising
++
++    // };
++    // ila_0 u_ila_0 (
++    //     .clk(clk), // input wire clk
++
++
++    //     .probe0(probe0) // input wire [127:0] probe0
++    // );
++    
 +endmodule
 diff --git a/library/axi_vcxo_ctrl/src/ltc2630_spi.v b/library/axi_vcxo_ctrl/src/ltc2630_spi.v
 new file mode 100644
@@ -2807,10 +2912,10 @@ index 000000000..b312ff2cf
 +
 +set_property -dict { PACKAGE_PIN G14 IOSTANDARD LVCMOS33 } [get_ports VCRX1_H];
 +set_property -dict { PACKAGE_PIN C20 IOSTANDARD LVCMOS33 } [get_ports VCRX1_L];
-+set_property -dict { PACKAGE_PIN B19 IOSTANDARD LVCMOS33 } [get_ports VCRX2_H];
-+set_property -dict { PACKAGE_PIN B20 IOSTANDARD LVCMOS33 } [get_ports VCRX2_L];
-+set_property -dict { PACKAGE_PIN E17 IOSTANDARD LVCMOS33 } [get_ports VCTX1_H];
-+set_property -dict { PACKAGE_PIN A20 IOSTANDARD LVCMOS33 } [get_ports VCTX1_L];
++set_property -dict { PACKAGE_PIN B19 IOSTANDARD LVCMOS33 } [get_ports VCTX1_H];
++set_property -dict { PACKAGE_PIN B20 IOSTANDARD LVCMOS33 } [get_ports VCTX1_L];
++set_property -dict { PACKAGE_PIN E17 IOSTANDARD LVCMOS33 } [get_ports VCRX2_H];
++set_property -dict { PACKAGE_PIN A20 IOSTANDARD LVCMOS33 } [get_ports VCRX2_L];
 +set_property -dict { PACKAGE_PIN D18 IOSTANDARD LVCMOS33 } [get_ports VCTX2_H];
 +set_property -dict { PACKAGE_PIN D19 IOSTANDARD LVCMOS33 } [get_ports VCTX2_L];
 +
@@ -4522,10 +4627,10 @@ index 000000000..0a7b98378
 +
 diff --git a/projects/e310v2/system_top.v b/projects/e310v2/system_top.v
 new file mode 100644
-index 000000000..67072969d
+index 000000000..21c44a9a7
 --- /dev/null
 +++ b/projects/e310v2/system_top.v
-@@ -0,0 +1,272 @@
+@@ -0,0 +1,282 @@
 +// ***************************************************************************
 +// ***************************************************************************
 +// Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
@@ -4712,7 +4817,17 @@ index 000000000..67072969d
 +
 +  assign CLKIN_10MHz_REQ = 1'b1;
 +  assign eth_rst_n = 1'b1;
-+  assign tx_amp_en = 1'b1;
++  // assign tx_amp_en = 1'b1;
++
++  assign FE_TXRX2_SEL1 = 1'b0;
++  assign FE_TXRX1_SEL1 = 1'b1;
++  assign FE_RX2_SEL1 = 1'b0;
++  assign FE_RX1_SEL1 = 1'b1;
++
++  assign TX1_AMP_EN = 1'b1;
++  assign TX2_AMP_EN = 1'b1;
++  assign GPS_RSTN = 1'b1;
++  assign GPS_PWEN = 1'b1;
 +  
 +  
 +  
@@ -4799,5 +4914,5 @@ index 000000000..67072969d
 +
 +endmodule
 -- 
-2.42.0
+2.43.0
 

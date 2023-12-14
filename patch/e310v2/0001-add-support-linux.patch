@@ -1,24 +1,42 @@
-From 5617e0d33d8a55433a5bfcfa5f9ec82f246d2362 Mon Sep 17 00:00:00 2001
+From 67544a2efe79d45ee930160ef465d70db0a2792f Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Tue, 21 Nov 2023 16:27:36 +0800
-Subject: [PATCH] add ant linux support
+Date: Thu, 14 Dec 2023 16:07:22 +0800
+Subject: [PATCH] add support linux
 
 ---
- arch/arm/boot/dts/zynq-ant.dts      |  62 ++++
- arch/arm/boot/dts/zynq-ant.dtsi     | 500 ++++++++++++++++++++++++++++
- arch/arm/configs/zynq_ant_defconfig | 283 ++++++++++++++++
- drivers/mtd/spi-nor/core.c          |  30 +-
- 4 files changed, 873 insertions(+), 2 deletions(-)
- create mode 100644 arch/arm/boot/dts/zynq-ant.dts
- create mode 100644 arch/arm/boot/dts/zynq-ant.dtsi
- create mode 100644 arch/arm/configs/zynq_ant_defconfig
+ arch/arm/boot/dts/zynq-7000.dtsi       |   2 +-
+ arch/arm/boot/dts/zynq-e310v2.dts      |  49 +++
+ arch/arm/boot/dts/zynq-e310v2.dtsi     | 465 +++++++++++++++++++++++++
+ arch/arm/configs/zynq_e310v2_defconfig | 293 ++++++++++++++++
+ drivers/iio/adc/Kconfig                |   6 +
+ drivers/iio/adc/Makefile               |   1 +
+ drivers/iio/adc/ad5660_mp.c            | 272 +++++++++++++++
+ drivers/mtd/spi-nor/core.c             |  30 +-
+ 8 files changed, 1115 insertions(+), 3 deletions(-)
+ create mode 100644 arch/arm/boot/dts/zynq-e310v2.dts
+ create mode 100644 arch/arm/boot/dts/zynq-e310v2.dtsi
+ create mode 100644 arch/arm/configs/zynq_e310v2_defconfig
+ create mode 100644 drivers/iio/adc/ad5660_mp.c
 
-diff --git a/arch/arm/boot/dts/zynq-ant.dts b/arch/arm/boot/dts/zynq-ant.dts
+diff --git a/arch/arm/boot/dts/zynq-7000.dtsi b/arch/arm/boot/dts/zynq-7000.dtsi
+index 8a4f721668ed..34c8d28e4c06 100644
+--- a/arch/arm/boot/dts/zynq-7000.dtsi
++++ b/arch/arm/boot/dts/zynq-7000.dtsi
+@@ -95,7 +95,7 @@ replicator_in_port0: endpoint {
+ 		};
+ 	};
+ 
+-	amba: axi {
++	amba: amba {
+ 		u-boot,dm-pre-reloc;
+ 		compatible = "simple-bus";
+ 		#address-cells = <1>;
+diff --git a/arch/arm/boot/dts/zynq-e310v2.dts b/arch/arm/boot/dts/zynq-e310v2.dts
 new file mode 100644
-index 000000000000..d9ee46e79b33
+index 000000000000..399582a69623
 --- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ant.dts
-@@ -0,0 +1,62 @@
++++ b/arch/arm/boot/dts/zynq-e310v2.dts
+@@ -0,0 +1,49 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + *
@@ -28,18 +46,8 @@ index 000000000000..d9ee46e79b33
 + * Copyright (C) 2016-2019 MicroPhase Inc.
 + */
 +/dts-v1/;
-+#include "zynq-ant.dtsi"
++#include "zynq-e310v2.dtsi"
 +
-+
-+// &axi_i2c0 {
-+// 	current_limiter@5a {
-+// 		compatible = "adi,adm1177";
-+// 		reg = <0x5a>;
-+// 		adi,r-sense-mohm = <50>; /* 50 mOhm */
-+// 		adi,shutdown-threshold-ma = <1059>; /* 1.059 A */
-+// 		adi,vrange-high-enable;
-+// 	};
-+// };
 +
 +
 +&adc0_ad9364 {
@@ -54,6 +62,7 @@ index 000000000000..d9ee46e79b33
 +
 +
 +/ {
++	model = "Analog Devices ANTSDR Rev.C (Z7020/AD9363)";
 +	
 +	leds {
 +		compatible = "gpio-leds";
@@ -68,25 +77,21 @@ index 000000000000..d9ee46e79b33
 +		compatible = "gpio-keys";
 +		#address-cells = <1>;
 +		#size-cells = <0>;
-+
 +		button {
 +			interrupt-parent = <&gpio0>;
 +			interrupts = <14 IRQ_TYPE_EDGE_FALLING>;
 +			label = "Button";
 +			linux,code = <BTN_MISC>;
 +		};
-+
 +	};
++
 +};
-+
-+
-+	
-diff --git a/arch/arm/boot/dts/zynq-ant.dtsi b/arch/arm/boot/dts/zynq-ant.dtsi
+diff --git a/arch/arm/boot/dts/zynq-e310v2.dtsi b/arch/arm/boot/dts/zynq-e310v2.dtsi
 new file mode 100644
-index 000000000000..a2215cf5b63b
+index 000000000000..d0e1dfff6533
 --- /dev/null
-+++ b/arch/arm/boot/dts/zynq-ant.dtsi
-@@ -0,0 +1,500 @@
++++ b/arch/arm/boot/dts/zynq-e310v2.dtsi
+@@ -0,0 +1,465 @@
 +/*
 + * ZYNQ Pluto SDR (Z7020/AD936x)
 + *
@@ -108,7 +113,13 @@ index 000000000000..a2215cf5b63b
 +		device_type = "memory";
 +		reg = <0x00000000 0x40000000>;
 +	};
-+
++	
++	aliases {
++		ethernet0 = &gem0;
++		serial0 = &uart1;
++		serial1 = &uart0;
++	};
++		
 +	chosen {
 +		stdout-path = "/amba@0/uart@E0001000";
 +	};
@@ -131,9 +142,29 @@ index 000000000000..a2215cf5b63b
 +		view-port = <0x0170>;
 +		drv-vbus;
 +	};
++	
++	mp5660 {
++		compatible = "microphase,ad5660";
++	};
++};
++
++&i2c0 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	eeprom@50 {
++		compatible = "atmel,24c256";
++		reg = <0x50>;
++	};
 +
 +};
 +
++&usb0 {
++	xlnx,phy-reset-gpio = <&gpio0 47 0>;
++	dr_mode = "otg";
++	status = "okay";
++	usb-phy = <&usb_phy0>;
++};
 +
 +&sdhci0 {
 +	status = "okay";
@@ -147,23 +178,30 @@ index 000000000000..a2215cf5b63b
 +	reset-on-timeout;
 +};
 +
-+&gem0 {
++&uart0 {
 +	status = "okay";
-+	phy-mode = "rgmii-id";
-+	phy-handle = <&phy0>;
-+
-+	phy0: phy@0 { /* Marvell 88e1512 */
-+		reg = <0>;
-+		compatible = "ethernet-phy-ieee802.3-c22";
-+		reset-gpios = <&gpio0 46 1>;
-+	};
 +};
 +
-+&usb0 {
-+	xlnx,phy-reset-gpio = <&gpio0 47 0>;
-+	dr_mode = "otg";
++&gem0 {
 +	status = "okay";
-+	usb-phy = <&usb_phy0>;
++	
++	phy-handle = <&phy0>;
++	phy-mode = "rgmii-rxid";
++	xlnx,has-mdio = <0x1>;
++	gmii2rgmii-phy-handle = <&gmii_to_rgmii_0>;
++	
++	phy0: phy@1 {
++		compatible = "ethernet-phy-id011c.c916";
++		device_type = "ethernet-phy";
++		reg = <0x1>;
++	};
++
++	gmii_to_rgmii_0: gmiitorgmii@8 {
++		compatible = "xlnx,gmii-to-rgmii-1.0";
++		reg = <0x8>;
++		phy-handle = <&phy0>;
++	};
++
 +};
 +
 +&qspi {
@@ -213,19 +251,6 @@ index 000000000000..a2215cf5b63b
 +		#address-cells = <0x1>;
 +		#size-cells = <0x1>;
 +		ranges;
-+
-+		// axi_i2c0: i2c@41600000 {
-+		// 	compatible = "xlnx,axi-iic-1.02.a", "xlnx,xps-iic-2.00.a";
-+		// 	reg = <0x41600000 0x10000>;
-+		// 	interrupt-parent = <&intc>;
-+		// 	interrupts = <0 59 IRQ_TYPE_LEVEL_HIGH>;
-+		// 	clocks = <&clkc 15>;
-+		// 	clock-names = "pclk";
-+
-+		// 	#address-cells = <1>;
-+		// 	#size-cells = <0>;
-+
-+		// };
 +
 +		rx_dma: dma@7c400000 {
 +			compatible = "adi,axi-dmac-1.00.a";
@@ -362,7 +387,7 @@ index 000000000000..a2215cf5b63b
 +		 * 8 = RX1C_P and RX2C_P enabled; unbalanced
 +		 */
 +
-+		adi,rx-rf-port-input-select = <1>; /* (RX1A_N &  RX1A_P) and (RX2A_N & RX2A_P) enabled; balanced */
++		adi,rx-rf-port-input-select = <0>; /* (RX1A_N &  RX1A_P) and (RX2A_N & RX2A_P) enabled; balanced */
 +		adi,rx-rf-port-input-select-lock-enable;
 +
 +		/* adi,tx-rf-port-input-select:
@@ -529,70 +554,15 @@ index 000000000000..a2215cf5b63b
 +
 +		en_agc-gpios = <&gpio0 66 0>;
 +		reset-gpios = <&gpio0 67 0>;
-+		adi,band-ctl-0-gpio = <&gpio0 86 0>;/* RX1 3~6G */
-+		adi,band-ctl-1-gpio = <&gpio0 87 0>;/* RX1 4.5M~3G */
-+		adi,band-ctl-2-gpio = <&gpio0 88 0>;/* TX1 3~6G */
-+		adi,band-ctl-3-gpio = <&gpio0 89 0>;/* TX1 4.5M~3G */
-+		adi,band-ctl-4-gpio = <&gpio0 90 0>;/* RX2 3~6G */
-+		adi,band-ctl-5-gpio = <&gpio0 91 0>;/* RX2 4.5M~3G */
-+		adi,band-ctl-6-gpio = <&gpio0 92 0>;/* TX2 3~6G */
-+		adi,band-ctl-7-gpio = <&gpio0 93 0>;/* TX2 4.5M~3G */
-+
-+
-+		ad9361_rx_ant_port_a: ad9361_rx_ant_port_a {
-+			adi,rx-rf-port-input-select = <0>; /* (RX1A_N &  RX1A_P) and (RX2A_N & RX2A_P) enabled; balanced */
-+		};
-+
-+		ad9361_rx_ant_port_b: ad9361_rx_ant_port_b {
-+			adi,rx-rf-port-input-select = <1>; /* (RX1B_N &  RX1B_P) and (RX2B_N & RX2B_P) enabled; balanced */
-+		};
-+
-+		ad9361_tx_ant_port_a: ad9361_tx_ant_port_a {
-+			adi,tx-rf-port-input-select = <0>; /* TX1A, TX2A */
-+		};
-+
-+		ad9361_tx_ant_port_b: ad9361_tx_ant_port_b {
-+			adi,tx-rf-port-input-select = <1>; /* TX1B, TX2B */
-+		};
-+
-+
-+		adi_rx_band_setting_0 {
-+			adi,lo-freq-min = /bits/ 64 <0>;
-+			adi,lo-freq-max = /bits/ 64 <3000000000>;
-+			adi,gpio-settings = <0 1 _ _ 0 1 _ _>;
-+			adi,band-ctl-post = <&ad9361_rx_ant_port_b 0>;
-+		};
-+
-+		adi_rx_band_setting_1 {
-+			adi,lo-freq-min = /bits/ 64 <3000000000>;
-+			adi,lo-freq-max = /bits/ 64 <6000000000>;
-+			adi,gpio-settings = <1 0 _ _ 1 0 _ _>;
-+			adi,band-ctl-post = <&ad9361_rx_ant_port_a 0>;
-+		};
-+
-+		adi_tx_band_setting_0 {
-+			adi,lo-freq-min = /bits/ 64 <0>;
-+			adi,lo-freq-max = /bits/ 64 <3000000000>;
-+			adi,gpio-settings = <_ _ 0 1 _ _ 0 1>;
-+			adi,band-ctl-post = <&ad9361_tx_ant_port_b 0>;
-+		};
-+
-+		adi_tx_band_setting_1 {
-+			adi,lo-freq-min = /bits/ 64 <3000000000>;
-+			adi,lo-freq-max = /bits/ 64 <6000000000>;
-+
-+			adi,gpio-settings = <_ _ 1 0 _ _ 1 0>;
-+			adi,band-ctl-post = <&ad9361_tx_ant_port_a 0>;
-+		};
 +	};
 +};
 +
-diff --git a/arch/arm/configs/zynq_ant_defconfig b/arch/arm/configs/zynq_ant_defconfig
+diff --git a/arch/arm/configs/zynq_e310v2_defconfig b/arch/arm/configs/zynq_e310v2_defconfig
 new file mode 100644
-index 000000000000..87d9ec515655
+index 000000000000..48fa479f2753
 --- /dev/null
-+++ b/arch/arm/configs/zynq_ant_defconfig
-@@ -0,0 +1,283 @@
++++ b/arch/arm/configs/zynq_e310v2_defconfig
+@@ -0,0 +1,293 @@
 +CONFIG_SYSVIPC=y
 +CONFIG_USELIB=y
 +CONFIG_HIGH_RES_TIMERS=y
@@ -608,6 +578,7 @@ index 000000000000..87d9ec515655
 +# CONFIG_RD_LZO is not set
 +# CONFIG_RD_LZ4 is not set
 +CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++CONFIG_SYSCTL_SYSCALL=y
 +CONFIG_EMBEDDED=y
 +CONFIG_PERF_EVENTS=y
 +CONFIG_SLAB=y
@@ -617,10 +588,12 @@ index 000000000000..87d9ec515655
 +CONFIG_MMC_SDHCI=y
 +CONFIG_MMC_SDHCI_PLTFM=y
 +CONFIG_MMC_SDHCI_OF_ARASAN=y
++
 +CONFIG_UEVENT_HELPER=y
 +CONFIG_MACB=y
 +CONFIG_MDIO_BITBANG=y
 +CONFIG_MARVELL_PHY=y
++CONFIG_REALTEK_PHY=y
 +CONFIG_XILINX_GMII2RGMII=y
 +CONFIG_USB_NET_DM9601=y
 +
@@ -638,6 +611,8 @@ index 000000000000..87d9ec515655
 +CONFIG_SCHED_SMT=y
 +CONFIG_HIGHMEM=y
 +# CONFIG_HIGHPTE is not set
++CONFIG_ZBOOT_ROM_TEXT=0x0
++CONFIG_ZBOOT_ROM_BSS=0x0
 +CONFIG_CMDLINE="console=ttyPS0,115200n8 root=/dev/ram rw earlyprintk"
 +CONFIG_CPU_IDLE=y
 +CONFIG_CPU_IDLE_GOV_MENU=y
@@ -648,6 +623,7 @@ index 000000000000..87d9ec515655
 +CONFIG_MODULE_UNLOAD=y
 +CONFIG_MODULE_FORCE_UNLOAD=y
 +CONFIG_MODVERSIONS=y
++# CONFIG_BLK_DEV_BSG is not set
 +# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
 +# CONFIG_COMPACTION is not set
 +CONFIG_CMA=y
@@ -668,9 +644,11 @@ index 000000000000..87d9ec515655
 +CONFIG_MAC80211_LEDS=y
 +CONFIG_RFKILL=y
 +CONFIG_RFKILL_INPUT=y
-+CONFIG_UEVENT_HELPER=y
++CONFIG_UEVENT_HELPER_PATH="/sbin/hotplug"
 +CONFIG_DEVTMPFS=y
 +CONFIG_DEVTMPFS_MOUNT=y
++CONFIG_DMA_CMA=y
++CONFIG_CMA_SIZE_MBYTES=256
 +CONFIG_CONNECTOR=y
 +CONFIG_MTD=y
 +CONFIG_MTD_CMDLINE_PARTS=y
@@ -679,18 +657,17 @@ index 000000000000..87d9ec515655
 +CONFIG_MTD_CFI_AMDSTD=y
 +CONFIG_MTD_PHYSMAP=y
 +CONFIG_MTD_PHYSMAP_OF=y
++CONFIG_MTD_M25P80=y
 +CONFIG_MTD_SPI_NOR=y
 +# CONFIG_MTD_SPI_NOR_USE_4K_SECTORS is not set
 +CONFIG_BLK_DEV_LOOP=y
 +CONFIG_BLK_DEV_RAM=y
 +CONFIG_BLK_DEV_RAM_SIZE=16384
-+CONFIG_ADI_AXI_TDD=y
 +CONFIG_SRAM=y
 +# CONFIG_MATHWORKS_IP_CORE is not set
 +CONFIG_SCSI=y
 +CONFIG_BLK_DEV_SD=y
 +CONFIG_CHR_DEV_SG=y
-+# CONFIG_BLK_DEV_BSG is not set
 +CONFIG_NETDEVICES=y
 +# CONFIG_NET_VENDOR_ALACRITECH is not set
 +# CONFIG_NET_VENDOR_AMAZON is not set
@@ -725,7 +702,6 @@ index 000000000000..87d9ec515655
 +CONFIG_USB_LAN78XX=y
 +CONFIG_USB_USBNET=y
 +# CONFIG_USB_NET_CDC_NCM is not set
-+CONFIG_USB_NET_DM9601=y
 +CONFIG_USB_NET_SMSC75XX=y
 +CONFIG_USB_NET_SMSC95XX=y
 +# CONFIG_USB_NET_NET1080 is not set
@@ -741,6 +717,7 @@ index 000000000000..87d9ec515655
 +# CONFIG_WLAN_VENDOR_INTERSIL is not set
 +# CONFIG_WLAN_VENDOR_MARVELL is not set
 +# CONFIG_WLAN_VENDOR_MEDIATEK is not set
++# CONFIG_LTC2630_MICROPHASE=y
 +CONFIG_RT2X00=y
 +CONFIG_RT2500USB=y
 +CONFIG_RT73USB=y
@@ -767,7 +744,10 @@ index 000000000000..87d9ec515655
 +# CONFIG_LEGACY_PTYS is not set
 +CONFIG_SERIAL_XILINX_PS_UART=y
 +CONFIG_SERIAL_XILINX_PS_UART_CONSOLE=y
++CONFIG_SERIAL_CORE=y
++CONFIG_SERIAL_CORE_CONSOLE=y
 +# CONFIG_HW_RANDOM is not set
++EEPROM_AT24=y
 +CONFIG_I2C=y
 +CONFIG_I2C_CHARDEV=y
 +CONFIG_I2C_CADENCE=y
@@ -842,11 +822,10 @@ index 000000000000..87d9ec515655
 +CONFIG_IIO=y
 +CONFIG_ADM1177=y
 +CONFIG_AD9361=y
++CONFIG_AD9361_EXT_BAND_CONTROL=y
 +CONFIG_ADMC=y
 +CONFIG_XILINX_XADC=y
-+CONFIG_ONE_BIT_ADC_DAC=y
 +CONFIG_CF_AXI_DDS=y
-+CONFIG_ADI_IIO_FAKEDEV=y
 +CONFIG_FPGA=y
 +CONFIG_FPGA_MGR_ZYNQ_FPGA=y
 +CONFIG_EXT4_FS=y
@@ -863,9 +842,8 @@ index 000000000000..87d9ec515655
 +CONFIG_NLS_ISO8859_1=y
 +CONFIG_CRYPTO_ECB=y
 +CONFIG_CRYPTO_MICHAEL_MIC=y
-+CONFIG_DMA_CMA=y
-+CONFIG_CMA_SIZE_MBYTES=256
 +CONFIG_DEBUG_INFO=y
++# CONFIG_ENABLE_MUST_CHECK is not set
 +CONFIG_DEBUG_FS=y
 +CONFIG_DETECT_HUNG_TASK=y
 +CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=20
@@ -876,6 +854,316 @@ index 000000000000..87d9ec515655
 +CONFIG_DEBUG_LL=y
 +CONFIG_DEBUG_ZYNQ_UART1=y
 +CONFIG_EARLY_PRINTK=y
++CONFIG_AD5660_MP=y
++
+diff --git a/drivers/iio/adc/Kconfig b/drivers/iio/adc/Kconfig
+index 28993cc48bef..dd7a2dc7a271 100644
+--- a/drivers/iio/adc/Kconfig
++++ b/drivers/iio/adc/Kconfig
+@@ -73,6 +73,12 @@ config AD4630
+ 	  To compile this driver as a module, choose M here: the module will be
+ 	  called ad4630.
+ 
++config AD5660_MP
++	tristate "Microphase ad5660 control"
++	depends on GPIOLIB
++	help
++	  If you say yes here you get support for ad5660mp dac control.
++
+ config AD7091R5
+ 	tristate "Analog Devices AD7091R5 ADC Driver"
+ 	depends on I2C
+diff --git a/drivers/iio/adc/Makefile b/drivers/iio/adc/Makefile
+index 6a7e31e92d70..ce2a80ca49e3 100644
+--- a/drivers/iio/adc/Makefile
++++ b/drivers/iio/adc/Makefile
+@@ -11,6 +11,7 @@ obj-$(CONFIG_AD400X) += ad400x.o
+ obj-$(CONFIG_AD4130) += ad4130.o
+ obj-$(CONFIG_AD4134) += ad4134.o
+ obj-$(CONFIG_AD4630) += ad4630.o
++obj-$(CONFIG_AD5660_MP) += ad5660_mp.o
+ obj-$(CONFIG_AD6676) += ad6676.o
+ obj-$(CONFIG_AD7173) += ad7173.o
+ obj-$(CONFIG_AD7091R5) += ad7091r5.o ad7091r-base.o
+diff --git a/drivers/iio/adc/ad5660_mp.c b/drivers/iio/adc/ad5660_mp.c
+new file mode 100644
+index 000000000000..0f97c1e815c4
+--- /dev/null
++++ b/drivers/iio/adc/ad5660_mp.c
+@@ -0,0 +1,272 @@
++/*
++ * AD5660: ad5660 control
++ *
++ * Copyright (c) 2023 lone boy <lone_boy@microphase.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ */
++
++
++#include <linux/err.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/property.h>
++#include <linux/slab.h>
++#include <linux/sched.h>
++#include <linux/delay.h>
++#include <linux/iio/iio.h>
++#include <linux/iio/sysfs.h>
++#include <linux/gpio/consumer.h>
++#include <asm/io.h>
++
++
++#define DAC_MEM_ADDR 0x43C00000
++
++/* 
++*   DAC MODE 0 自动设置  1 手动设置
++*   DAC value 1 写 dac的值
++*   DAC dyn_value  mode 1 用户设置的值 mode 0 外部参考校准的值
++*   DAC ref sel DAC MODE 0 0:10M 1:PPS 2:GPS
++*   DAC_LOCKED PLL 锁定状态
++*/
++
++struct ad5660_data{
++    struct device *dev;
++    void __iomem *control_virtualaddr;
++};
++
++enum ad5660_iio_dev_attr{
++    DAC_MODE,
++    DAC_VALUE,
++    DAC_READ_VALUE,
++    DAC_REF_SEL,
++    DAC_LOCKED,
++};
++
++static ssize_t ad5660_show(struct device *dev,struct device_attribute *attr,char *buf)
++{
++    struct iio_dev *indio_dev = dev_to_iio_dev(dev);
++	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
++    struct ad5660_data *ad5660 = iio_priv(indio_dev);
++    int ret = 0;
++
++    switch ((u32) this_attr->address)
++    {
++    case DAC_MODE:
++        ret = sprintf(buf,"%u\n",ioread32(ad5660->control_virtualaddr));
++        break;
++    case DAC_VALUE:
++        ret = sprintf(buf,"%u\n",ioread32(ad5660->control_virtualaddr + 4));
++        break;
++    case DAC_READ_VALUE:
++        ret = sprintf(buf,"%u\n",ioread32(ad5660->control_virtualaddr + 8));
++        break;
++    case DAC_REF_SEL:
++        ret = sprintf(buf,"%u\n",ioread32(ad5660->control_virtualaddr + 12));
++        break;
++    case DAC_LOCKED:
++        ret = sprintf(buf,"%u\n",ioread32(ad5660->control_virtualaddr + 16));
++        break;
++    default:
++        ret = EINVAL;
++        break;
++    }
++    return ret;
++}
++
++
++static ssize_t ad5660_store(struct device *dev,
++				struct device_attribute *attr,
++				const char *buf, size_t len)
++{
++    struct iio_dev *indio_dev = dev_to_iio_dev(dev);
++	struct iio_dev_attr *this_attr = to_iio_dev_attr(attr);
++    struct ad5660_data *ad5660 = iio_priv(indio_dev);
++    int ret = 0;
++    u32 val;
++
++    switch ((u32) this_attr->address)
++    {
++    case DAC_MODE:
++        ret = kstrtou32(buf,10,&val);
++        iowrite32(val,ad5660->control_virtualaddr);
++        break;
++    case DAC_VALUE:
++        ret = kstrtou32(buf,10,&val);
++        iowrite32(val,ad5660->control_virtualaddr+4);
++        break;
++    case DAC_REF_SEL:
++        ret = kstrtou32(buf,10,&val);
++        iowrite32(val,ad5660->control_virtualaddr+12);
++        break;
++    default:
++        ret = EINVAL;
++        break;
++    }
++    return ret;
++}
++
++static IIO_DEVICE_ATTR(in_voltage_dac_mode,S_IRUGO | S_IWUSR,
++    ad5660_show,
++    ad5660_store,
++    DAC_MODE
++);
++
++static IIO_DEVICE_ATTR(in_voltage_dac_value,S_IRUGO | S_IWUSR,
++    ad5660_show,
++    ad5660_store,
++    DAC_VALUE
++);
++
++static IIO_DEVICE_ATTR(in_voltage_dac_read_value,S_IRUGO | S_IWUSR,
++    ad5660_show,
++    ad5660_store,
++    DAC_READ_VALUE
++);
++
++static IIO_DEVICE_ATTR(in_voltage_dac_ref_sel,S_IRUGO | S_IWUSR,
++    ad5660_show,
++    ad5660_store,
++    DAC_REF_SEL
++);
++
++static IIO_DEVICE_ATTR(in_voltage_dac_locked,S_IRUGO | S_IWUSR,
++    ad5660_show,
++    ad5660_store,
++    DAC_LOCKED
++);
++
++static struct attribute *ad5660_attributes[] = {
++    &iio_dev_attr_in_voltage_dac_mode.dev_attr.attr,
++    &iio_dev_attr_in_voltage_dac_value.dev_attr.attr,
++    &iio_dev_attr_in_voltage_dac_read_value.dev_attr.attr,
++    &iio_dev_attr_in_voltage_dac_ref_sel.dev_attr.attr,
++    &iio_dev_attr_in_voltage_dac_locked.dev_attr.attr,
++    NULL
++};
++
++static const struct attribute_group ad5660_attribute_group = {
++	.attrs = ad5660_attributes,
++};
++
++
++static int ad5660_read_raw(struct iio_dev *indio_dev,
++			    const struct iio_chan_spec *chan, int *val,
++			    int *val2, long mask)
++{
++    return 0;
++}
++
++static int ad5660_write_raw(struct iio_dev *indio_dev,
++			     struct iio_chan_spec const *chan, int val,
++			     int val2, long mask)
++{
++    return 0;
++}
++
++static const struct iio_info ad5660_iio_info = {
++	.read_raw = &ad5660_read_raw,
++	.write_raw = &ad5660_write_raw,
++    .attrs = &ad5660_attribute_group,
++};
++
++static const struct of_device_id of_ad5660mp_match[] = {
++	{ .compatible = "microphase,ad5660" },
++	{},
++};
++
++MODULE_DEVICE_TABLE(of, of_ad5660mp_match);
++
++
++static const struct iio_chan_spec ad5660_channles[] = {
++    {
++        .type = IIO_VOLTAGE,
++        .indexed = 1,
++        .channel = 0,
++        .info_mask_shared_by_type = BIT(IIO_CHAN_INFO_RAW),
++    },
++};
++
++static int ad5660_probe(struct platform_device *pdev)
++{
++    struct ad5660_data *ad5660;
++    struct iio_dev *indio_dev;
++    int ret;
++
++    indio_dev = devm_iio_device_alloc(&pdev->dev, sizeof(*ad5660));
++	if (!indio_dev)
++		return -ENOMEM;
++
++    ad5660 = iio_priv(indio_dev);
++    ad5660->dev = &pdev->dev;
++
++    ad5660->control_virtualaddr = ioremap(DAC_MEM_ADDR, 0x10000);
++    if (!ad5660->control_virtualaddr) {
++		dev_err(&pdev->dev, "unable to IOMAP ad5660mp registers\n");
++		return -ENOMEM;
++	}
++
++    dev_info(&pdev->dev,"IOMAP ad5660mp registers phyaddr %x virtaddr %x",DAC_MEM_ADDR,ad5660->control_virtualaddr);
++
++    iowrite32(1,ad5660->control_virtualaddr);
++    iowrite32(23000,ad5660->control_virtualaddr+4);
++
++
++    indio_dev->name = "ad5660mp";
++	indio_dev->dev.parent = &pdev->dev;
++	indio_dev->dev.of_node = pdev->dev.of_node;
++	indio_dev->info = &ad5660_iio_info;
++	indio_dev->modes = INDIO_DIRECT_MODE;
++
++    indio_dev->channels = ad5660_channles;
++	indio_dev->num_channels = ARRAY_SIZE(ad5660_channles);
++    ret = iio_device_register(indio_dev);
++	if (ret < 0) {
++		dev_err(&pdev->dev, "Couldn't register the device\n");
++	}
++
++	platform_set_drvdata(pdev, indio_dev);
++
++	return ret;
++}
++
++
++static int ad5660_removed(struct platform_device *pdev)
++{
++    struct ad5660_data *ad5660;
++	struct iio_dev *indio_dev;
++
++	indio_dev = platform_get_drvdata(pdev);
++	ad5660 = iio_priv(indio_dev);
++
++	if (ad5660->control_virtualaddr)
++		iounmap(ad5660->control_virtualaddr);
++
++	iio_device_unregister(indio_dev);
++	return 0;
++}
++
++static struct platform_driver lpf1600_driver = {
++	.probe		= ad5660_probe,
++	.remove		= ad5660_removed,
++	.driver		= {
++		.name		= KBUILD_MODNAME,
++		.of_match_table	= of_ad5660mp_match,
++	},
++};
++
++module_platform_driver(lpf1600_driver);
++
++MODULE_AUTHOR("loneboy <995586238@qq.com>");
++MODULE_DESCRIPTION("ad5660mp driver");
++MODULE_LICENSE("GPL V2");
+\ No newline at end of file
 diff --git a/drivers/mtd/spi-nor/core.c b/drivers/mtd/spi-nor/core.c
 index 84439aca5009..b7e676bbe6a9 100644
 --- a/drivers/mtd/spi-nor/core.c

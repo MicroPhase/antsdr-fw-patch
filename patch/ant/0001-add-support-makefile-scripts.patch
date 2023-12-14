@@ -1,7 +1,7 @@
-From 7d5ec950dbad3828cfe5eefbb34e9230e02aa134 Mon Sep 17 00:00:00 2001
+From 0df3e4a4951de1b473b30601a4c31e3a9a72bed6 Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Tue, 21 Nov 2023 17:11:01 +0800
-Subject: [PATCH] add ant makefile script support
+Date: Thu, 14 Dec 2023 13:58:23 +0800
+Subject: [PATCH] add support makefile scripts
 
 ---
  Makefile        |  31 +++++++++-
@@ -12,7 +12,7 @@ Subject: [PATCH] add ant makefile script support
  create mode 100644 scripts/ant.mk
 
 diff --git a/Makefile b/Makefile
-index 0dc9c4b..4d08c74 100644
+index 0dc9c4b..51d6645 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -27,8 +27,8 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
@@ -22,7 +22,7 @@ index 0dc9c4b..4d08c74 100644
 -TARGET ?= pluto
 -SUPPORTED_TARGETS:=pluto sidekiqz2
 +TARGET ?= ant
-+SUPPORTED_TARGETS:=pluto sidekiqz2 ant
++SUPPORTED_TARGETS:=pluto sidekiqz2 ant e310v2
  
  # Include target specific constants
  include scripts/$(TARGET).mk

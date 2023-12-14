@@ -1,10 +1,10 @@
 target=$1
 
-cp ./patch/${target}/*hdl-support*.patch ./plutosdr-fw/hdl
-cp ./patch/${target}/*linux-support.patch	./plutosdr-fw/linux
-cp ./patch/${target}/*buildroot-support.patch	./plutosdr-fw/buildroot
-cp ./patch/${target}/*makefile-script-support.patch ./plutosdr-fw/
-cp ./patch/${target}/*uboot-support.patch	./plutosdr-fw/u-boot-xlnx
+cp ./patch/*v0.38.patch ./plutosdr-fw/hdl
+cp ./patch/${target}/*linux.patch	./plutosdr-fw/linux
+cp ./patch/${target}/*buildroot.patch	./plutosdr-fw/buildroot
+cp ./patch/${target}/*scripts.patch ./plutosdr-fw/
+cp ./patch/${target}/*uboot.patch	./plutosdr-fw/u-boot-xlnx
 
 echo "Patch check..."
 cd ./plutosdr-fw/hdl

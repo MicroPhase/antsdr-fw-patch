@@ -1,7 +1,7 @@
-From ff281efd6b16e41b7a9aad19fa8ac95f1b57b5cb Mon Sep 17 00:00:00 2001
+From c4c36e124940b4c1b03a84a8a19779ce2c3dc726 Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Tue, 21 Nov 2023 16:28:40 +0800
-Subject: [PATCH] add ant buildroot support
+Date: Thu, 14 Dec 2023 14:17:46 +0800
+Subject: [PATCH] add support buildroot
 
 ---
  board/ant/S10mdev                      |   24 +
