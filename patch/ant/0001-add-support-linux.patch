@@ -1,18 +1,18 @@
-From 0d5e91e595045711a8514f1eb680f74c16c3e0e6 Mon Sep 17 00:00:00 2001
+From ec77b1f5dcc3ef26526f30ec68e99237526be9a5 Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
-Date: Thu, 14 Dec 2023 14:16:02 +0800
+Date: Wed, 5 Jun 2024 14:40:15 +0800
 Subject: [PATCH] add support linux
 
 ---
  arch/arm/boot/dts/zynq-7000.dtsi    |   2 +-
  arch/arm/boot/dts/zynq-ant.dts      |  62 ++++
- arch/arm/boot/dts/zynq-ant.dtsi     | 500 ++++++++++++++++++++++++++++
- arch/arm/configs/zynq_ant_defconfig | 284 ++++++++++++++++
+ arch/arm/boot/dts/zynq-ant.dtsi     | 504 ++++++++++++++++++++++++++++
+ arch/arm/configs/zynq_ant_defconfig | 285 ++++++++++++++++
  drivers/iio/adc/Kconfig             |   6 +
  drivers/iio/adc/Makefile            |   1 +
  drivers/iio/adc/ad5660_mp.c         | 272 +++++++++++++++
  drivers/mtd/spi-nor/core.c          |  30 +-
- 8 files changed, 1154 insertions(+), 3 deletions(-)
+ 8 files changed, 1159 insertions(+), 3 deletions(-)
  create mode 100644 arch/arm/boot/dts/zynq-ant.dts
  create mode 100644 arch/arm/boot/dts/zynq-ant.dtsi
  create mode 100644 arch/arm/configs/zynq_ant_defconfig
@@ -101,10 +101,10 @@ index 000000000000..d9ee46e79b33
 +	
 diff --git a/arch/arm/boot/dts/zynq-ant.dtsi b/arch/arm/boot/dts/zynq-ant.dtsi
 new file mode 100644
-index 000000000000..279c4590aacc
+index 000000000000..28d95f782d33
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-ant.dtsi
-@@ -0,0 +1,500 @@
+@@ -0,0 +1,504 @@
 +/*
 + * ZYNQ Pluto SDR (Z7020/AD936x)
 + *
@@ -148,6 +148,10 @@ index 000000000000..279c4590aacc
 +		reg = <0xe0002000 0x1000>;
 +		view-port = <0x0170>;
 +		drv-vbus;
++	};
++
++	mp5660{
++		compatible = "microphase,ad5660";
 +	};
 +
 +};
@@ -607,10 +611,10 @@ index 000000000000..279c4590aacc
 +
 diff --git a/arch/arm/configs/zynq_ant_defconfig b/arch/arm/configs/zynq_ant_defconfig
 new file mode 100644
-index 000000000000..fad7ef0131fa
+index 000000000000..28d1ac9bb35d
 --- /dev/null
 +++ b/arch/arm/configs/zynq_ant_defconfig
-@@ -0,0 +1,284 @@
+@@ -0,0 +1,285 @@
 +CONFIG_SYSVIPC=y
 +CONFIG_USELIB=y
 +CONFIG_HIGH_RES_TIMERS=y
@@ -895,6 +899,7 @@ index 000000000000..fad7ef0131fa
 +CONFIG_DEBUG_LL=y
 +CONFIG_DEBUG_ZYNQ_UART1=y
 +CONFIG_EARLY_PRINTK=y
++CONFIG_AD5660_MP=y
 diff --git a/drivers/iio/adc/Kconfig b/drivers/iio/adc/Kconfig
 index 28993cc48bef..dd7a2dc7a271 100644
 --- a/drivers/iio/adc/Kconfig
