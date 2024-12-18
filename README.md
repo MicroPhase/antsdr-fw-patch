@@ -5,7 +5,8 @@ This Repository is used to make Microphase software radio device firmware.
 
 ## Build Instructions
 
-The Firmware is built with the [Xilinx Vivado 2019.1](https://www.xilinx.com/member/forms/download/xef-vivado.html?filename=Xilinx_Vivado_SDK_Web_2019.1_0524_1430_Lin64.bin)(v0.34) or ([Xilinx Vivado 2021.1](https://www.xilinx.com/member/forms/download/xef.html?filename=Xilinx_Unified_2021.1_0610_2318.tar.gz))(v0.35). You need to install the correct Vivado version in you Linux PC, and then,you can follow the instructions below to generate the firmware for [ANTSDR E310](https://item.taobao.com/item.htm?spm=a230r.1.14.16.34e21142YIlxqx&id=647986963313&ns=1&abbucket=2#detail) or [ANTSDR E200](https://item.taobao.com/item.htm?spm=a1z10.3-c-s.w4002-17060615344.9.4f201b9f6YDKU2&id=691394502321) and then.
+The Firmware is built with the ([Xilinx Vivado 2022.2](https://account.amd.com/en/forms/downloads/xef.html?filename=Xilinx_Unified_2022.2_1014_8888.tar.gz.))(v0.38) . You need to install the correct Vivado version in you Linux PC, and then,you can follow the instructions below to generate the firmware for [ANTSDR E310](https://item.taobao.com/item.htm?spm=a230r.1.14.16.34e21142YIlxqx&id=647986963313&ns=1&abbucket=2#detail) or [ANTSDR E200](https://item.taobao.com/item.htm?spm=a1z10.3-c-s.w4002-17060615344.9.4f201b9f6YDKU2&id=691394502321) or [ANTSDR E310V2](https://item.taobao.com/item.htm?spm=a21xtw.29178619.product_shelf.8.3b923f77eJKa3u&id=708976727818&) and then. If you want to build other versions, check out the history repository.
+
 
 ### Install build requirements
 
@@ -21,33 +22,23 @@ sudo apt-get remove libfdt-de
 ### Get source code and setup bash
 
 1. get source from git
-	- v0.34
-		
+	- v0.38
 		```sh
-		git clone -b v0.34 --recursive https://github.com/MicroPhase/antsdr-fw-patch.git
-		```
-		
-	- v0.35
-		```sh
-		git clone -b v0.35 --recursive https://github.com/MicroPhase/antsdr-fw-patch.git
-		```
-	
-2. setup bash
-	- v0.34
-        ```sh
-        export CROSS_COMPILE=arm-linux-gnueabihf- 
-        export PATH=$PATH:/opt/Xilinx/SDK/2019.1/gnu/aarch32/lin/gcc-arm-linux-gnueabi/bin 
-        export VIVADO_SETTINGS=/opt/Xilinx/Vivado/2019.1/settings64.sh
-        export PERL_MM_OPT=
-        ```
-    - v0.35
-       ```sh
-       export CROSS_COMPILE=arm-linux-gnueabihf- 
-       export PATH=$PATH:/opt/Xilinx/SDK/2019.1/gnu/aarch32/lin/gcc-arm-linux-gnueabi/bin 
-       export VIVADO_SETTINGS=/opt/Xilinx/Vivado/2021.1/settings64.sh
-       export PERL_MM_OPT=
-       ```
+		git clone -b v0.38 --recursive https://github.com/MicroPhase/antsdr-fw-patch.git
+		```	
+2. Toolchain
 
+   Due to incompatibility between the AMD/Xilinx GCC toolchain supplied with Vivado/Vitis and Buildroot. This project switched to Buildroot external Toolchain: Linaro GCC 7.3-2018.05 7.3.1
+   https://releases.linaro.org/components/toolchain/binaries/7.3-2018.05/arm-linux-gnueabihf/
+
+
+3. setup bash
+	- v0.38
+        ```sh
+        export CROSS_COMPILE=arm-linux-gnueabihf-
+        export PATH=$PATH:/Toolchain-PATH/gcc-linaro-7.3.1-2018.05-i686_arm-linux-gnueabihf/bin
+        export VIVADO_SETTINGS=/opt/Xilinx/Vivado/2022.2/settings64.sh
+        ```
 ### Export target
 
 1. ant e310
@@ -58,7 +49,7 @@ sudo apt-get remove libfdt-de
 
 2. ant e200
 	```sh
-	export TARGET=antsdre200
+	export TARGET=e200
 	```
 	
 3. ant e310v2
