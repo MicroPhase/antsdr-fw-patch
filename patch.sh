@@ -1,6 +1,6 @@
 target=$1
 
-cp ./patch/*v0.38.patch ./plutosdr-fw/hdl
+cp ./patch/*v0.39.patch ./plutosdr-fw/hdl
 cp ./patch/${target}/*linux.patch	./plutosdr-fw/linux
 cp ./patch/${target}/*buildroot.patch	./plutosdr-fw/buildroot
 cp ./patch/${target}/*scripts.patch ./plutosdr-fw/

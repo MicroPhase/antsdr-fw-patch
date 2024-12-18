@@ -1,25 +1,25 @@
-From 67544a2efe79d45ee930160ef465d70db0a2792f Mon Sep 17 00:00:00 2001
-From: jcc <995586238@qq.com>
-Date: Thu, 14 Dec 2023 16:07:22 +0800
-Subject: [PATCH] add support linux
+From 62019f1d0cd61c0ffd327bf7b88985f7216eb328 Mon Sep 17 00:00:00 2001
+From: wjx <3570534440@qq.com>
+Date: Tue, 17 Dec 2024 16:48:53 +0800
+Subject: [PATCH] add-support-linux
 
 ---
  arch/arm/boot/dts/zynq-7000.dtsi       |   2 +-
  arch/arm/boot/dts/zynq-e310v2.dts      |  49 +++
  arch/arm/boot/dts/zynq-e310v2.dtsi     | 465 +++++++++++++++++++++++++
  arch/arm/configs/zynq_e310v2_defconfig | 293 ++++++++++++++++
- drivers/iio/adc/Kconfig                |   6 +
+ drivers/iio/adc/Kconfig                |   5 +
  drivers/iio/adc/Makefile               |   1 +
  drivers/iio/adc/ad5660_mp.c            | 272 +++++++++++++++
- drivers/mtd/spi-nor/core.c             |  30 +-
- 8 files changed, 1115 insertions(+), 3 deletions(-)
+ drivers/mtd/spi-nor/core.c             |   6 +-
+ 8 files changed, 1090 insertions(+), 3 deletions(-)
  create mode 100644 arch/arm/boot/dts/zynq-e310v2.dts
  create mode 100644 arch/arm/boot/dts/zynq-e310v2.dtsi
  create mode 100644 arch/arm/configs/zynq_e310v2_defconfig
  create mode 100644 drivers/iio/adc/ad5660_mp.c
 
 diff --git a/arch/arm/boot/dts/zynq-7000.dtsi b/arch/arm/boot/dts/zynq-7000.dtsi
-index 8a4f721668ed..34c8d28e4c06 100644
+index a5bf385d2c85..c229ee9c4e1c 100644
 --- a/arch/arm/boot/dts/zynq-7000.dtsi
 +++ b/arch/arm/boot/dts/zynq-7000.dtsi
 @@ -95,7 +95,7 @@ replicator_in_port0: endpoint {
@@ -857,24 +857,23 @@ index 000000000000..48fa479f2753
 +CONFIG_AD5660_MP=y
 +
 diff --git a/drivers/iio/adc/Kconfig b/drivers/iio/adc/Kconfig
-index 28993cc48bef..dd7a2dc7a271 100644
+index 84aee568537c..dc5b35b38590 100644
 --- a/drivers/iio/adc/Kconfig
 +++ b/drivers/iio/adc/Kconfig
-@@ -73,6 +73,12 @@ config AD4630
- 	  To compile this driver as a module, choose M here: the module will be
- 	  called ad4630.
+@@ -6,6 +6,11 @@
+ 
+ menu "Analog to digital converters"
  
 +config AD5660_MP
 +	tristate "Microphase ad5660 control"
 +	depends on GPIOLIB
 +	help
 +	  If you say yes here you get support for ad5660mp dac control.
-+
- config AD7091R5
- 	tristate "Analog Devices AD7091R5 ADC Driver"
- 	depends on I2C
+ config AB8500_GPADC
+ 	bool "ST-Ericsson AB8500 GPADC driver"
+ 	depends on AB8500_CORE && REGULATOR_AB8500
 diff --git a/drivers/iio/adc/Makefile b/drivers/iio/adc/Makefile
-index 6a7e31e92d70..ce2a80ca49e3 100644
+index 339ddf2d0ea3..a7698f4dabde 100644
 --- a/drivers/iio/adc/Makefile
 +++ b/drivers/iio/adc/Makefile
 @@ -11,6 +11,7 @@ obj-$(CONFIG_AD400X) += ad400x.o
@@ -1165,60 +1164,29 @@ index 000000000000..0f97c1e815c4
 +MODULE_LICENSE("GPL V2");
 \ No newline at end of file
 diff --git a/drivers/mtd/spi-nor/core.c b/drivers/mtd/spi-nor/core.c
-index 84439aca5009..b7e676bbe6a9 100644
+index 47c49589f81f..1462a07e84f8 100644
 --- a/drivers/mtd/spi-nor/core.c
 +++ b/drivers/mtd/spi-nor/core.c
-@@ -608,7 +608,8 @@ int spi_nor_write_ear(struct spi_nor *nor, u32 addr)
+@@ -623,7 +623,8 @@ static int spi_nor_write_ear(struct spi_nor *nor, u32 addr)
  		code = SPINOR_OP_BRWR;
- 	if (nor->jedec_id == CFI_MFR_ST ||
- 	    nor->jedec_id == CFI_MFR_MACRONIX ||
--	    nor->jedec_id == CFI_MFR_PMC) {
-+	    nor->jedec_id == CFI_MFR_PMC ||
-+		nor->jedec_id == CFI_MFR_WINBND) {
+ 	if (nor->info->id[0] == CFI_MFR_ST ||
+ 	    nor->info->id[0] == CFI_MFR_MACRONIX ||
+-	    nor->info->id[0] == CFI_MFR_PMC) {
++	    nor->info->id[0] == CFI_MFR_PMC ||
++	    nor->info->id[0] == CFI_MFR_WINBND) {
  		spi_nor_write_enable(nor);
  		code = SPINOR_OP_WREAR;
  	}
-@@ -687,7 +688,8 @@ static int read_ear(struct spi_nor *nor, struct flash_info *info)
+@@ -669,7 +670,8 @@ static int read_ear(struct spi_nor *nor, struct flash_info *info)
  	/* This is actually Micron */
- 	else if (nor->jedec_id == CFI_MFR_ST ||
- 		 nor->jedec_id == CFI_MFR_MACRONIX ||
--		 nor->jedec_id == CFI_MFR_PMC)
-+		 nor->jedec_id == CFI_MFR_PMC || 
-+		 nor->jedec_id == CFI_MFR_WINBND)
+ 	else if (nor->info->id[0] == CFI_MFR_ST ||
+ 		 nor->info->id[0] == CFI_MFR_MACRONIX ||
+-		 nor->info->id[0] == CFI_MFR_PMC)
++		 nor->info->id[0] == CFI_MFR_PMC ||
++		 nor->info->id[0] == CFI_MFR_WINBND)
  		code = SPINOR_OP_RDEAR;
  	else
  		return -EINVAL;
-@@ -2007,6 +2009,30 @@ static const struct flash_info *spi_nor_read_id(struct spi_nor *nor)
- 	u8 *id = nor->bouncebuf;
- 	unsigned int i;
- 	int ret;
-+	int tmp;
-+	u8 uid[20];
-+	if(nor -> spimem){
-+		struct spi_mem_op op = 
-+			SPI_MEM_OP(SPI_MEM_OP_CMD(0x4B,1),
-+					SPI_MEM_OP_NO_ADDR,
-+					SPI_MEM_OP_DUMMY(0,4),
-+					SPI_MEM_OP_DATA_IN(20,uid,1)
-+						);
-+		tmp = spi_mem_exec_op(nor->spimem, &op);
-+		if(tmp < 0){
-+			dev_dbg(nor->dev, "error %d reading UID\n", tmp);
-+			return ERR_PTR(tmp);
-+		}
-+		dev_info(nor->dev,"SPI-NOR-UniqueID %*phN\n",8,&uid[4]);
-+	} else{
-+		tmp = nor->controller_ops->read_reg(nor,0x4b,uid,20);
-+		if(tmp < 0){
-+			dev_dbg(nor->dev, "error %d reading UID\n", tmp);
-+			return ERR_PTR(tmp);
-+		}
-+		dev_info(nor->dev,"SPI-NOR-UniqueID %*phN\n",16,&uid[4]);
-+	}
-+
- 
- 	#define SPI_NOR_MAX_EDID_LEN	20
- 
 -- 
 2.25.1
 

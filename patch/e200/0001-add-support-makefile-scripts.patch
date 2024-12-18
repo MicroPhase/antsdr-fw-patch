@@ -1,18 +1,18 @@
-From 17b34403cd1f76d0781838ede94f0ddf31b8f5b7 Mon Sep 17 00:00:00 2001
-From: jcc <995586238@qq.com>
-Date: Thu, 14 Dec 2023 18:28:09 +0800
-Subject: [PATCH] add support makefile scripts
+From 6059140605a9b21cb5aea5f2360e028bcad4936d Mon Sep 17 00:00:00 2001
+From: wjx <3570534440@qq.com>
+Date: Tue, 17 Dec 2024 14:54:06 +0800
+Subject: [PATCH] add-support-makefile-scripts
 
 ---
- Makefile         |  31 ++++++++-
- scripts/e200.its | 174 +++++++++++++++++++++++++++++++++++++++++++++++
+ Makefile         |  31 ++++++++--
+ scripts/e200.its | 158 +++++++++++++++++++++++++++++++++++++++++++++++
  scripts/e200.mk  |  10 +++
- 3 files changed, 213 insertions(+), 2 deletions(-)
+ 3 files changed, 194 insertions(+), 5 deletions(-)
  create mode 100644 scripts/e200.its
  create mode 100644 scripts/e200.mk
 
 diff --git a/Makefile b/Makefile
-index 0dc9c4b..12e7045 100644
+index 0b2e57a..f5209c1 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -27,8 +27,8 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
@@ -22,32 +22,30 @@ index 0dc9c4b..12e7045 100644
 -TARGET ?= pluto
 -SUPPORTED_TARGETS:=pluto sidekiqz2
 +TARGET ?= ant
-+SUPPORTED_TARGETS:=pluto sidekiqz2 ant e310v2 e200
++SUPPORTED_TARGETS:=pluto sidekiqz2 ant e200 e310v2
  
  # Include target specific constants
  include scripts/$(TARGET).mk
-@@ -91,13 +91,20 @@ build/uboot-env.bin: build/uboot-env.txt
+@@ -91,14 +91,15 @@ build/uboot-env.bin: build/uboot-env.txt
  linux/arch/arm/boot/zImage: TOOLCHAIN
  	$(TOOLS_PATH) make -C linux ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zynq_$(TARGET)_defconfig
  	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zImage UIMAGE_LOADADDR=0x8000
+-
 +	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) uImage UIMAGE_LOADADDR=0x8000
-+
  
  .PHONY: linux/arch/arm/boot/zImage
+-
 +.PHONY: linux/arch/arm/boot/uImage
- 
  
  build/zImage: linux/arch/arm/boot/zImage | build
  	cp $< $@
- 
-+build/uImage: linux/arch/arm/boot/uImage  | build
+-
++build/uImage: linux/arch/arm/boot/uImage | build
 +	cp $< $@
-+
-+
  ### Device Tree ###
  
  linux/arch/arm/boot/dts/%.dtb: TOOLCHAIN linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
-@@ -186,6 +193,26 @@ clean:
+@@ -187,6 +188,26 @@ clean:
  	rm -f $(notdir $(wildcard build/*))
  	rm -rf build/*
  
@@ -70,16 +68,16 @@ index 0dc9c4b..12e7045 100644
 +	rm $(SDIMGDIR)/u-boot.elf
 +	rm $(SDIMGDIR)/ramdisk.image.gz 
 +	rm $(SDIMGDIR)/boot.bif
-+	
++
  zip-all: $(TARGETS)
  	zip -j build/$(ZIP_ARCHIVE_PREFIX)-fw-$(VERSION).zip $^
  
 diff --git a/scripts/e200.its b/scripts/e200.its
 new file mode 100644
-index 0000000..ab039fd
+index 0000000..efd3d6e
 --- /dev/null
 +++ b/scripts/e200.its
-@@ -0,0 +1,174 @@
+@@ -0,0 +1,158 @@
 +/*
 + * U-Boot uImage source file with multiple kernels, ramdisks and FDT blobs
 + * This example makes use of the 'loadables' field
@@ -104,23 +102,7 @@ index 0000000..ab039fd
 +			arch = "arm";
 +			compression = "none";
 +		};
-+
-+		fdt@2 {
-+			description = "zynq-pluto-sdr";
-+			data = /incbin/("../build/zynq-e200.dtb");
-+			type = "flat_dt";
-+			arch = "arm";
-+			compression = "none";
-+		};
-+
-+		fdt@3 {
-+			description = "zynq-pluto-sdr";
-+			data = /incbin/("../build/zynq-e200.dtb");
-+			type = "flat_dt";
-+			arch = "arm";
-+			compression = "none";
-+		};
-+
++		
 +		fpga@1 {
 +			description = "FPGA";
 +			data = /incbin/("../build/system_top.bit");

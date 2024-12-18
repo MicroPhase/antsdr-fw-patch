@@ -1,7 +1,7 @@
-From 908271a66d4623cbe20f57b8bd60627cda7275fa Mon Sep 17 00:00:00 2001
-From: jcc <995586238@qq.com>
-Date: Thu, 14 Dec 2023 16:09:33 +0800
-Subject: [PATCH] add support buildroot
+From e07e28a315d2f27133cc9b4351881ecf7a37ae34 Mon Sep 17 00:00:00 2001
+From: wjx <3570534440@qq.com>
+Date: Tue, 17 Dec 2024 16:53:44 +0800
+Subject: [PATCH] add-support-buildroot
 
 ---
  board/e310v2/S10mdev                      |   24 +

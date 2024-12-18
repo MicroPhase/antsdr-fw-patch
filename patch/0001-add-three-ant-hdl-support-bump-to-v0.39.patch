@@ -1,10 +1,10 @@
-From ec0e90ba9982cd48c7eb50970e058ca0d8357cf1 Mon Sep 17 00:00:00 2001
-From: Wei Chaochen <1530604142@qq.com>
-Date: Mon, 11 Dec 2023 14:03:22 +0800
-Subject: [PATCH] add ant hdl support, bump to v0.38
+From 64a1980843e9057a21c33e1e6227ea1a5c70dc07 Mon Sep 17 00:00:00 2001
+From: agh <2366760085@qq.com>
+Date: Mon, 16 Dec 2024 17:23:29 +0800
+Subject: [PATCH] add-three-ant-hdl-support-bump-to-v0.39
 
 ---
- .gitignore                                    |   1 +
+ .gitignore                                    |   3 -
  library/axi_vcxo_ctrl/component.xml           | 937 ++++++++++++++++++
  library/axi_vcxo_ctrl/src/ad5662_auto_spi.v   |  99 ++
  .../axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v    | 175 ++++
@@ -14,7 +14,7 @@ Subject: [PATCH] add ant hdl support, bump to v0.38
  .../axi_vcxo_ctrl/xgui/axi_vcxo_ctrl_v1_0.tcl |  55 +
  .../xgui/axi_vcxo_ctrl_v1_0_v1_0.tcl          |  55 +
  projects/ant/Makefile                         |  24 +
- projects/ant/system_bd.tcl                    | 376 +++++++
+ projects/ant/system_bd.tcl                    | 377 +++++++
  projects/ant/system_constr.xdc                |  91 ++
  projects/ant/system_project.tcl               |  15 +
  projects/ant/system_top.v                     | 233 +++++
@@ -28,7 +28,7 @@ Subject: [PATCH] add ant hdl support, bump to v0.38
  projects/e310v2/system_constr.xdc             | 123 +++
  projects/e310v2/system_project.tcl            |  16 +
  projects/e310v2/system_top.v                  | 282 ++++++
- 24 files changed, 4712 insertions(+)
+ 24 files changed, 4712 insertions(+), 3 deletions(-)
  create mode 100644 library/axi_vcxo_ctrl/component.xml
  create mode 100644 library/axi_vcxo_ctrl/src/ad5662_auto_spi.v
  create mode 100644 library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v
@@ -54,15 +54,27 @@ Subject: [PATCH] add ant hdl support, bump to v0.38
  create mode 100644 projects/e310v2/system_top.v
 
 diff --git a/.gitignore b/.gitignore
-index c23627338..ef3eef398 100644
+index de3271798..4e49cad5d 100644
 --- a/.gitignore
 +++ b/.gitignore
-@@ -103,4 +103,5 @@ qdb
- tmp-clearbox
- *.bin
- .qsys_edit
-+!library/axi_vcxo_ctrl
- 
+@@ -42,9 +42,7 @@ iseconfig
+ xlnx_auto*
+ _ngo
+ _xmsgs
+-component.xml
+ *.jou
+-xgui
+ *.runs
+ *.srcs
+ *.sdk
+@@ -75,7 +73,6 @@ reconfig_mif
+ *.pin
+ *.os
+ *webtalk*
+-*.xml
+ *.hw
+ gui
+ .timestamp_intel
 diff --git a/library/axi_vcxo_ctrl/component.xml b/library/axi_vcxo_ctrl/component.xml
 new file mode 100644
 index 000000000..3ea232ee1
@@ -2425,7 +2437,7 @@ index 000000000..1614b6a04
 +
 diff --git a/projects/ant/Makefile b/projects/ant/Makefile
 new file mode 100644
-index 000000000..4a1ad7e0f
+index 000000000..62ecb567f
 --- /dev/null
 +++ b/projects/ant/Makefile
 @@ -0,0 +1,24 @@
@@ -2434,7 +2446,7 @@ index 000000000..4a1ad7e0f
 +### SPDX short identifier: BSD-1-Clause
 +## Auto-generated, do not modify!
 +####################################################################################
-+
++#vivado2023.2
 +PROJECT_NAME := ant
 +
 +M_DEPS += ../common/xilinx/adi_fir_filter_constr.xdc
@@ -2455,10 +2467,10 @@ index 000000000..4a1ad7e0f
 +include ../scripts/project-xilinx.mk
 diff --git a/projects/ant/system_bd.tcl b/projects/ant/system_bd.tcl
 new file mode 100644
-index 000000000..ad924fcc1
+index 000000000..5bd1d9c7b
 --- /dev/null
 +++ b/projects/ant/system_bd.tcl
-@@ -0,0 +1,376 @@
+@@ -0,0 +1,377 @@
 +# create board design
 +
 +source $ad_hdl_dir/projects/common/xilinx/adi_fir_filter_bd.tcl
@@ -2793,7 +2805,8 @@ index 000000000..ad924fcc1
 +ad_connect axi_ad9361/l_clk axi_tdd_0/clk
 +ad_connect axi_tdd_0/sync_in tdd_ext_sync
 +ad_connect axi_tdd_0/tdd_channel_0 txdata_o
-+ad_connect axi_tdd_0/tdd_channel_1 axi_ad9361_adc_dma/fifo_wr_sync
++ad_connect axi_tdd_0/tdd_channel_1 axi_ad9361_adc_dma/sync
++
 +
 +ad_connect  logic_or_1/Op1  axi_ad9361/rst
 +ad_connect  logic_or_1/Op2  axi_tdd_0/tdd_channel_2
@@ -2837,7 +2850,7 @@ index 000000000..ad924fcc1
 +
 diff --git a/projects/ant/system_constr.xdc b/projects/ant/system_constr.xdc
 new file mode 100644
-index 000000000..b312ff2cf
+index 000000000..0be0ba8b2
 --- /dev/null
 +++ b/projects/ant/system_constr.xdc
 @@ -0,0 +1,91 @@
@@ -3194,7 +3207,7 @@ index 000000000..9ae91a15e
 +endmodule
 diff --git a/projects/e200/Makefile b/projects/e200/Makefile
 new file mode 100644
-index 000000000..1c9b4f2f4
+index 000000000..9f2e6a0db
 --- /dev/null
 +++ b/projects/e200/Makefile
 @@ -0,0 +1,25 @@
@@ -3203,7 +3216,7 @@ index 000000000..1c9b4f2f4
 +### SPDX short identifier: BSD-1-Clause
 +## Auto-generated, do not modify!
 +####################################################################################
-+
++#vivado2023.2
 +PROJECT_NAME := e200
 +
 +M_DEPS += ../common/xilinx/adi_fir_filter_constr.xdc
@@ -3225,7 +3238,7 @@ index 000000000..1c9b4f2f4
 +include ../scripts/project-xilinx.mk
 diff --git a/projects/e200/system_bd.tcl b/projects/e200/system_bd.tcl
 new file mode 100644
-index 000000000..9926d22a7
+index 000000000..9a2f2ae7f
 --- /dev/null
 +++ b/projects/e200/system_bd.tcl
 @@ -0,0 +1,406 @@
@@ -3592,7 +3605,7 @@ index 000000000..9926d22a7
 +ad_connect axi_ad9361/l_clk axi_tdd_0/clk
 +ad_connect axi_tdd_0/sync_in tdd_ext_sync
 +ad_connect axi_tdd_0/tdd_channel_0 txdata_o
-+ad_connect axi_tdd_0/tdd_channel_1 axi_ad9361_adc_dma/fifo_wr_sync
++ad_connect axi_tdd_0/tdd_channel_1 axi_ad9361_adc_dma/sync
 +
 +ad_connect  logic_or_1/Op1  axi_ad9361/rst
 +ad_connect  logic_or_1/Op2  axi_tdd_0/tdd_channel_2
@@ -4030,7 +4043,7 @@ index 000000000..0416399e4
 +endmodule
 diff --git a/projects/e310v2/Makefile b/projects/e310v2/Makefile
 new file mode 100644
-index 000000000..8e5455c2d
+index 000000000..74179b8b5
 --- /dev/null
 +++ b/projects/e310v2/Makefile
 @@ -0,0 +1,25 @@
@@ -4039,7 +4052,7 @@ index 000000000..8e5455c2d
 +### SPDX short identifier: BSD-1-Clause
 +## Auto-generated, do not modify!
 +####################################################################################
-+
++#vivado2023.2
 +PROJECT_NAME := e310v2
 +
 +M_DEPS += ../common/xilinx/adi_fir_filter_constr.xdc
@@ -4061,7 +4074,7 @@ index 000000000..8e5455c2d
 +include ../scripts/project-xilinx.mk
 diff --git a/projects/e310v2/system_bd.tcl b/projects/e310v2/system_bd.tcl
 new file mode 100644
-index 000000000..404c2cad3
+index 000000000..2882b1976
 --- /dev/null
 +++ b/projects/e310v2/system_bd.tcl
 @@ -0,0 +1,409 @@
@@ -4431,7 +4444,7 @@ index 000000000..404c2cad3
 +ad_connect axi_ad9361/l_clk axi_tdd_0/clk
 +ad_connect axi_tdd_0/sync_in tdd_ext_sync
 +ad_connect axi_tdd_0/tdd_channel_0 txdata_o
-+ad_connect axi_tdd_0/tdd_channel_1 axi_ad9361_adc_dma/fifo_wr_sync
++ad_connect axi_tdd_0/tdd_channel_1 axi_ad9361_adc_dma/sync
 +
 +ad_connect  logic_or_1/Op1  axi_ad9361/rst
 +ad_connect  logic_or_1/Op2  axi_tdd_0/tdd_channel_2
@@ -4914,5 +4927,5 @@ index 000000000..21c44a9a7
 +
 +endmodule
 -- 
-2.43.0
+2.34.1
 

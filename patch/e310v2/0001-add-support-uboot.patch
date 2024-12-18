@@ -1,39 +1,31 @@
-From d3f2a5efcabb64e24c8a5cc856683c92a5a5787e Mon Sep 17 00:00:00 2001
-From: jcc <995586238@qq.com>
-Date: Thu, 14 Dec 2023 16:04:18 +0800
-Subject: [PATCH] add support uboot
+From 4ac00f8927325f5544cdeae3cd8944ffc0fd9ba7 Mon Sep 17 00:00:00 2001
+From: wjx <3570534440@qq.com>
+Date: Tue, 17 Dec 2024 16:50:49 +0800
+Subject: [PATCH] add-support-uboot
 
 ---
- arch/arm/dts/Makefile            |   5 +-
+ arch/arm/dts/Makefile            |   3 +-
  arch/arm/dts/zynq-e310v2-sdr.dts | 116 +++++++++++++++++++++++++++++++
  configs/zynq_e310v2_defconfig    |  65 +++++++++++++++++
  include/configs/zynq-common.h    |  36 ++++++----
- 4 files changed, 209 insertions(+), 13 deletions(-)
+ 4 files changed, 207 insertions(+), 13 deletions(-)
  create mode 100644 arch/arm/dts/zynq-e310v2-sdr.dts
  create mode 100644 configs/zynq_e310v2_defconfig
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 7b19efc9b8..3261ef4dfd 100644
+index 7b19efc9b8..e560dba45f 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -1,6 +1,8 @@
- #
- # SPDX-License-Identifier:	GPL-2.0+
--#
-+# zynq-ant-sdr.dtb
-+# zynq-e200-sdr.dtb
-+# zynq-e310v2-sdr.dtb
- 
- dtb-$(CONFIG_AT91FAMILY) += at91sam9260-smartweb.dtb \
- 	at91sam9g20-taurus.dtb \
-@@ -96,6 +98,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
- 	zynq-picozed.dtb \
- 	zynq-picozed-sdr2.dtb \
- 	zynq-pluto-sdr.dtb \
-+	zynq-e310v2-sdr.dtb \
- 	zynq-m2k.dtb \
- 	zynq-sidekiqz2.dtb \
+@@ -101,7 +101,8 @@ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb \
  	zynq-zc770-xm010.dtb \
+ 	zynq-zc770-xm011.dtb \
+ 	zynq-zc770-xm012.dtb \
+-	zynq-zc770-xm013.dtb
++	zynq-zc770-xm013.dtb \
++	zynq-e310v2-sdr.dtb
+ dtb-$(CONFIG_ARCH_ZYNQMP) += \
+ 	zynqmp-ep108.dtb			\
+ 	zynqmp-zcu100.dtb			\
 diff --git a/arch/arm/dts/zynq-e310v2-sdr.dts b/arch/arm/dts/zynq-e310v2-sdr.dts
 new file mode 100644
 index 0000000000..38ce139074

@@ -1,18 +1,18 @@
-From 0df3e4a4951de1b473b30601a4c31e3a9a72bed6 Mon Sep 17 00:00:00 2001
-From: jcc <995586238@qq.com>
-Date: Thu, 14 Dec 2023 13:58:23 +0800
-Subject: [PATCH] add support makefile scripts
+From 7b84d6e62607fcba039326148e27565cf281aa84 Mon Sep 17 00:00:00 2001
+From: wjx <3570534440@qq.com>
+Date: Thu, 12 Dec 2024 18:49:44 +0800
+Subject: [PATCH] add-support-makefile-scripts
 
 ---
- Makefile        |  31 +++++++++-
- scripts/ant.its | 159 ++++++++++++++++++++++++++++++++++++++++++++++++
+ Makefile        |  31 ++++++++--
+ scripts/ant.its | 158 ++++++++++++++++++++++++++++++++++++++++++++++++
  scripts/ant.mk  |  10 +++
- 3 files changed, 198 insertions(+), 2 deletions(-)
+ 3 files changed, 194 insertions(+), 5 deletions(-)
  create mode 100644 scripts/ant.its
  create mode 100644 scripts/ant.mk
 
 diff --git a/Makefile b/Makefile
-index 0dc9c4b..51d6645 100644
+index 0b2e57a..86c774c 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -27,8 +27,8 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
@@ -22,32 +22,30 @@ index 0dc9c4b..51d6645 100644
 -TARGET ?= pluto
 -SUPPORTED_TARGETS:=pluto sidekiqz2
 +TARGET ?= ant
-+SUPPORTED_TARGETS:=pluto sidekiqz2 ant e310v2
++SUPPORTED_TARGETS:=pluto sidekiqz2 ant
  
  # Include target specific constants
  include scripts/$(TARGET).mk
-@@ -91,13 +91,20 @@ build/uboot-env.bin: build/uboot-env.txt
+@@ -91,14 +91,15 @@ build/uboot-env.bin: build/uboot-env.txt
  linux/arch/arm/boot/zImage: TOOLCHAIN
  	$(TOOLS_PATH) make -C linux ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zynq_$(TARGET)_defconfig
  	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zImage UIMAGE_LOADADDR=0x8000
+-
 +	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) uImage UIMAGE_LOADADDR=0x8000
-+
  
  .PHONY: linux/arch/arm/boot/zImage
+-
 +.PHONY: linux/arch/arm/boot/uImage
- 
  
  build/zImage: linux/arch/arm/boot/zImage | build
  	cp $< $@
- 
-+build/uImage: linux/arch/arm/boot/uImage  | build
+-
++build/uImage: linux/arch/arm/boot/uImage | build
 +	cp $< $@
-+
-+
  ### Device Tree ###
  
  linux/arch/arm/boot/dts/%.dtb: TOOLCHAIN linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
-@@ -186,6 +193,26 @@ clean:
+@@ -187,6 +188,26 @@ clean:
  	rm -f $(notdir $(wildcard build/*))
  	rm -rf build/*
  
@@ -70,16 +68,16 @@ index 0dc9c4b..51d6645 100644
 +	rm $(SDIMGDIR)/u-boot.elf
 +	rm $(SDIMGDIR)/ramdisk.image.gz 
 +	rm $(SDIMGDIR)/boot.bif
-+	
++
  zip-all: $(TARGETS)
  	zip -j build/$(ZIP_ARCHIVE_PREFIX)-fw-$(VERSION).zip $^
  
 diff --git a/scripts/ant.its b/scripts/ant.its
 new file mode 100644
-index 0000000..f1f9904
+index 0000000..7d1adb0
 --- /dev/null
 +++ b/scripts/ant.its
-@@ -0,0 +1,159 @@
+@@ -0,0 +1,158 @@
 +/*
 + * U-Boot uImage source file with multiple kernels, ramdisks and FDT blobs
 + * This example makes use of the 'loadables' field
@@ -104,7 +102,6 @@ index 0000000..f1f9904
 +			arch = "arm";
 +			compression = "none";
 +		};
-+
 +
 +		fpga@1 {
 +			description = "FPGA";
@@ -241,7 +238,7 @@ index 0000000..f1f9904
 +};
 diff --git a/scripts/ant.mk b/scripts/ant.mk
 new file mode 100644
-index 0000000..00d540e
+index 0000000..cd48388
 --- /dev/null
 +++ b/scripts/ant.mk
 @@ -0,0 +1,10 @@
@@ -249,7 +246,7 @@ index 0000000..00d540e
 +# Target specific constants go here
 +
 +HDF_URL:=http://github.com/analogdevicesinc/plutosdr-fw/releases/download/${LATEST_TAG}/system_top.hdf
-+TARGET_DTS_FILES:= zynq-ant.dtb 
++TARGET_DTS_FILES:= zynq-ant.dtb
 +COMPLETE_NAME:=ANTSDR
 +ZIP_ARCHIVE_PREFIX:=antsdr
 +DEVICE_VID:=0x0456

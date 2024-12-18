@@ -1,18 +1,18 @@
-From 9b5c5fc72978df2e754ff9de1e147b122ec4e464 Mon Sep 17 00:00:00 2001
-From: jcc <995586238@qq.com>
-Date: Thu, 14 Dec 2023 16:03:00 +0800
-Subject: [PATCH] add support uboot scripts
+From ffbba4cab061b96574838a6bd2301fa14c26c54a Mon Sep 17 00:00:00 2001
+From: wjx <3570534440@qq.com>
+Date: Tue, 17 Dec 2024 16:55:24 +0800
+Subject: [PATCH] add-support-makefile-scripts
 
 ---
- Makefile           |  31 +++++++-
+ Makefile           |  31 ++++++--
  scripts/e310v2.its | 174 +++++++++++++++++++++++++++++++++++++++++++++
  scripts/e310v2.mk  |  10 +++
- 3 files changed, 213 insertions(+), 2 deletions(-)
+ 3 files changed, 210 insertions(+), 5 deletions(-)
  create mode 100644 scripts/e310v2.its
  create mode 100644 scripts/e310v2.mk
 
 diff --git a/Makefile b/Makefile
-index 0dc9c4b..51d6645 100644
+index 0b2e57a..f5209c1 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -27,8 +27,8 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
@@ -22,32 +22,30 @@ index 0dc9c4b..51d6645 100644
 -TARGET ?= pluto
 -SUPPORTED_TARGETS:=pluto sidekiqz2
 +TARGET ?= ant
-+SUPPORTED_TARGETS:=pluto sidekiqz2 ant e310v2
++SUPPORTED_TARGETS:=pluto sidekiqz2 ant e200 e310v2
  
  # Include target specific constants
  include scripts/$(TARGET).mk
-@@ -91,13 +91,20 @@ build/uboot-env.bin: build/uboot-env.txt
+@@ -91,14 +91,15 @@ build/uboot-env.bin: build/uboot-env.txt
  linux/arch/arm/boot/zImage: TOOLCHAIN
  	$(TOOLS_PATH) make -C linux ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zynq_$(TARGET)_defconfig
  	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zImage UIMAGE_LOADADDR=0x8000
+-
 +	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) uImage UIMAGE_LOADADDR=0x8000
-+
  
  .PHONY: linux/arch/arm/boot/zImage
+-
 +.PHONY: linux/arch/arm/boot/uImage
- 
  
  build/zImage: linux/arch/arm/boot/zImage | build
  	cp $< $@
- 
-+build/uImage: linux/arch/arm/boot/uImage  | build
+-
++build/uImage: linux/arch/arm/boot/uImage | build
 +	cp $< $@
-+
-+
  ### Device Tree ###
  
  linux/arch/arm/boot/dts/%.dtb: TOOLCHAIN linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
-@@ -186,6 +193,26 @@ clean:
+@@ -187,6 +188,26 @@ clean:
  	rm -f $(notdir $(wildcard build/*))
  	rm -rf build/*
  
@@ -70,7 +68,7 @@ index 0dc9c4b..51d6645 100644
 +	rm $(SDIMGDIR)/u-boot.elf
 +	rm $(SDIMGDIR)/ramdisk.image.gz 
 +	rm $(SDIMGDIR)/boot.bif
-+	
++
  zip-all: $(TARGETS)
  	zip -j build/$(ZIP_ARCHIVE_PREFIX)-fw-$(VERSION).zip $^
  
