@@ -15,6 +15,7 @@ sudo apt-get install dfu-util u-boot-tools device-tree-compiler mtools
 sudo apt-get install bc python cpio zip unzip rsync file wget 
 sudo apt-get install libtinfo5 device-tree-compiler bison flex u-boot-tools
 sudo apt-get purge gcc-arm-linux-gnueabihf
+sudo apt-get install libmpc-dev
 sudo apt-get remove libfdt-de
 ```
 
@@ -113,7 +114,7 @@ Then you can make firmware.
 
 ```sh
 cd plutosdr-fw
-make
+sudo -E make
 ```
 
 After the firmware building finished, you will see below file in the build folder. These files are used for flash updating.(This is e200 device)

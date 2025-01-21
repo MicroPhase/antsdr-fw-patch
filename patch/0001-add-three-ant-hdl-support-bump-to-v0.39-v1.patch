@@ -1,7 +1,7 @@
-From 64a1980843e9057a21c33e1e6227ea1a5c70dc07 Mon Sep 17 00:00:00 2001
+From 52dbc663d347cb4d78bf6df203a05e363b04ff94 Mon Sep 17 00:00:00 2001
 From: agh <2366760085@qq.com>
-Date: Mon, 16 Dec 2024 17:23:29 +0800
-Subject: [PATCH] add-three-ant-hdl-support-bump-to-v0.39
+Date: Wed, 15 Jan 2025 15:19:34 +0800
+Subject: [PATCH] add-three-ant-hdl-support-bump-to-v0.39-v1
 
 ---
  .gitignore                                    |   3 -
@@ -19,16 +19,16 @@ Subject: [PATCH] add-three-ant-hdl-support-bump-to-v0.39
  projects/ant/system_project.tcl               |  15 +
  projects/ant/system_top.v                     | 233 +++++
  projects/e200/Makefile                        |  25 +
- projects/e200/system_bd.tcl                   | 406 ++++++++
+ projects/e200/system_bd.tcl                   | 402 ++++++++
  projects/e200/system_constr.xdc               | 108 ++
  projects/e200/system_project.tcl              |  16 +
- projects/e200/system_top.v                    | 251 +++++
+ projects/e200/system_top.v                    | 259 +++++
  projects/e310v2/Makefile                      |  25 +
  projects/e310v2/system_bd.tcl                 | 409 ++++++++
  projects/e310v2/system_constr.xdc             | 123 +++
  projects/e310v2/system_project.tcl            |  16 +
  projects/e310v2/system_top.v                  | 282 ++++++
- 24 files changed, 4712 insertions(+), 3 deletions(-)
+ 24 files changed, 4716 insertions(+), 3 deletions(-)
  create mode 100644 library/axi_vcxo_ctrl/component.xml
  create mode 100644 library/axi_vcxo_ctrl/src/ad5662_auto_spi.v
  create mode 100644 library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v
@@ -3238,10 +3238,10 @@ index 000000000..9f2e6a0db
 +include ../scripts/project-xilinx.mk
 diff --git a/projects/e200/system_bd.tcl b/projects/e200/system_bd.tcl
 new file mode 100644
-index 000000000..9a2f2ae7f
+index 000000000..274ecc904
 --- /dev/null
 +++ b/projects/e200/system_bd.tcl
-@@ -0,0 +1,406 @@
+@@ -0,0 +1,402 @@
 +# create board design
 +
 +source $ad_hdl_dir/projects/common/xilinx/adi_fir_filter_bd.tcl
@@ -3257,7 +3257,6 @@ index 000000000..9a2f2ae7f
 +create_bd_intf_port -mode Master -vlnv xilinx.com:interface:mdio_rtl:1.0 MDIO_PHY
 +create_bd_intf_port -mode Master -vlnv xilinx.com:interface:rgmii_rtl:1.0 RGMII
 +
-+create_bd_port -dir O eth_rst_n
 +
 +create_bd_port -dir O spi0_csn_2_o
 +create_bd_port -dir O spi0_csn_1_o
@@ -3379,13 +3378,10 @@ index 000000000..9a2f2ae7f
 +ad_connect axi_vcxo_ctrl/REF_10M_LOCKED REF_10M_LOCKED
 +
 +
-+
-+
 +ad_connect  sys_cpu_clk sys_ps7/FCLK_CLK0
 +ad_connect  sys_200m_clk sys_ps7/FCLK_CLK1
 +ad_connect  sys_cpu_reset sys_rstgen/peripheral_reset
 +ad_connect  sys_cpu_resetn sys_rstgen/peripheral_aresetn
-+ad_connect  eth_rst_n sys_rstgen/peripheral_aresetn
 +ad_connect  sys_cpu_clk sys_rstgen/slowest_sync_clk
 +ad_connect  sys_rstgen/ext_reset_in sys_ps7/FCLK_RESET0_N
 +ad_connect  sys_rgmii/tx_reset sys_rstgen/peripheral_reset
@@ -3786,10 +3782,10 @@ index 000000000..c21f79785
 +
 diff --git a/projects/e200/system_top.v b/projects/e200/system_top.v
 new file mode 100644
-index 000000000..0416399e4
+index 000000000..4f9493648
 --- /dev/null
 +++ b/projects/e200/system_top.v
-@@ -0,0 +1,251 @@
+@@ -0,0 +1,259 @@
 +// ***************************************************************************
 +// ***************************************************************************
 +// Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
@@ -3836,7 +3832,7 @@ index 000000000..0416399e4
 +  output [3:0]    RGMII_td,
 +  output          RGMII_tx_ctl,
 +  output          RGMII_txc,
-+  output          eth_rst_n ,
++  inout           eth_rst_n ,
 +
 +  inout   [14:0]  ddr_addr,
 +  inout   [ 2:0]  ddr_ba,
@@ -3927,8 +3923,17 @@ index 000000000..0416399e4
 +              gpio_en_agc,        // 12:12
 +              gpio_ctl,           // 11: 8
 +              gpio_status}));     //  7: 0
++ //eth_rst_n
++  ad_iobuf #(
++    .DATA_WIDTH(1)
++  ) eth_rst_n_iobuf (
++    .dio_t (gpio_t[14]),
++    .dio_i (gpio_o[14]),
++    .dio_o (gpio_i[14]),
++    .dio_p (eth_rst_n));     
 +
-+  assign gpio_i[16:14] = gpio_o[16:14];
++
++  assign gpio_i[16:15] = gpio_o[16:15];
 +
 +  ad_iobuf #(.DATA_WIDTH(8)) gpio_io_buf (
 +    .dio_t (gpio_t[42:35]),
@@ -3980,7 +3985,6 @@ index 000000000..0416399e4
 +    .RGMII_td(RGMII_td),
 +    .RGMII_tx_ctl(RGMII_tx_ctl),
 +    .RGMII_txc(RGMII_txc),
-+    .eth_rst_n(),
 +    .ddr_addr (ddr_addr),
 +    .ddr_ba (ddr_ba),
 +    .ddr_cas_n (ddr_cas_n),

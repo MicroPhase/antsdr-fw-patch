@@ -1,6 +1,6 @@
-From a69332b3432b78138c4f038853d785a5dd921528 Mon Sep 17 00:00:00 2001
+From 5ac148c8b2a89da74ec0952ace82b35e9ce8d210 Mon Sep 17 00:00:00 2001
 From: wjx <3570534440@qq.com>
-Date: Tue, 17 Dec 2024 14:44:26 +0800
+Date: Tue, 21 Jan 2025 10:32:48 +0800
 Subject: [PATCH] add-support-linux
 
 ---
@@ -75,7 +75,7 @@ index 000000000000..d68b8779cab3
 +};
 diff --git a/arch/arm/boot/dts/zynq-e200.dtsi b/arch/arm/boot/dts/zynq-e200.dtsi
 new file mode 100644
-index 000000000000..f123605e5d90
+index 000000000000..de1cbe879679
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-e200.dtsi
 @@ -0,0 +1,446 @@
@@ -157,7 +157,7 @@ index 000000000000..f123605e5d90
 +	phy-mode = "rgmii-rxid";
 +	xlnx,has-mdio = <0x1>;
 +	gmii2rgmii-phy-handle = <&gmii_to_rgmii_0>;
-+	
++	reset-gpios = <&gpio0 68 0>;
 +	phy0: phy@1 {
 +		compatible = "ethernet-phy-id011c.c916";
 +		device_type = "ethernet-phy";
@@ -1165,5 +1165,5 @@ index 47c49589f81f..0ee59de76363 100644
  	else
  		return -EINVAL;
 -- 
-2.25.1
+2.34.1
 
