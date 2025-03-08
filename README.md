@@ -166,7 +166,7 @@ You will see the SD boot image in the build_sdimg folder. You can just  copy all
 
 ## Update Flash by DFU
 
-DFU mode is just for ant e310, e200 is unsupport. If your device is e310, You can update the flash by DFU. Set the jumper into Flash Boot mode.  When device is power up, push the DFU button, and then, you will see the both led in the device will turn green, now it's time to update the  flash. You should change into the build folder first,and plug a micro USB into  the OTG interface. After that, you should run the following command.
+DFU mode is just for e310 e310v2(e316), e200 is unsupport. If your device is e310, You can update the flash by DFU. Set the jumper into Flash Boot mode.  When device is power up, push the DFU button, and then, you will see the both led in the device will turn green, now it's time to update the  flash. You should change into the build folder first,and plug a micro USB into  the OTG interface. After that, you should run the following command.
 
 ```sh
 sudo dfu-util -a firmware.dfu -D ./ant.dfu
