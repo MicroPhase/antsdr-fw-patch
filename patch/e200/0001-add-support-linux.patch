@@ -1,19 +1,19 @@
-From 57cde48b76eb398c3f9a1a24064c61a6478b92c4 Mon Sep 17 00:00:00 2001
+From 8b74c8a004a6a34183b1e4ace815b579f1d02ab7 Mon Sep 17 00:00:00 2001
 From: wjx <3570534440@qq.com>
-Date: Thu, 3 Jul 2025 13:30:01 +0800
-Subject: [PATCH] add-support-linux-gpio-uart
+Date: Sat, 12 Jul 2025 15:45:34 +0800
+Subject: [PATCH] add-support-linux
 
 ---
  arch/arm/boot/dts/zynq-7000.dtsi     |   2 +-
  arch/arm/boot/dts/zynq-e200.dts      |  36 +++
- arch/arm/boot/dts/zynq-e200.dtsi     | 454 +++++++++++++++++++++++++++
+ arch/arm/boot/dts/zynq-e200.dtsi     | 465 +++++++++++++++++++++++++++
  arch/arm/configs/zynq_e200_defconfig | 294 +++++++++++++++++
  drivers/iio/adc/Kconfig              |  11 +
  drivers/iio/adc/Makefile             |   2 +
  drivers/iio/adc/ad5660_mp.c          | 272 ++++++++++++++++
  drivers/iio/adc/mpiio_io.c           | 184 +++++++++++
  drivers/mtd/spi-nor/core.c           |   7 +-
- 10 files changed, 1260 insertions(+), 4 deletions(-)
+ 9 files changed, 1270 insertions(+), 3 deletions(-)
  create mode 100644 arch/arm/boot/dts/zynq-e200.dts
  create mode 100644 arch/arm/boot/dts/zynq-e200.dtsi
  create mode 100644 arch/arm/configs/zynq_e200_defconfig
@@ -77,10 +77,10 @@ index 000000000000..d68b8779cab3
 +};
 diff --git a/arch/arm/boot/dts/zynq-e200.dtsi b/arch/arm/boot/dts/zynq-e200.dtsi
 new file mode 100644
-index 000000000000..7199c48dc0b3
+index 000000000000..b9192283af42
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-e200.dtsi
-@@ -0,0 +1,454 @@
+@@ -0,0 +1,465 @@
 +/*
 + * ZYNQ Pluto SDR (Z7020/AD936x)
 + *
@@ -138,6 +138,17 @@ index 000000000000..7199c48dc0b3
 +	gpio{
 +		compatible = "microphase,mpiio";
 +	};
++};
++
++&i2c0 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	eeprom@50 {
++		compatible = "atmel,24c256";
++		reg = <0x50>;
++	};
++
 +};
 +
 +&sdhci0 {
