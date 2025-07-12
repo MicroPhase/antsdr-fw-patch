@@ -1,6 +1,6 @@
-From 52dbc663d347cb4d78bf6df203a05e363b04ff94 Mon Sep 17 00:00:00 2001
-From: agh <2366760085@qq.com>
-Date: Wed, 15 Jan 2025 15:19:34 +0800
+From d4092942f3cf682cc6b56fa851597e2111c290d1 Mon Sep 17 00:00:00 2001
+From: wjx <3570534440@qq.com>
+Date: Wed, 9 Jul 2025 20:35:08 +0800
 Subject: [PATCH] add-three-ant-hdl-support-bump-to-v0.39-v1
 
 ---
@@ -19,16 +19,16 @@ Subject: [PATCH] add-three-ant-hdl-support-bump-to-v0.39-v1
  projects/ant/system_project.tcl               |  15 +
  projects/ant/system_top.v                     | 233 +++++
  projects/e200/Makefile                        |  25 +
- projects/e200/system_bd.tcl                   | 402 ++++++++
- projects/e200/system_constr.xdc               | 108 ++
+ projects/e200/system_bd.tcl                   | 410 ++++++++
+ projects/e200/system_constr.xdc               | 110 ++
  projects/e200/system_project.tcl              |  16 +
- projects/e200/system_top.v                    | 259 +++++
+ projects/e200/system_top.v                    | 264 +++++
  projects/e310v2/Makefile                      |  25 +
  projects/e310v2/system_bd.tcl                 | 409 ++++++++
  projects/e310v2/system_constr.xdc             | 123 +++
  projects/e310v2/system_project.tcl            |  16 +
  projects/e310v2/system_top.v                  | 282 ++++++
- 24 files changed, 4716 insertions(+), 3 deletions(-)
+ 24 files changed, 4731 insertions(+), 3 deletions(-)
  create mode 100644 library/axi_vcxo_ctrl/component.xml
  create mode 100644 library/axi_vcxo_ctrl/src/ad5662_auto_spi.v
  create mode 100644 library/axi_vcxo_ctrl/src/axi_vcxo_ctrl_v1_0.v
@@ -54,7 +54,7 @@ Subject: [PATCH] add-three-ant-hdl-support-bump-to-v0.39-v1
  create mode 100644 projects/e310v2/system_top.v
 
 diff --git a/.gitignore b/.gitignore
-index de3271798..4e49cad5d 100644
+index 4f6adad05..a5b9b7fb9 100644
 --- a/.gitignore
 +++ b/.gitignore
 @@ -42,9 +42,7 @@ iseconfig
@@ -3238,10 +3238,10 @@ index 000000000..9f2e6a0db
 +include ../scripts/project-xilinx.mk
 diff --git a/projects/e200/system_bd.tcl b/projects/e200/system_bd.tcl
 new file mode 100644
-index 000000000..274ecc904
+index 000000000..3fd40cd5f
 --- /dev/null
 +++ b/projects/e200/system_bd.tcl
-@@ -0,0 +1,402 @@
+@@ -0,0 +1,410 @@
 +# create board design
 +
 +source $ad_hdl_dir/projects/common/xilinx/adi_fir_filter_bd.tcl
@@ -3257,7 +3257,8 @@ index 000000000..274ecc904
 +create_bd_intf_port -mode Master -vlnv xilinx.com:interface:mdio_rtl:1.0 MDIO_PHY
 +create_bd_intf_port -mode Master -vlnv xilinx.com:interface:rgmii_rtl:1.0 RGMII
 +
-+
++  create_bd_port -dir I emio_uart1_rxd
++  create_bd_port -dir O emio_uart1_txd  
 +create_bd_port -dir O spi0_csn_2_o
 +create_bd_port -dir O spi0_csn_1_o
 +create_bd_port -dir O spi0_csn_0_o
@@ -3316,6 +3317,10 @@ index 000000000..274ecc904
 +ad_ip_parameter sys_ps7 CONFIG.PCW_SDIO_PERIPHERAL_FREQMHZ 50
 +ad_ip_parameter sys_ps7 CONFIG.PCW_UART0_PERIPHERAL_ENABLE 1
 +ad_ip_parameter sys_ps7 CONFIG.PCW_UART0_UART0_IO {MIO 14 .. 15}
++
++ad_ip_parameter sys_ps7 CONFIG.PCW_UART1_PERIPHERAL_ENABLE 1
++ad_ip_parameter sys_ps7 CONFIG.PCW_UART1_UART1_IO EMIO
++
 +ad_ip_parameter sys_ps7 CONFIG.PCW_I2C1_PERIPHERAL_ENABLE 0
 +ad_ip_parameter sys_ps7 CONFIG.PCW_QSPI_PERIPHERAL_ENABLE 1
 +ad_ip_parameter sys_ps7 CONFIG.PCW_QSPI_GRP_SINGLE_SS_ENABLE 1
@@ -3399,6 +3404,9 @@ index 000000000..274ecc904
 +ad_connect  gpio_o sys_ps7/GPIO_O
 +ad_connect  gpio_t sys_ps7/GPIO_T
 +ad_connect  fixed_io sys_ps7/FIXED_IO
++# uart connections
++ad_connect  emio_uart1_rxd sys_ps7/UART1_RX
++ad_connect  emio_uart1_txd sys_ps7/UART1_TX
 +
 +# ps7 spi connections
 +
@@ -3646,10 +3654,10 @@ index 000000000..274ecc904
 +
 diff --git a/projects/e200/system_constr.xdc b/projects/e200/system_constr.xdc
 new file mode 100644
-index 000000000..ef6ec3e90
+index 000000000..e750a3cfa
 --- /dev/null
 +++ b/projects/e200/system_constr.xdc
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,110 @@
 +set_property -dict {PACKAGE_PIN V6 IOSTANDARD LVCMOS33} [get_ports CLK_40M_DAC_nSYNC];
 +set_property -dict {PACKAGE_PIN W6 IOSTANDARD LVCMOS33} [get_ports CLK_40M_DAC_SCLK];
 +set_property -dict {PACKAGE_PIN V10 IOSTANDARD LVCMOS33} [get_ports CLK_40M_DAC_DIN];
@@ -3734,8 +3742,8 @@ index 000000000..ef6ec3e90
 +set_property -dict {PACKAGE_PIN T16 IOSTANDARD LVCMOS18} [get_ports {tx_data_out[1]}];
 +set_property -dict {PACKAGE_PIN U17 IOSTANDARD LVCMOS18} [get_ports {tx_data_out[0]}];
 +
-+set_property -dict {PACKAGE_PIN Y9 IOSTANDARD LVCMOS33} [get_ports {GPIOB[7]}];
-+set_property -dict {PACKAGE_PIN Y6 IOSTANDARD LVCMOS33} [get_ports {GPIOB[6]}];
++#set_property -dict {PACKAGE_PIN Y9 IOSTANDARD LVCMOS33} [get_ports {GPIOB[7]}];
++#set_property -dict {PACKAGE_PIN Y6 IOSTANDARD LVCMOS33} [get_ports {GPIOB[6]}];
 +set_property -dict {PACKAGE_PIN Y7 IOSTANDARD LVCMOS33} [get_ports {GPIOB[5]}];
 +set_property -dict {PACKAGE_PIN U10 IOSTANDARD LVCMOS33} [get_ports {GPIOB[4]}];
 +set_property -dict {PACKAGE_PIN T9 IOSTANDARD LVCMOS33} [get_ports {GPIOB[3]}];
@@ -3743,6 +3751,8 @@ index 000000000..ef6ec3e90
 +set_property -dict {PACKAGE_PIN U7 IOSTANDARD LVCMOS33} [get_ports {GPIOB[1]}];
 +set_property -dict {PACKAGE_PIN V5 IOSTANDARD LVCMOS33} [get_ports {GPIOB[0]}];
 +
++set_property -dict {PACKAGE_PIN Y9 IOSTANDARD LVCMOS33} [get_ports emio_uart1_txd];
++set_property -dict {PACKAGE_PIN Y6 IOSTANDARD LVCMOS33} [get_ports emio_uart1_rxd];
 +
 +create_clock -name rx_clk -period  16.27 [get_ports rx_clk_in];
 +
@@ -3782,10 +3792,10 @@ index 000000000..c21f79785
 +
 diff --git a/projects/e200/system_top.v b/projects/e200/system_top.v
 new file mode 100644
-index 000000000..4f9493648
+index 000000000..637d6e99b
 --- /dev/null
 +++ b/projects/e200/system_top.v
-@@ -0,0 +1,259 @@
+@@ -0,0 +1,264 @@
 +// ***************************************************************************
 +// ***************************************************************************
 +// Copyright (C) 2014-2023 Analog Devices, Inc. All rights reserved.
@@ -3857,6 +3867,9 @@ index 000000000..4f9493648
 +  inout           fixed_io_ps_porb,
 +  inout           fixed_io_ps_srstb,
 +
++  input           emio_uart1_rxd,
++  output          emio_uart1_txd,
++
 +  input           rx_clk_in,
 +  input           rx_frame_in,
 +  input   [11:0]  rx_data_in,
@@ -3892,7 +3905,7 @@ index 000000000..4f9493648
 +
 +  output                  tx_amp_en,
 +
-+  inout   [7:0]           GPIOB
++  inout   [5:0]           GPIOB
 +);
 +
 +  // internal signals
@@ -3936,9 +3949,9 @@ index 000000000..4f9493648
 +  assign gpio_i[16:15] = gpio_o[16:15];
 +
 +  ad_iobuf #(.DATA_WIDTH(8)) gpio_io_buf (
-+    .dio_t (gpio_t[42:35]),
-+    .dio_i (gpio_o[42:35]),
-+    .dio_o (gpio_i[42:35]),
++    .dio_t (gpio_t[40:35]),
++    .dio_i (gpio_o[40:35]),
++    .dio_o (gpio_i[40:35]),
 +    .dio_p (GPIOB       )
 +    );
 +
@@ -4010,6 +4023,8 @@ index 000000000..4f9493648
 +    .gpio_i (gpio_i),
 +    .gpio_o (gpio_o),
 +    .gpio_t (gpio_t),
++    .emio_uart1_rxd(emio_uart1_rxd),
++    .emio_uart1_txd(emio_uart1_txd),
 +    // .iic_main_scl_io (iic_scl),
 +    // .iic_main_sda_io (iic_sda),
 +    .rx_clk_in (rx_clk_in),
