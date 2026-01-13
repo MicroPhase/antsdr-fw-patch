@@ -1,21 +1,3 @@
-From a28b3fa6d05fec7798f88d9cbd63165274935c36 Mon Sep 17 00:00:00 2001
-From: jcc <995586238@qq.com>
-Date: Tue, 22 Nov 2022 15:10:21 +0800
-Subject: [PATCH] add antsdre200 support linux
-
----
- arch/arm/boot/dts/zynq-antsdre200.dts      |  47 +++
- arch/arm/boot/dts/zynq-antsdre200.dtsi     | 448 +++++++++++++++++++++
- arch/arm/configs/zynq_antsdre200_defconfig | 290 +++++++++++++
- drivers/iio/dac/Kconfig                    |   7 +
- drivers/iio/dac/Makefile                   |   1 +
- drivers/iio/dac/ltc2630.c                  | 202 ++++++++++
- 6 files changed, 995 insertions(+)
- create mode 100644 arch/arm/boot/dts/zynq-antsdre200.dts
- create mode 100644 arch/arm/boot/dts/zynq-antsdre200.dtsi
- create mode 100644 arch/arm/configs/zynq_antsdre200_defconfig
- create mode 100644 drivers/iio/dac/ltc2630.c
-
 diff --git a/arch/arm/boot/dts/zynq-antsdre200.dts b/arch/arm/boot/dts/zynq-antsdre200.dts
 new file mode 100644
 index 000000000000..ae103e22e46c
@@ -71,10 +53,10 @@ index 000000000000..ae103e22e46c
 +};
 diff --git a/arch/arm/boot/dts/zynq-antsdre200.dtsi b/arch/arm/boot/dts/zynq-antsdre200.dtsi
 new file mode 100644
-index 000000000000..d44b230ada48
+index 000000000000..e5e902c411e8
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-antsdre200.dtsi
-@@ -0,0 +1,448 @@
+@@ -0,0 +1,516 @@
 +/*
 + * ZYNQ Pluto SDR (Z7020/AD936x)
 + *
@@ -179,7 +161,7 @@ index 000000000000..d44b230ada48
 +		#size-cells = <1>;
 +		spi-tx-bus-width = <1>;
 +		spi-rx-bus-width = <4>;
-+		compatible = "n25q256a", "n25q512a", "jedec,spi-nor"; /* same as S25FL256 */
++		compatible = "w25q256", "n25q512a", "jedec,spi-nor"; /* same as S25FL256 */
 +		reg = <0x0>;
 +		spi-max-frequency = <50000000>;
 +		partition@qspi-fsbl-uboot {
@@ -279,6 +261,74 @@ index 000000000000..d44b230ada48
 +			adi,axi-interpolation-core-available;
 +			adi,axi-dds-default-scale = <0>;
 +		};
++
++		// axi_dma0: axidma@40400000{
++		// 	/* AXI_DMA: AXI_DMA_1 */
++		// 	status = "okay";
++		// 	reg = <0x40400000 0x1000>;
++		// 	interrupt-names = "mm2s_introut", "s2mm_introut";
++		// 	interrupts = <0 54 IRQ_TYPE_LEVEL_HIGH>, <0 55 IRQ_TYPE_LEVEL_HIGH>;
++		// 	#dma-cells = <1>;
++		// 	compatible = "xlnx,my-axi-dma-wrapper-1.0";
++		// 	interrupt-parent = <&gic>;
++		// 	anlogic,include-sg;
++		// 	anlogic,addrwidth = <0x20>;
++		// 	anlogic,sg-length-width = <26>;
++
++		// };
++
++		// COFDM
++		axi_dma_0: dma@40400000 {
++			#dma-cells = <1>;
++			clock-names = "s_axi_lite_aclk", "m_axi_mm2s_aclk", "m_axi_s2mm_aclk";
++			clocks = <&clkc 15>, <&clkc 15>, <&clkc 15>;
++			compatible = "xlnx,my-axi-dma-wrapper-1.0";
++			interrupt-names = "mm2s_introut", "s2mm_introut";
++			interrupt-parent = <&intc>;
++			interrupts = <0 54 4 0 55 4>;
++			reg = <0x40400000 0x10000>;
++			xlnx,addrwidth = <0x20>;
++			xlnx,sg-length-width = <0x26>;
++		};
++
++		// axi_dma_0: dma@40400000 {
++		// 	#dma-cells = <1>;
++		// 	clock-names = "s_axi_lite_aclk", "m_axi_s2mm_aclk";
++		// 	clocks = <&clkc 15>, <&clkc 15>;
++		// 	compatible = "xlnx,my-axi-dma-wrapper-1.0";
++		// 	interrupt-names = "s2mm_introut";
++		// 	interrupt-parent = <&intc>;
++		// 	interrupts = <0 55 4>;
++		// 	reg = <0x40400000 0x10000>;
++		// 	xlnx,addrwidth = <0x20>;
++		// 	xlnx,sg-length-width = <0x17>;
++		// };
++
++		// iq_dma: dma@40410000 {
++		// 	#dma-cells = <1>;
++		// 	clock-names = "s_axi_lite_aclk", "m_axi_s2mm_aclk";
++		// 	clocks = <&clkc 15>, <&clkc 15>;
++		// 	compatible = "xlnx,my-axi-dma-wrapper-1.0";
++		// 	interrupt-names = "s2mm_introut";
++		// 	interrupt-parent = <&intc>;
++		// 	interrupts = <0 53 4>;
++		// 	reg = <0x40410000 0x10000>;
++		// 	xlnx,addrwidth = <0x20>;
++		// 	xlnx,sg-length-width = <0x1a>;
++		// };
++
++		// envelope_dma: dma@40420000 {
++		// 	#dma-cells = <1>;
++		// 	clock-names = "s_axi_lite_aclk", "m_axi_s2mm_aclk";
++		// 	clocks = <&clkc 15>, <&clkc 15>;
++		// 	compatible = "xlnx,my-axi-dma-wrapper-1.0";
++		// 	interrupt-names = "s2mm_introut";
++		// 	interrupt-parent = <&intc>;
++		// 	interrupts = <0 54 4>;
++		// 	reg = <0x40420000 0x10000>;
++		// 	xlnx,addrwidth = <0x20>;
++		// 	xlnx,sg-length-width = <0x1a>;
++		// };
 +
 +		mwipcore@43c00000 {
 +			compatible = "mathworks,mwipcore-axi4lite-v1.00";
@@ -525,10 +575,10 @@ index 000000000000..d44b230ada48
 +
 diff --git a/arch/arm/configs/zynq_antsdre200_defconfig b/arch/arm/configs/zynq_antsdre200_defconfig
 new file mode 100644
-index 000000000000..40f47c80d538
+index 000000000000..1ab7916d757a
 --- /dev/null
 +++ b/arch/arm/configs/zynq_antsdre200_defconfig
-@@ -0,0 +1,290 @@
+@@ -0,0 +1,304 @@
 +CONFIG_SYSVIPC=y
 +CONFIG_USELIB=y
 +CONFIG_HIGH_RES_TIMERS=y
@@ -589,6 +639,8 @@ index 000000000000..40f47c80d538
 +CONFIG_MODULE_UNLOAD=y
 +CONFIG_MODULE_FORCE_UNLOAD=y
 +CONFIG_MODVERSIONS=y
++CONFIG_NVMEM=y
++CONFIG_NVMEM_SYSFS=y
 +# CONFIG_BLK_DEV_BSG is not set
 +# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
 +# CONFIG_COMPACTION is not set
@@ -819,6 +871,320 @@ index 000000000000..40f47c80d538
 +CONFIG_DEBUG_LL=y
 +CONFIG_DEBUG_ZYNQ_UART0=y
 +CONFIG_EARLY_PRINTK=y
++CONFIG_BATMAN_ADV=y
++CONFIG_BATMAN_ADV_BATMAN_V=y
++CONFIG_BATMAN_ADV_BLA=y
++CONFIG_BATMAN_ADV_DAT=y
++# CONFIG_BATMAN_ADV_NC is not set
++CONFIG_BATMAN_ADV_MCAST=y
++# CONFIG_BATMAN_ADV_DEBUGFS is not set
++# CONFIG_BATMAN_ADV_DEBUG is not set
++CONFIG_BATMAN_ADV_SYSFS=y
++
++CONFIG_TUN=y
++CONFIG_NETFILTER=y
+\ No newline at end of file
+diff --git a/defconfig b/defconfig
+new file mode 100644
+index 000000000000..f2385fb4bd8d
+--- /dev/null
++++ b/defconfig
+@@ -0,0 +1,284 @@
++CONFIG_SYSVIPC=y
++CONFIG_USELIB=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_PREEMPT=y
++CONFIG_IKCONFIG=y
++CONFIG_IKCONFIG_PROC=y
++CONFIG_LOG_BUF_SHIFT=15
++CONFIG_CGROUPS=y
++CONFIG_BLK_DEV_INITRD=y
++# CONFIG_RD_BZIP2 is not set
++# CONFIG_RD_LZMA is not set
++# CONFIG_RD_XZ is not set
++# CONFIG_RD_LZO is not set
++# CONFIG_RD_LZ4 is not set
++CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++CONFIG_SYSCTL_SYSCALL=y
++CONFIG_EMBEDDED=y
++CONFIG_PERF_EVENTS=y
++CONFIG_SLAB=y
++CONFIG_ARCH_ZYNQ=y
++CONFIG_XILINX_RESET_CODE=y
++CONFIG_PL310_ERRATA_588369=y
++CONFIG_PL310_ERRATA_727915=y
++CONFIG_PL310_ERRATA_769419=y
++# CONFIG_ARM_ERRATA_643719 is not set
++CONFIG_ARM_ERRATA_754322=y
++CONFIG_ARM_ERRATA_754327=y
++CONFIG_ARM_ERRATA_764369=y
++CONFIG_ARM_ERRATA_775420=y
++CONFIG_SMP=y
++CONFIG_SCHED_MC=y
++CONFIG_SCHED_SMT=y
++CONFIG_HIGHMEM=y
++# CONFIG_HIGHPTE is not set
++CONFIG_ZBOOT_ROM_TEXT=0x0
++CONFIG_ZBOOT_ROM_BSS=0x0
++CONFIG_CMDLINE="console=ttyPS0,115200n8 root=/dev/ram rw earlyprintk"
++CONFIG_CPU_IDLE=y
++CONFIG_CPU_IDLE_GOV_MENU=y
++CONFIG_ARM_ZYNQ_CPUIDLE=y
++CONFIG_VFP=y
++CONFIG_NEON=y
++CONFIG_MODULES=y
++CONFIG_MODULE_UNLOAD=y
++CONFIG_MODULE_FORCE_UNLOAD=y
++CONFIG_MODVERSIONS=y
++# CONFIG_BLK_DEV_BSG is not set
++# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
++# CONFIG_COMPACTION is not set
++CONFIG_CMA=y
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++CONFIG_IP_MULTICAST=y
++CONFIG_IP_PNP=y
++CONFIG_IP_PNP_DHCP=y
++CONFIG_IP_PNP_BOOTP=y
++CONFIG_IP_PNP_RARP=y
++CONFIG_NET_IPIP=m
++# CONFIG_IPV6 is not set
++CONFIG_VLAN_8021Q=m
++CONFIG_BATMAN_ADV=y
++CONFIG_CFG80211=y
++CONFIG_MAC80211=y
++CONFIG_MAC80211_LEDS=y
++CONFIG_RFKILL=y
++CONFIG_RFKILL_INPUT=y
++CONFIG_UEVENT_HELPER=y
++CONFIG_UEVENT_HELPER_PATH="/sbin/hotplug"
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++CONFIG_CONNECTOR=y
++CONFIG_MTD=y
++CONFIG_MTD_CMDLINE_PARTS=y
++CONFIG_MTD_BLOCK=y
++CONFIG_MTD_CFI=y
++CONFIG_MTD_CFI_AMDSTD=y
++CONFIG_MTD_PHYSMAP=y
++CONFIG_MTD_PHYSMAP_OF=y
++CONFIG_MTD_SPI_NOR=y
++# CONFIG_MTD_SPI_NOR_USE_4K_SECTORS is not set
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_SIZE=16384
++CONFIG_SRAM=y
++# CONFIG_MATHWORKS_IP_CORE is not set
++CONFIG_SCSI=y
++CONFIG_BLK_DEV_SD=y
++CONFIG_CHR_DEV_SG=y
++CONFIG_NETDEVICES=y
++# CONFIG_NET_VENDOR_ALACRITECH is not set
++# CONFIG_NET_VENDOR_AMAZON is not set
++# CONFIG_NET_VENDOR_AQUANTIA is not set
++# CONFIG_NET_VENDOR_ARC is not set
++# CONFIG_NET_VENDOR_BROADCOM is not set
++CONFIG_MACB=y
++# CONFIG_NET_VENDOR_CIRRUS is not set
++# CONFIG_NET_VENDOR_EZCHIP is not set
++# CONFIG_NET_VENDOR_FARADAY is not set
++# CONFIG_NET_VENDOR_HISILICON is not set
++# CONFIG_NET_VENDOR_HUAWEI is not set
++# CONFIG_NET_VENDOR_INTEL is not set
++# CONFIG_NET_VENDOR_MARVELL is not set
++# CONFIG_NET_VENDOR_MELLANOX is not set
++# CONFIG_NET_VENDOR_MICREL is not set
++# CONFIG_NET_VENDOR_MICROCHIP is not set
++# CONFIG_NET_VENDOR_NATSEMI is not set
++# CONFIG_NET_VENDOR_NETRONOME is not set
++# CONFIG_NET_VENDOR_QUALCOMM is not set
++# CONFIG_NET_VENDOR_RENESAS is not set
++# CONFIG_NET_VENDOR_ROCKER is not set
++# CONFIG_NET_VENDOR_SAMSUNG is not set
++# CONFIG_NET_VENDOR_SEEQ is not set
++# CONFIG_NET_VENDOR_SOLARFLARE is not set
++# CONFIG_NET_VENDOR_SMSC is not set
++# CONFIG_NET_VENDOR_STMICRO is not set
++# CONFIG_NET_VENDOR_SYNOPSYS is not set
++# CONFIG_NET_VENDOR_VIA is not set
++# CONFIG_NET_VENDOR_WIZNET is not set
++# CONFIG_NET_VENDOR_XILINX is not set
++CONFIG_MDIO_BITBANG=y
++CONFIG_MARVELL_PHY=y
++CONFIG_REALTEK_PHY=y
++CONFIG_XILINX_GMII2RGMII=y
++CONFIG_USB_RTL8152=y
++CONFIG_USB_LAN78XX=y
++CONFIG_USB_USBNET=y
++# CONFIG_USB_NET_CDC_NCM is not set
++CONFIG_USB_NET_DM9601=y
++CONFIG_USB_NET_SMSC75XX=y
++CONFIG_USB_NET_SMSC95XX=y
++# CONFIG_USB_NET_NET1080 is not set
++CONFIG_USB_NET_RNDIS_HOST=y
++# CONFIG_USB_NET_CDC_SUBSET is not set
++# CONFIG_USB_NET_ZAURUS is not set
++# CONFIG_WLAN_VENDOR_ADMTEK is not set
++# CONFIG_WLAN_VENDOR_ATH is not set
++# CONFIG_WLAN_VENDOR_ATMEL is not set
++# CONFIG_WLAN_VENDOR_BROADCOM is not set
++# CONFIG_WLAN_VENDOR_CISCO is not set
++# CONFIG_WLAN_VENDOR_INTEL is not set
++# CONFIG_WLAN_VENDOR_INTERSIL is not set
++# CONFIG_WLAN_VENDOR_MARVELL is not set
++# CONFIG_WLAN_VENDOR_MEDIATEK is not set
++CONFIG_RT2X00=y
++CONFIG_RT2500USB=y
++CONFIG_RT73USB=y
++CONFIG_RT2800USB=y
++CONFIG_RT2800USB_RT3573=y
++CONFIG_RT2800USB_RT53XX=y
++CONFIG_RT2800USB_RT55XX=y
++CONFIG_RT2800USB_UNKNOWN=y
++CONFIG_RTL8187=y
++CONFIG_RTL8192CU=y
++# CONFIG_RTLWIFI_DEBUG is not set
++CONFIG_RTL8XXXU=y
++CONFIG_RTL8XXXU_UNTESTED=y
++# CONFIG_WLAN_VENDOR_RSI is not set
++# CONFIG_WLAN_VENDOR_ST is not set
++# CONFIG_WLAN_VENDOR_TI is not set
++# CONFIG_WLAN_VENDOR_ZYDAS is not set
++CONFIG_INPUT_FF_MEMLESS=y
++CONFIG_INPUT_SPARSEKMAP=y
++CONFIG_INPUT_EVDEV=y
++CONFIG_KEYBOARD_GPIO=y
++# CONFIG_INPUT_MOUSE is not set
++CONFIG_VT_HW_CONSOLE_BINDING=y
++# CONFIG_LEGACY_PTYS is not set
++CONFIG_SERIAL_XILINX_PS_UART=y
++CONFIG_SERIAL_XILINX_PS_UART_CONSOLE=y
++# CONFIG_HW_RANDOM is not set
++CONFIG_I2C=y
++CONFIG_I2C_CHARDEV=y
++CONFIG_I2C_CADENCE=y
++CONFIG_I2C_GPIO=y
++CONFIG_I2C_XILINX=y
++CONFIG_SPI=y
++CONFIG_SPI_AXI_SPI_ENGINE=y
++CONFIG_SPI_CADENCE=y
++CONFIG_SPI_XILINX=y
++CONFIG_SPI_ZYNQ_QSPI=y
++CONFIG_SPI_SPIDEV=y
++CONFIG_GPIOLIB=y
++CONFIG_GPIO_SYSFS=y
++CONFIG_GPIO_ZYNQ=y
++CONFIG_POWER_SUPPLY=y
++CONFIG_THERMAL=y
++CONFIG_WATCHDOG=y
++CONFIG_XILINX_WATCHDOG=y
++CONFIG_CADENCE_WATCHDOG=y
++CONFIG_SSB=y
++CONFIG_REGULATOR=y
++CONFIG_REGULATOR_FIXED_VOLTAGE=y
++CONFIG_HIDRAW=y
++CONFIG_USB_HIDDEV=y
++CONFIG_USB=y
++CONFIG_USB_ANNOUNCE_NEW_DEVICES=y
++CONFIG_USB_OTG=y
++CONFIG_USB_EHCI_HCD=y
++# CONFIG_USB_EHCI_TT_NEWSCHED is not set
++CONFIG_USB_STORAGE=y
++CONFIG_USB_CHIPIDEA=y
++CONFIG_USB_CHIPIDEA_UDC=y
++CONFIG_USB_CHIPIDEA_HOST=y
++CONFIG_USB_SERIAL=y
++CONFIG_USB_SERIAL_GENERIC=y
++CONFIG_USB_SERIAL_FTDI_SIO=y
++CONFIG_USB_ULPI=y
++CONFIG_USB_GADGET=y
++CONFIG_USB_GADGET_VBUS_DRAW=500
++CONFIG_USB_GADGET_XILINX=y
++CONFIG_USB_CONFIGFS=y
++CONFIG_USB_CONFIGFS_SERIAL=y
++CONFIG_USB_CONFIGFS_ACM=y
++CONFIG_USB_CONFIGFS_NCM=y
++CONFIG_USB_CONFIGFS_ECM=y
++CONFIG_USB_CONFIGFS_ECM_SUBSET=y
++CONFIG_USB_CONFIGFS_RNDIS=y
++CONFIG_USB_CONFIGFS_EEM=y
++CONFIG_USB_CONFIGFS_MASS_STORAGE=y
++CONFIG_USB_CONFIGFS_F_FS=y
++CONFIG_MMC=y
++CONFIG_MMC_SDHCI=y
++CONFIG_MMC_SDHCI_PLTFM=y
++CONFIG_MMC_SDHCI_OF_ARASAN=y
++CONFIG_NEW_LEDS=y
++CONFIG_LEDS_CLASS=y
++CONFIG_LEDS_GPIO=y
++CONFIG_LEDS_TRIGGER_TIMER=y
++CONFIG_LEDS_TRIGGER_ONESHOT=y
++CONFIG_LEDS_TRIGGER_HEARTBEAT=y
++CONFIG_LEDS_TRIGGER_CPU=y
++CONFIG_LEDS_TRIGGER_GPIO=y
++CONFIG_LEDS_TRIGGER_DEFAULT_ON=y
++CONFIG_DMADEVICES=y
++CONFIG_AXI_DMAC=y
++CONFIG_UIO=y
++CONFIG_UIO_PDRV_GENIRQ=y
++CONFIG_UIO_DMEM_GENIRQ=y
++CONFIG_UIO_XILINX_APM=y
++CONFIG_STAGING=y
++CONFIG_R8712U=y
++CONFIG_R8188EU=y
++CONFIG_COMMON_CLK_AXI_CLKGEN=y
++# CONFIG_IOMMU_SUPPORT is not set
++CONFIG_MEMORY=y
++CONFIG_IIO=y
++CONFIG_ADM1177=y
++CONFIG_AD9361=y
++CONFIG_AD9361_EXT_BAND_CONTROL=y
++CONFIG_ADMC=y
++CONFIG_XILINX_XADC=y
++CONFIG_LTC2630_MICROPHASE=y
++CONFIG_CF_AXI_DDS=y
++CONFIG_FPGA=y
++CONFIG_FPGA_MGR_ZYNQ_FPGA=y
++CONFIG_EXT4_FS=y
++# CONFIG_DNOTIFY is not set
++CONFIG_MSDOS_FS=y
++CONFIG_VFAT_FS=y
++CONFIG_TMPFS=y
++CONFIG_TMPFS_POSIX_ACL=y
++CONFIG_JFFS2_FS=y
++CONFIG_JFFS2_COMPRESSION_OPTIONS=y
++# CONFIG_NETWORK_FILESYSTEMS is not set
++CONFIG_NLS_CODEPAGE_437=y
++CONFIG_NLS_ASCII=y
++CONFIG_NLS_ISO8859_1=y
++CONFIG_CRYPTO_ECB=y
++CONFIG_CRYPTO_MICHAEL_MIC=y
++CONFIG_DMA_CMA=y
++CONFIG_CMA_SIZE_MBYTES=256
++CONFIG_DEBUG_INFO=y
++# CONFIG_ENABLE_MUST_CHECK is not set
++CONFIG_DEBUG_FS=y
++CONFIG_DETECT_HUNG_TASK=y
++CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=20
++# CONFIG_SCHED_DEBUG is not set
++# CONFIG_DEBUG_PREEMPT is not set
++CONFIG_RCU_CPU_STALL_TIMEOUT=60
++# CONFIG_FTRACE is not set
++CONFIG_DEBUG_LL=y
++CONFIG_EARLY_PRINTK=y
+diff --git a/drivers/Makefile b/drivers/Makefile
+index a8de592761b4..1ca42546e55c 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -186,4 +186,4 @@ obj-$(CONFIG_UNISYS_VISORBUS)	+= visorbus/
+ obj-$(CONFIG_SIOX)		+= siox/
+ obj-$(CONFIG_GNSS)		+= gnss/
+ obj-$(CONFIG_INTERCONNECT)	+= interconnect/
+-obj-$(CONFIG_COUNTER)		+= counter/
++obj-$(CONFIG_COUNTER)		+= counter/
+\ No newline at end of file
 diff --git a/drivers/iio/dac/Kconfig b/drivers/iio/dac/Kconfig
 index 4d9acf91d7e1..13d5963a24d5 100644
 --- a/drivers/iio/dac/Kconfig
@@ -1057,6 +1423,124 @@ index 000000000000..cbf23fcc2ae8
 +MODULE_AUTHOR("lone_boy 995586238@qq.com");
 +MODULE_LICENSE("GPL");
 +
--- 
-2.17.1
-
+diff --git a/drivers/mtd/spi-nor/spi-nor.c b/drivers/mtd/spi-nor/spi-nor.c
+index 05c7810a325c..16907706fd87 100644
+--- a/drivers/mtd/spi-nor/spi-nor.c
++++ b/drivers/mtd/spi-nor/spi-nor.c
+@@ -18,6 +18,7 @@
+ #include <linux/sort.h>
+ 
+ #include <linux/mtd/mtd.h>
++#include <linux/nvmem-provider.h>
+ #include <linux/of_platform.h>
+ #include <linux/sched/task_stack.h>
+ #include <linux/spi/flash.h>
+@@ -39,6 +40,9 @@
+ #define CHIP_ERASE_2MB_READY_WAIT_JIFFIES	(40UL * HZ)
+ 
+ #define SPI_NOR_MAX_ADDR_WIDTH	4
++#define SPINOR_OP_RUID		0x4b	/* Read unique ID */
++#define SPI_NOR_UID_LEN		8
++#define SPI_NOR_UID_DUMMY	4
+ 
+ struct sfdp_parameter_header {
+ 	u8		id_lsb;
+@@ -1071,6 +1075,82 @@ static void spi_nor_unlock_and_unprep(struct spi_nor *nor, enum spi_nor_ops ops)
+ 	mutex_unlock(&nor->lock);
+ }
+ 
++static int spi_nor_read_uid(struct spi_nor *nor, u8 *uid)
++{
++	int ret;
++
++	ret = spi_nor_lock_and_prep(nor, SPI_NOR_OPS_READ);
++	if (ret)
++		return ret;
++
++	if (nor->spimem) {
++		struct spi_mem_op op =
++			SPI_MEM_OP(SPI_MEM_OP_CMD(SPINOR_OP_RUID, 1),
++				   SPI_MEM_OP_NO_ADDR,
++				   SPI_MEM_OP_DUMMY(SPI_NOR_UID_DUMMY, 1),
++				   SPI_MEM_OP_DATA_IN(SPI_NOR_UID_LEN,
++						      nor->bouncebuf, 1));
++
++		ret = spi_mem_exec_op(nor->spimem, &op);
++		if (!ret)
++			memcpy(uid, nor->bouncebuf, SPI_NOR_UID_LEN);
++	} else if (nor->spi) {
++		u8 tx[1 + SPI_NOR_UID_DUMMY] = { SPINOR_OP_RUID, 0, 0, 0, 0 };
++
++		ret = spi_write_then_read(nor->spi, tx, sizeof(tx),
++					  uid, SPI_NOR_UID_LEN);
++	} else {
++		ret = -EOPNOTSUPP;
++	}
++
++	spi_nor_unlock_and_unprep(nor, SPI_NOR_OPS_READ);
++	return ret;
++}
++
++static int spi_nor_uid_nvmem_read(void *priv, unsigned int offset,
++				  void *val, size_t bytes)
++{
++	struct spi_nor *nor = priv;
++	u8 uid[SPI_NOR_UID_LEN];
++	int ret;
++
++	if (offset + bytes > SPI_NOR_UID_LEN)
++		return -EINVAL;
++
++	ret = spi_nor_read_uid(nor, uid);
++	if (ret)
++		return ret;
++
++	memcpy(val, uid + offset, bytes);
++	return 0;
++}
++
++static void spi_nor_register_uid_nvmem(struct spi_nor *nor)
++{
++	struct nvmem_config cfg = {
++		.name = devm_kasprintf(nor->dev, GFP_KERNEL, "%s-uid",
++				       dev_name(nor->dev)),
++		.dev = nor->dev,
++		.owner = THIS_MODULE,
++		.read_only = true,
++		.root_only = true,
++		.reg_read = spi_nor_uid_nvmem_read,
++		.size = SPI_NOR_UID_LEN,
++		.word_size = 1,
++		.stride = 1,
++		.priv = nor,
++	};
++	struct nvmem_device *nvmem;
++
++	if (!cfg.name)
++		return;
++
++	nvmem = devm_nvmem_register(nor->dev, &cfg);
++	if (IS_ERR(nvmem) && PTR_ERR(nvmem) != -EOPNOTSUPP)
++		dev_warn(nor->dev, "failed to register UID nvmem (%ld)\n",
++			 PTR_ERR(nvmem));
++}
++
+ /*
+  * This code converts an address to the Default Address Mode, that has non
+  * power of two page sizes. We must support this mode because it is the default
+@@ -5851,8 +5931,13 @@ static int spi_nor_probe(struct spi_mem *spimem)
+ 			return -ENOMEM;
+ 	}
+ 
+-	return mtd_device_register(&nor->mtd, data ? data->parts : NULL,
+-				   data ? data->nr_parts : 0);
++	ret = mtd_device_register(&nor->mtd, data ? data->parts : NULL,
++				  data ? data->nr_parts : 0);
++	if (ret)
++		return ret;
++
++	spi_nor_register_uid_nvmem(nor);
++	return 0;
+ }
+ 
+ static int spi_nor_remove(struct spi_mem *spimem)

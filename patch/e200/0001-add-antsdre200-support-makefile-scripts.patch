@@ -1,18 +1,5 @@
-From 4106cb401b82e67e336c1664d03cd0f5a6ad0bd9 Mon Sep 17 00:00:00 2001
-From: jcc <995586238@qq.com>
-Date: Tue, 22 Nov 2022 16:27:49 +0800
-Subject: [PATCH] add antsdre200 support makefile-scripts
-
----
- Makefile               |  29 ++++++-
- scripts/antsdre200.its | 174 +++++++++++++++++++++++++++++++++++++++++
- scripts/antsdre200.mk  |  10 +++
- 3 files changed, 211 insertions(+), 2 deletions(-)
- create mode 100644 scripts/antsdre200.its
- create mode 100644 scripts/antsdre200.mk
-
 diff --git a/Makefile b/Makefile
-index c0bb761..2bac4b2 100644
+index c0bb761..49fb17b 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -38,7 +38,7 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
@@ -43,12 +30,24 @@ index c0bb761..2bac4b2 100644
  ### Device Tree ###
  
  linux/arch/arm/boot/dts/%.dtb: linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
-@@ -191,6 +195,27 @@ clean:
+@@ -132,7 +136,9 @@ build/$(TARGET).itb: u-boot-xlnx/tools/mkimage build/zImage build/rootfs.cpio.gz
+ 
+ build/system_top.hdf:  | build
+ ifeq (1, ${HAVE_VIVADO})
+-	bash -c "source $(VIVADO_SETTINGS) && make -C hdl/projects/$(TARGET) && cp hdl/projects/$(TARGET)/$(TARGET).sdk/system_top.hdf $@"
++# 	bash -c "source $(VIVADO_SETTINGS) && make -C hdl/projects/$(TARGET) && cp hdl/projects/$(TARGET)/$(TARGET).sdk/system_top.hdf $@"
++	bash -c "source $(VIVADO_SETTINGS) && cp hdl/projects/$(TARGET)/$(TARGET).sdk/system_top.hdf $@"
++	
+ 	unzip -l $@ | grep -q ps7_init || cp hdl/projects/$(TARGET)/$(TARGET).srcs/sources_1/bd/system/ip/system_sys_ps7_0/ps7_init* build/
+ else ifneq ($(HDF_FILE),)
+ 	cp $(HDF_FILE) $@
+@@ -191,6 +197,28 @@ clean:
  	rm -f $(notdir $(wildcard build/*))
  	rm -rf build/*
  
 +SDIMGDIR = $(CURDIR)/build_sdimg
 +sdimg: build/
++	rm -rf $(SDIMGDIR)
 +	mkdir $(SDIMGDIR)
 +	cp build/sdk/fsbl/Release/fsbl.elf 	$(SDIMGDIR)/fsbl.elf  
 +	cp build/sdk/hw_0/system_top.bit 	$(SDIMGDIR)/system_top.bit
@@ -71,6 +70,24 @@ index c0bb761..2bac4b2 100644
  zip-all: $(TARGETS)
  	zip -j build/$(ZIP_ARCHIVE_PREFIX)-fw-$(VERSION).zip $^
  
+diff --git a/buildroot b/buildroot
+--- a/buildroot
++++ b/buildroot
+@@ -1 +1 @@
+-Subproject commit 35af596319b86d4e8fe266330cc0b00340d9f584
++Subproject commit 35af596319b86d4e8fe266330cc0b00340d9f584-dirty
+diff --git a/hdl b/hdl
+--- a/hdl
++++ b/hdl
+@@ -1 +1 @@
+-Subproject commit 43cdc6263baf3edb166a3def6fab15bc81c4c729
++Subproject commit 43cdc6263baf3edb166a3def6fab15bc81c4c729-dirty
+diff --git a/linux b/linux
+--- a/linux
++++ b/linux
+@@ -1 +1 @@
+-Subproject commit 9c04de11ae53e7c48b57e6153b4a0df241e094ad
++Subproject commit 9c04de11ae53e7c48b57e6153b4a0df241e094ad-dirty
 diff --git a/scripts/antsdre200.its b/scripts/antsdre200.its
 new file mode 100644
 index 0000000..9e9e7c5
@@ -267,6 +284,9 @@ index 0000000..7373742
 +DEVICE_VID:=0x0456
 +DEVICE_PID:=0xb673
 +
--- 
-2.17.1
-
+diff --git a/u-boot-xlnx b/u-boot-xlnx
+--- a/u-boot-xlnx
++++ b/u-boot-xlnx
+@@ -1 +1 @@
+-Subproject commit a2c2013a86231af6a61d6e7dca6c1e28a3bc57bf
++Subproject commit a2c2013a86231af6a61d6e7dca6c1e28a3bc57bf-dirty

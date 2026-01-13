@@ -1,171 +1,213 @@
-# antsdr-fw-patch
-This Repository is used to make Microphase software radio device firmware. 
+
+---
+
+# 📡 AntSDR Mesh Network (Toy Project)
+
+This is an **experimental Mesh networking firmware project** built on **AntSDR-E200**, aiming to explore and validate the **basic feasibility of SDR-based mesh networking** on real hardware.
+
+> ⚠️ **Important Notice**
+> This is a **toy-level project**.
+> It is **not** a complete, mature, or high-performance Mesh networking implementation, and it is **not intended for production use**.
+
+---
+
+## 🎯 Project Goals
+
+The purpose of this repository is **not** to build a full-featured wireless Mesh protocol stack.
+
+Instead, the goals are to:
+
+* Run a **minimum viable Mesh network prototype** on AntSDR-E200 hardware
+  using a **simple and easy-to-understand implementation**
+* Explore and validate:
+
+  * Whether **SDR can support basic multi-node networking**
+  * The behavior of **simple routing / forwarding mechanisms** over real RF channels
+  * The end-to-end workflow of **FPGA + Linux + wireless link** cooperation
+* Serve as a foundation for more advanced systems, such as:
+
+  * MANET (Mobile Ad-Hoc Networks)
+  * Cognitive radio networks
+  * Distributed / cooperative SDR systems
+
+---
+
+### 🧸 Toy-Level Implementation
+  * naive
+  * brute-force
+  * non-optimal
+  
+* Runs on **real AntSDR hardware**
+* Operates over **real wireless channels**
+* Not a pure simulation
+* Not based on ns-3 or other idealized models
+
+---
+
+### 🚫 What This Project Does **Not** Aim to Do
+
+At its current stage, this project does **not** aim for:
+
+* ❌ High throughput or high reliability
+* ❌ Full Mesh protocols (e.g. OLSR, HWMP)
+* ❌ Strict MAC, QoS, or security mechanisms
+* ❌ Standards compliance (this is **not** Wi-Fi Mesh and **not** IEEE 802.11s)
+
+---
+## Quick Start 
+
+### Prerequisites / Preparation
+- At least two AntSDR-E200 devices
+- Prepare multiple USB Type-C cables or Gigabit Ethernet cables to connect to the AntSDR-E200 devices
+- Download the test firmware for SD card boot, and replace the existing contents on the AntSDR-E200 SD card with this firmware
+
+### How it works
+#### A basic Ethernet-like network
+Once the preparation is complete, you can log in to two or more AntSDR-E200 devices either via UART or SSH.
+You will find a network interface named mpsdr0, which corresponds to the COFDM baseband implemented in the FPGA.
+
+- on antsdr node1 we can get:
+```bash
+$ ssh root@192.168.1.10
+root@192.168.1.10's password: 
+Welcome to:
+    ___    _   _____________ ____  ____ 
+   /   |  / | / /_  __/ ___// __ \/ __ \
+  / /| | /  |/ / / /  \__ \/ / / / /_/ /
+ / ___ |/ /|  / / /  ___/ / /_/ / _, _/ 
+/_/  |_/_/ |_/ /_/  /____/_____/_/ |_|  
+                                       
+v0.34-dirty
+https://github.com/MicroPhase/antsdr-fw
+# ifconfig 
+eth0      Link encap:Ethernet  HWaddr 00:0A:35:00:01:22  
+          inet addr:192.168.1.10  Bcast:0.0.0.0  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:288 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:207 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:27690 (27.0 KiB)  TX bytes:34095 (33.2 KiB)
+          Interrupt:29 Base address:0xb000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:12 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:12 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:1032 (1.0 KiB)  TX bytes:1032 (1.0 KiB)
+
+mpsdr0    Link encap:Ethernet  HWaddr DA:63:C4:37:A3:29  
+          inet addr:10.0.0.41  Bcast:10.0.0.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:604  Metric:1
+          RX packets:59 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:57 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:11905 (11.6 KiB)  TX bytes:11632 (11.3 KiB)
+
+```
+
+- on antsdr node2 we can get:
+```bash
+$ ssh root@192.168.3.10
+root@192.168.3.10's password: 
+Welcome to:
+    ___    _   _____________ ____  ____ 
+   /   |  / | / /_  __/ ___// __ \/ __ \
+  / /| | /  |/ / / /  \__ \/ / / / /_/ /
+ / ___ |/ /|  / / /  ___/ / /_/ / _, _/ 
+/_/  |_/_/ |_/ /_/  /____/_____/_/ |_|  
+                                       
+v0.34-dirty
+https://github.com/MicroPhase/antsdr-fw
+# ifconfig 
+eth0      Link encap:Ethernet  HWaddr 00:0A:35:00:01:22  
+          inet addr:192.168.3.10  Bcast:0.0.0.0  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:188 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:149 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:20135 (19.6 KiB)  TX bytes:27432 (26.7 KiB)
+          Interrupt:29 Base address:0xb000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:12 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:12 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:1032 (1.0 KiB)  TX bytes:1032 (1.0 KiB)
+
+mpsdr0    Link encap:Ethernet  HWaddr DA:61:B9:07:9F:11  
+          inet addr:10.0.0.17  Bcast:10.0.0.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:604  Metric:1
+          RX packets:39 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:64 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:9446 (9.2 KiB)  TX bytes:13626 (13.3 KiB)
+
+```
+
+The default IP address of mpsdr0 is generated from the unique ID of the onboard QSPI Flash.
+With two devices available, you can now use ping, iperf3, or other standard network tools to perform connectivity and performance tests.
+
+![](./image/2026-01-12_20-17.png)
+
+We can configure one node as the iperf3 server and another node as the iperf3 client, and then use iperf3 to perform a simple bandwidth test.
+![](./image/2026-01-12_20-21.png)
+
+![](./image/2026-01-12_20-20.png)
 
 
 
+#### Batman-adv node
+Since each node presents itself as an Ethernet-like interface, standard Layer-2 Mesh solutions such as batman-adv can be directly applied to build a Mesh network over the AntSDR-E200 wireless link.
+Using the tools provided by Linux, we can achieve this with minimal effort.
+
+```bash
+$ batctl if add mpsdr0
+$ ip link set up dev bat0
+$ suffix=$(ip -4 -o addr show dev mpsdr0 | awk '$3=="inet"{print $4; exit}' | cut -d. -f4 | cut -d/ -f1)
+$ ip addr add 10.10.0.$suffix/24 dev bat0
+$ ip link set bat0 up
+$ ip addr flush dev mpsdr0
+
+$ ifconfig 
+bat0      Link encap:Ethernet  HWaddr BE:F2:04:AD:CF:24  
+          inet addr:10.10.0.41  Bcast:0.0.0.0  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:1 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:1 errors:0 dropped:10 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:42 (42.0 B)  TX bytes:54 (54.0 B)
+
+$  batctl o 
+[B.A.T.M.A.N. adv 2019.4, MainIF/MAC: mpsdr0/da:63:c4:37:a3:29 (bat0/be:f2:04:ad:cf:24 BATMAN_IV)]
+   Originator        last-seen (#/255) Nexthop           [outgoingIF]
+ * da:61:b9:07:9f:11    0.450s   (250) da:61:b9:07:9f:11 [    mpsdr0]
+
+```
+
+---
 ## Build Instructions
 
-The Firmware is built with the [Xilinx Vivado 2019.1](https://www.xilinx.com/member/forms/download/xef-vivado.html?filename=Xilinx_Vivado_SDK_Web_2019.1_0524_1430_Lin64.bin)(v0.34) or ([Xilinx Vivado 2021.1](https://www.xilinx.com/member/forms/download/xef.html?filename=Xilinx_Unified_2021.1_0610_2318.tar.gz))(v0.35). You need to install the correct Vivado version in you Linux PC, and then,you can follow the instructions below to generate the firmware for [ANTSDR E310](https://item.taobao.com/item.htm?spm=a230r.1.14.16.34e21142YIlxqx&id=647986963313&ns=1&abbucket=2#detail) or [ANTSDR E200](https://item.taobao.com/item.htm?spm=a1z10.3-c-s.w4002-17060615344.9.4f201b9f6YDKU2&id=691394502321) and then.
+```bash
+git clone -b antsdr_mesh --recursive https://github.com/MicroPhase/antsdr-fw-patch.git
 
-### Install build requirements
+export CROSS_COMPILE=arm-linux-gnueabihf- 
+export PATH=$PATH:/opt/Xilinx/SDK/2019.1/gnu/aarch32/lin/gcc-arm-linux-gnueabi/bin 
+export VIVADO_SETTINGS=/opt/Xilinx/Vivado/2019.1/settings64.sh
+export PERL_MM_OPT=
 
-```sh
-sudo apt-get install git build-essential fakeroot libncurses5-dev libssl-dev ccache 
-sudo apt-get install dfu-util u-boot-tools device-tree-compiler mtools
-sudo apt-get install bc python cpio zip unzip rsync file wget 
-sudo apt-get install libtinfo5 device-tree-compiler bison flex u-boot-tools
-sudo apt-get purge gcc-arm-linux-gnueabihf
-sudo apt-get remove libfdt-de
-```
+export TARGET=antsdre200
 
-### Get source code and setup bash
-
-1. get source from git
-	- v0.34
-		
-		```sh
-		git clone -b v0.34 --recursive https://github.com/MicroPhase/antsdr-fw-patch.git
-		```
-		
-	- v0.35
-		```sh
-		git clone -b v0.35 --recursive https://github.com/MicroPhase/antsdr-fw-patch.git
-		```
-	
-2. setup bash
-	- v0.34
-        ```sh
-        export CROSS_COMPILE=arm-linux-gnueabihf- 
-        export PATH=$PATH:/opt/Xilinx/SDK/2019.1/gnu/aarch32/lin/gcc-arm-linux-gnueabi/bin 
-        export VIVADO_SETTINGS=/opt/Xilinx/Vivado/2019.1/settings64.sh
-        export PERL_MM_OPT=
-        ```
-    - v0.35
-       ```sh
-       export CROSS_COMPILE=arm-linux-gnueabihf- 
-       export PATH=$PATH:/opt/Xilinx/SDK/2019.1/gnu/aarch32/lin/gcc-arm-linux-gnueabi/bin 
-       export VIVADO_SETTINGS=/opt/Xilinx/Vivado/2021.1/settings64.sh
-       export PERL_MM_OPT=
-       ```
-
-### Export target
-
-1. ant e310
-
-   ```sh
-   export TARGET=ant
-   ```
-
-2. ant e200
-	```sh
-	export TARGET=antsdre200
-	```
-	
-
-### Patch
-
-After completing the above steps, start to Patch.
-
-```sh
 cd antsdr-fw-patch
-```
+sh patch.sh e200
 
-1. ant e310
 
-   ```sh
-   sh patch.sh ant
-   ```
-
-2. ant e200
-
-   ```sh
-   sh patch.sh e200
-   ```
-
-If you patch is successfully applied, you can see the following information.
-
-```txt
-jcc@jcc:~/work/Git/mp/antsdr-fw-patch$ sh patch.sh e200
-Patch check...
- ...
- ...
- Makefile               |   29 +++++++-
- scripts/antsdre200.its |  174 ++++++++++++++++++++++++++++++++++++++++++++++++
- scripts/antsdre200.mk  |   10 +++
- 3 files changed, 211 insertions(+), 2 deletions(-)
-Patch...
-...
-...
-patch finish
-
-```
-
-### Build
-
-Then you can make firmware.
-
-```sh
 cd plutosdr-fw
+
 make
-```
 
-After the firmware building finished, you will see below file in the build folder. These files are used for flash updating.(This is e200 device)
-
-```txt
-jcc@jcc:~/work/Git/mp/antsdr-fw-patch/plutosdr-fw$ ls -AGhl build
-总用量 319M
--rw-rw-r-- 1 jcc  12M 12月 26 11:06 antsdre200.dfu
--rw-rw-r-- 1 jcc  12M 12月 26 11:06 antsdre200.frm
--rw-rw-r-- 1 jcc   33 12月 26 11:06 antsdre200.frm.md5
--rw-rw-r-- 1 jcc  12M 12月 26 11:06 antsdre200.itb
--rw-rw-r-- 1 jcc  20M 12月 26 11:06 antsdr-fw-v0.34-dirty.zip
--rw-rw-r-- 1 jcc 670K 12月 26 11:06 antsdr-jtag-bootstrap-v0.34-dirty.zip
--rw-rw-r-- 1 jcc   69 12月 26 11:06 boot.bif
--rw-rw-r-- 1 jcc 508K 12月 26 11:06 boot.bin
--rw-rw-r-- 1 jcc 508K 12月 26 11:06 boot.dfu
--rw-rw-r-- 1 jcc 637K 12月 26 11:06 boot.frm
--rw-rw-r-- 1 jcc 245M 12月 26 11:06 legal-info-v0.34-dirty.tar.gz
--rw-rw-r-- 1 jcc 527K 12月 26 10:51 LICENSE.html
--rw-rw-r-- 1 jcc 524K 12月 26 11:05 ps7_init.c
--rw-rw-r-- 1 jcc 524K 12月 26 11:05 ps7_init_gpl.c
--rw-rw-r-- 1 jcc 4.2K 12月 26 11:05 ps7_init_gpl.h
--rw-rw-r-- 1 jcc 4.8K 12月 26 11:05 ps7_init.h
--rw-rw-r-- 1 jcc 2.8M 12月 26 11:05 ps7_init.html
--rw-rw-r-- 1 jcc  35K 12月 26 11:05 ps7_init.tcl
--rw-r--r-- 1 jcc 5.4M 12月 26 10:56 rootfs.cpio.gz
-drwxrwxr-x 6 jcc 4.0K 12月 26 11:06 sdk
--rw-rw-r-- 1 jcc 2.3M 12月 26 11:06 system_top.bit
--rw-rw-r-- 1 jcc 568K 12月 26 11:05 system_top.hdf
--rwxrwxr-x 1 jcc 471K 12月 26 11:06 u-boot.elf
--rw-rw---- 1 jcc 128K 12月 26 11:06 uboot-env.bin
--rw-rw---- 1 jcc 129K 12月 26 11:06 uboot-env.dfu
--rw-rw-r-- 1 jcc 6.8K 12月 26 11:06 uboot-env.txt
--rwxrwxr-x 1 jcc 4.0M 12月 26 10:45 zImage
--rw-rw-r-- 1 jcc  19K 12月 26 10:56 zynq-antsdre200.dtb
-```
-
-
-
-## Make SD card boot image
-
-After the firmware building finished, you can build the SD card boot image for device. Just type the following command.
-
-```sh
 make sdimg
 ```
-
-You will see the SD boot image in the build_sdimg folder. You can just  copy all these files in that folder into a SD card, plug the SD card  into the ANTSDR, set the jumper into SD card boot mode.
-
-## Update Flash by DFU
-
-DFU mode is just for ant e310, e200 is unsupport. If your device is e310, You can update the flash by DFU. Set the jumper into Flash Boot mode.  When device is power up, push the DFU button, and then, you will see the both led in the device will turn green, now it's time to update the  flash. You should change into the build folder first,and plug a micro USB into  the OTG interface. After that, you should run the following command.
-
-```sh
-sudo dfu-util -a firmware.dfu -D ./ant.dfu
-sudo dfu-util -a boot.dfu -D ./boot.dfu
-sudo dfu-util -a uboot-env.dfu -D ./uboot-env.dfu
-sudo dfu-util -a uboot-extra-env.dfu -U ./uboot-extra-env.dfu
-```
-
-Now you can repower device.
-
