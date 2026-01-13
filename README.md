@@ -192,7 +192,7 @@ $  batctl o
 ## Build Instructions
 
 ```bash
-git clone -b antsdr_mesh --recursive https://github.com/MicroPhase/antsdr-fw-patch.git
+git clone -b antsdr-mesh --recursive https://github.com/MicroPhase/antsdr-fw-patch.git
 
 export CROSS_COMPILE=arm-linux-gnueabihf- 
 export PATH=$PATH:/opt/Xilinx/SDK/2019.1/gnu/aarch32/lin/gcc-arm-linux-gnueabi/bin 
