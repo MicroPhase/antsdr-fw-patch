@@ -213,3 +213,61 @@ make
 
 make sdimg
 ```
+
+## Known issue
+When compiling Buildroot, we may encounter the following errors. We can refer to the solutions below to resolve them.
+
+- 1. c-stack error
+  Edit this file: `buildroot/output/build/host-m4-1.4.18/lib/c-statck.c`
+  ```c
+  #ifndef SIGSTKSZ
+  # define SIGSTKSZ 16384
+  //#elif HAVE_LIBSIGSEGV && SIGSTKSZ < 16384
+  ///* libsigsegv 2.6 through 2.8 have a bug where some architectures use
+  //   more than the Linux default of an 8k alternate stack when deciding
+  //   if a fault was caused by stack overflow.  */
+  //# undef SIGSTKSZ
+  //# define SIGSTKSZ 16384
+  #endif
+  ```
+
+- 2. fakeroot error
+  Edit this file: `buildroot/output/build/host-fakeroot-1.20.2/libfakeroot.c`
+  ```c
+  #ifndef _STAT_VER
+  #if defined (__aarch64__)
+    #define _STAT_VER 0
+  #elif defined (__x86_64__)
+    #define _STAT_VER 1
+  #else
+    #define _STAT_VER 3
+  #endif
+  #endif
+  ```
+
+- 3. fakeroot make node error
+  ![](./image/2026-02-10_15-43.png)
+  When encountering this issue, we can use our Linux system's own fakeroot to work around it. This requires first installing the relevant dependency packages for fakeroot in the Linux system.
+  ```bash
+  # 1.backup fakeroot
+  mv output/host/bin/fakeroot output/host/bin/fakeroot.bad
+
+  # 2. create a wrapper，call the system fakeroot
+  cat > output/host/bin/fakeroot << 'EOF'
+  #!/bin/sh
+  exec /usr/bin/fakeroot "$@"
+  EOF
+
+  chmod +x output/host/bin/fakeroot
+  ```
+  Then we can rebuild the buildroot.
+  ```bash
+  rm -rf output/build/buildroot-fs
+  rm -rf output/images/rootfs.cpio*
+  rm -rf output/target   # 可选，干净一点
+
+  make
+  ```
+
+
+
