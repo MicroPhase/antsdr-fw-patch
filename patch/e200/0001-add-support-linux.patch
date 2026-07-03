@@ -1,6 +1,6 @@
-From 8b74c8a004a6a34183b1e4ace815b579f1d02ab7 Mon Sep 17 00:00:00 2001
+From 86e082a64962de3c678b99b51ca4c71170fe73e6 Mon Sep 17 00:00:00 2001
 From: wjx <3570534440@qq.com>
-Date: Sat, 12 Jul 2025 15:45:34 +0800
+Date: Fri, 3 Jul 2026 20:34:49 +0800
 Subject: [PATCH] add-support-linux
 
 ---
@@ -10,10 +10,10 @@ Subject: [PATCH] add-support-linux
  arch/arm/configs/zynq_e200_defconfig | 294 +++++++++++++++++
  drivers/iio/adc/Kconfig              |  11 +
  drivers/iio/adc/Makefile             |   2 +
- drivers/iio/adc/ad5660_mp.c          | 272 ++++++++++++++++
+ drivers/iio/adc/ad5660_mp.c          | 277 ++++++++++++++++
  drivers/iio/adc/mpiio_io.c           | 184 +++++++++++
  drivers/mtd/spi-nor/core.c           |   7 +-
- 9 files changed, 1270 insertions(+), 3 deletions(-)
+ 9 files changed, 1275 insertions(+), 3 deletions(-)
  create mode 100644 arch/arm/boot/dts/zynq-e200.dts
  create mode 100644 arch/arm/boot/dts/zynq-e200.dtsi
  create mode 100644 arch/arm/configs/zynq_e200_defconfig
@@ -883,10 +883,10 @@ index 339ddf2d0ea3..44880b8ae544 100644
  obj-$(CONFIG_AD7091R5) += ad7091r5.o ad7091r-base.o
 diff --git a/drivers/iio/adc/ad5660_mp.c b/drivers/iio/adc/ad5660_mp.c
 new file mode 100644
-index 000000000000..0f97c1e815c4
+index 000000000000..ae8122c71a67
 --- /dev/null
 +++ b/drivers/iio/adc/ad5660_mp.c
-@@ -0,0 +1,272 @@
+@@ -0,0 +1,277 @@
 +/*
 + * AD5660: ad5660 control
 + *
@@ -967,7 +967,7 @@ index 000000000000..0f97c1e815c4
 +        ret = sprintf(buf,"%u\n",ioread32(ad5660->control_virtualaddr + 16));
 +        break;
 +    default:
-+        ret = EINVAL;
++        ret = -EINVAL;
 +        break;
 +    }
 +    return ret;
@@ -988,21 +988,26 @@ index 000000000000..0f97c1e815c4
 +    {
 +    case DAC_MODE:
 +        ret = kstrtou32(buf,10,&val);
++        if (ret)
++            return ret;
 +        iowrite32(val,ad5660->control_virtualaddr);
 +        break;
 +    case DAC_VALUE:
 +        ret = kstrtou32(buf,10,&val);
++        if (ret)
++            return ret;
 +        iowrite32(val,ad5660->control_virtualaddr+4);
 +        break;
 +    case DAC_REF_SEL:
 +        ret = kstrtou32(buf,10,&val);
++        if (ret)
++            return ret;
 +        iowrite32(val,ad5660->control_virtualaddr+12);
 +        break;
 +    default:
-+        ret = EINVAL;
-+        break;
++        return -EINVAL;
 +    }
-+    return ret;
++    return len;
 +}
 +
 +static IIO_DEVICE_ATTR(in_voltage_dac_mode,S_IRUGO | S_IWUSR,
@@ -1159,7 +1164,6 @@ index 000000000000..0f97c1e815c4
 +MODULE_AUTHOR("loneboy <995586238@qq.com>");
 +MODULE_DESCRIPTION("ad5660mp driver");
 +MODULE_LICENSE("GPL V2");
-\ No newline at end of file
 diff --git a/drivers/iio/adc/mpiio_io.c b/drivers/iio/adc/mpiio_io.c
 new file mode 100644
 index 000000000000..22ff13b399c0
