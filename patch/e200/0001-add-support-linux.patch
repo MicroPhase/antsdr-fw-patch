@@ -6,7 +6,7 @@ Subject: [PATCH] add-support-linux
 ---
  arch/arm/boot/dts/zynq-7000.dtsi     |   2 +-
  arch/arm/boot/dts/zynq-e200.dts      |  36 +++
- arch/arm/boot/dts/zynq-e200.dtsi     | 465 +++++++++++++++++++++++++++
+ arch/arm/boot/dts/zynq-e200.dtsi     | 466 +++++++++++++++++++++++++++
  arch/arm/configs/zynq_e200_defconfig | 294 +++++++++++++++++
  drivers/iio/adc/Kconfig              |  11 +
  drivers/iio/adc/Makefile             |   2 +
@@ -80,7 +80,7 @@ new file mode 100644
 index 000000000000..b9192283af42
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-e200.dtsi
-@@ -0,0 +1,465 @@
+@@ -0,0 +1,466 @@
 +/*
 + * ZYNQ Pluto SDR (Z7020/AD936x)
 + *
@@ -178,7 +178,8 @@ index 000000000000..b9192283af42
 +	phy-mode = "rgmii-rxid";
 +	xlnx,has-mdio = <0x1>;
 +	gmii2rgmii-phy-handle = <&gmii_to_rgmii_0>;
-+	
++
++       reset-gpios = <&gpio0 68 0>;	
 +	phy0: phy@1 {
 +		compatible = "ethernet-phy-id011c.c916";
 +		device_type = "ethernet-phy";
