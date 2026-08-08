@@ -76,6 +76,12 @@ cd antsdr-fw-patch
    sh patch.sh ant
    ```
 
+   for linux 7.09 and vivado 2025.2, Infos: `patch/ant-2026/Readme.md`
+
+   ```sh
+   sh patch.sh ant-2026
+   ```
+
 2. ant e200
 
    ```sh

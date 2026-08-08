@@ -1,0 +1,386 @@
+From 8af36bef50ddedac03c6d9ec4d2ea18eb336e770 Mon Sep 17 00:00:00 2001
+From: mrzhuzhe <466648706@qq.com>
+Date: Wed, 15 Jul 2026 15:07:12 +0800
+Subject: [PATCH] add-support-makefile-scripts
+
+---
+ Makefile                       |  41 +++++++--
+ scripts/ant.its                | 158 +++++++++++++++++++++++++++++++++
+ scripts/ant.mk                 |  10 +++
+ scripts/create_fsbl_project.py |  92 +++++++++++++++++++
+ 4 files changed, 292 insertions(+), 9 deletions(-)
+ create mode 100644 scripts/ant.its
+ create mode 100644 scripts/ant.mk
+ create mode 100644 scripts/create_fsbl_project.py
+
+diff --git a/Makefile b/Makefile
+index 0b2e57a..a42cfca 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,5 +1,5 @@
+ 
+-VIVADO_VERSION ?= 2023.2
++VIVADO_VERSION ?= 2025.2
+ 
+ # Use Buildroot External Linaro GCC 7.3-2018.05 arm-linux-gnueabihf Toolchain
+ CROSS_COMPILE = arm-linux-gnueabihf-
+@@ -27,8 +27,8 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
+ 	endif
+ endif
+ 
+-TARGET ?= pluto
+-SUPPORTED_TARGETS:=pluto sidekiqz2
++TARGET ?= ant
++SUPPORTED_TARGETS:=pluto sidekiqz2 ant
+ 
+ # Include target specific constants
+ include scripts/$(TARGET).mk
+@@ -91,14 +91,15 @@ build/uboot-env.bin: build/uboot-env.txt
+ linux/arch/arm/boot/zImage: TOOLCHAIN
+ 	$(TOOLS_PATH) make -C linux ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zynq_$(TARGET)_defconfig
+ 	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zImage UIMAGE_LOADADDR=0x8000
+-
++	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) uImage UIMAGE_LOADADDR=0x8000
+ 
+ .PHONY: linux/arch/arm/boot/zImage
+-
++.PHONY: linux/arch/arm/boot/uImage
+ 
+ build/zImage: linux/arch/arm/boot/zImage | build
+ 	cp $< $@
+-
++build/uImage: linux/arch/arm/boot/uImage | build
++	cp $< $@
+ ### Device Tree ###
+ 
+ linux/arch/arm/boot/dts/%.dtb: TOOLCHAIN linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
+@@ -142,15 +143,17 @@ endif
+ 
+ ### TODO: Build system_top.xsa from src if dl fails ...
+ 
+-build/sdk/fsbl/Release/fsbl.elf build/system_top.bit : build/system_top.xsa
++build/sdk/fsbl/export/fsbl/sw/boot/fsbl.elf build/system_top.bit : build/system_top.xsa
+ 	rm -Rf build/sdk
+ ifeq (1, ${HAVE_VIVADO})
+-	bash -c "source $(VIVADO_SETTINGS) && xsct scripts/create_fsbl_project.tcl"
++#	bash -c "source $(VIVADO_SETTINGS) && xsct scripts/create_fsbl_project.tcl"
++# 	Vivado 2025 use new vitis server
++	bash -c "source $(VIVADO_SETTINGS) && vitis -s scripts/create_fsbl_project.py"
+ else
+ 	unzip -o build/system_top.xsa system_top.bit -d build
+ endif
+ 
+-build/boot.bin: build/sdk/fsbl/Release/fsbl.elf build/u-boot.elf
++build/boot.bin: build/sdk/fsbl/export/fsbl/sw/boot/fsbl.elf build/u-boot.elf
+ 	@echo img:{[bootloader] $^ } > build/boot.bif
+ 	bash -c "source $(VIVADO_SETTINGS) && bootgen -image build/boot.bif -w -o $@"
+ 
+@@ -187,6 +190,26 @@ clean:
+ 	rm -f $(notdir $(wildcard build/*))
+ 	rm -rf build/*
+ 
++SDIMGDIR = $(CURDIR)/build_sdimg
++sdimg: build/
++	mkdir $(SDIMGDIR)
++	cp build/sdk/fsbl/export/fsbl/sw/boot/fsbl.elf 	$(SDIMGDIR)/fsbl.elf  
++	cp build/system_top.bit 	$(SDIMGDIR)/system_top.bit
++	cp build/u-boot.elf 			$(SDIMGDIR)/u-boot.elf
++	cp $(CURDIR)/linux/arch/arm/boot/uImage	$(SDIMGDIR)/uImage
++	cp build/zynq-$(TARGET).dtb 	$(SDIMGDIR)/devicetree.dtb
++	cp build/uboot-env.txt  		$(SDIMGDIR)/uEnv.txt
++	cp build/rootfs.cpio.gz  		$(SDIMGDIR)/ramdisk.image.gz
++	mkimage -A arm -T ramdisk -C gzip -d $(SDIMGDIR)/ramdisk.image.gz $(SDIMGDIR)/uramdisk.image.gz
++	touch 	$(SDIMGDIR)/boot.bif
++	echo "img : {[bootloader] $(SDIMGDIR)/fsbl.elf  $(SDIMGDIR)/system_top.bit  $(SDIMGDIR)/u-boot.elf}" >  $(SDIMGDIR)/boot.bif
++	bash -c "source $(VIVADO_SETTINGS) && bootgen -image $(SDIMGDIR)/boot.bif -w -o $(SDIMGDIR)/BOOT.bin"
++	rm $(SDIMGDIR)/fsbl.elf
++	rm $(SDIMGDIR)/system_top.bit
++	rm $(SDIMGDIR)/u-boot.elf
++	rm $(SDIMGDIR)/ramdisk.image.gz 
++	rm $(SDIMGDIR)/boot.bif
++
+ zip-all: $(TARGETS)
+ 	zip -j build/$(ZIP_ARCHIVE_PREFIX)-fw-$(VERSION).zip $^
+ 
+diff --git a/scripts/ant.its b/scripts/ant.its
+new file mode 100644
+index 0000000..7d1adb0
+--- /dev/null
++++ b/scripts/ant.its
+@@ -0,0 +1,158 @@
++/*
++ * U-Boot uImage source file with multiple kernels, ramdisks and FDT blobs
++ * This example makes use of the 'loadables' field
++ */
++
++/*
++ * fdt get addr foo /images/fdt@1 data
++ */
++
++/dts-v1/;
++
++/ {
++	description = "Configuration to load fpga before Kernel";
++	magic = "ITB PlutoSDR (ADALM-PLUTO)";
++	#address-cells = <1>;
++	images {
++
++		fdt@1 {
++			description = "zynq-pluto-sdr";
++			data = /incbin/("../build/zynq-ant.dtb");
++			type = "flat_dt";
++			arch = "arm";
++			compression = "none";
++		};
++
++		fpga@1 {
++			description = "FPGA";
++			data = /incbin/("../build/system_top.bit");
++			type = "fpga";
++			arch = "arm";
++			compression = "none";
++			load = <0xF000000>;
++			hash@1 {
++				algo = "md5";
++			};
++		};
++
++		linux_kernel@1 {
++			description = "Linux";
++			data = /incbin/("../build/zImage");
++			type = "kernel";
++			arch = "arm";
++			os = "linux";
++			compression = "none";
++			load = <0x8000>;
++			entry = <0x8000>;
++			hash@1 {
++				algo = "md5";
++			};
++		};
++		ramdisk@1 {
++			description = "Ramdisk";
++			data = /incbin/("../build/rootfs.cpio.gz");
++			type = "ramdisk";
++			arch = "arm";
++			os = "linux";
++			compression = "gzip";
++			hash@1 {
++				algo = "md5";
++			};
++		};
++
++	};
++
++	configurations {
++		default = "config@0";
++		config@0 {
++			description = "Linux with fpga RevA";
++			fdt = "fdt@1";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		/* all below is currently RevB ! */
++
++		config@1 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@2 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@3 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@4 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@5 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@6 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++
++		config@7 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@8 { /* This one is actually RevC */
++			description = "Linux with fpga RevC";
++			fdt = "fdt@3";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@9 { /* This one is actually RevB */
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++
++		config@10 {
++			description = "Linux with fpga RevB";
++			fdt = "fdt@2";
++			kernel = "linux_kernel@1";
++			ramdisk = "ramdisk@1";
++			fpga = "fpga@1";
++		};
++	};
++};
+diff --git a/scripts/ant.mk b/scripts/ant.mk
+new file mode 100644
+index 0000000..cd48388
+--- /dev/null
++++ b/scripts/ant.mk
+@@ -0,0 +1,10 @@
++
++# Target specific constants go here
++
++HDF_URL:=http://github.com/analogdevicesinc/plutosdr-fw/releases/download/${LATEST_TAG}/system_top.hdf
++TARGET_DTS_FILES:= zynq-ant.dtb
++COMPLETE_NAME:=ANTSDR
++ZIP_ARCHIVE_PREFIX:=antsdr
++DEVICE_VID:=0x0456
++DEVICE_PID:=0xb673
++
+diff --git a/scripts/create_fsbl_project.py b/scripts/create_fsbl_project.py
+new file mode 100644
+index 0000000..e11e7d2
+--- /dev/null
++++ b/scripts/create_fsbl_project.py
+@@ -0,0 +1,92 @@
++"""
++hsi open_hw_design build/system_top.xsa
++set cpu_name [lindex [hsi get_cells -filter {IP_TYPE==PROCESSOR}] 0]
++
++setws ./build/sdk
++app create -name fsbl -hw build/system_top.xsa -proc $cpu_name -os standalone -lang C -template {Zynq FSBL}
++# Optional: build-config is a java style, you should set domain_object.get_config compiler_flags instead
++app config -name fsbl -set build-config release 
++app build -name fsbl
++
++"""
++
++import vitis
++import hsi
++import os
++
++def get_metadata(**kwargs):
++    xsa = ""
++    open_xsa = 0
++    ret_metadata = {'arch' : '', 'target_proc' : ''}
++    for key, value in kwargs.items():
++        if key == "xsa":
++            xsa = value
++        if key == "open_xsa":
++            open_xsa = 1
++    
++    if open_xsa == 1:
++        if xsa != "":
++            print("Info: Using XSA file: " + xsa + " to extract HW metadata using HSI Python API")
++            HwDesign = hsi.HwManager.open_hw_design(xsa)
++            ret_metadata['arch'] = HwDesign.FAMILY
++            for proc in HwDesign.get_cells(hierarchical='true',filter='IP_TYPE==PROCESSOR'):
++                if proc.IP_NAME == "psu_cortexa53" or proc.IP_NAME == "psv_cortexa72" or proc.IP_NAME == "ps7_cortexa9":
++                    ret_metadata['target_proc'] = proc.IP_NAME+"_0"
++                    #notice there are two cpu
++            HwDesign.close()
++        else:
++            print("Error: No XSA passed. HW metadata will not be extracted.")
++    else:
++        print("Info: no need to open XSA")
++    
++    return ret_metadata
++
++def get_domain_info(platform):
++    #list all domains (there will just be one here). Users can use print(domains) to see the attributes
++    domains = platform.list_domains()
++    platform_domain_name = domains[0]['domain_name']
++    print("Info: platform created a domain called " + platform_domain_name)
++
++    #get domain object. I used the format to pass a variable inside quoatation
++    domain_object = platform.get_domain(name = "{}".format(platform_domain_name))
++
++    # users can view the os settings of the domain_object. same can be used for get_libs and get_drivers()
++    os_object = domain_object.get_os()
++    print("OS for " + platform_domain_name + " is " + os_object['os'])
++
++    #This will list all the os parameters for the OS. Users can see this in the bsp.yaml which replaces the mss file. 
++    #For ease of use, Users should look at the bsp.yaml to get the valid values.
++    #os_params = domain_object.list_params("os", "{}".format(os_object['os']))
++
++    #For example, I can read the standalone_stdin param
++    standalone_stdin = domain_object.get_config(option = 'os', param = 'standalone_stdin')
++    print("Info: standalone_stdin for " + platform_domain_name + " is " + standalone_stdin['value'])
++    #domain_object.set_config(option = 'os', param = 'standalone_stdin', value = 'true') 
++
++    # Get compiler flags
++    proc_compiler_flags = domain_object.get_config(option = 'proc', param = 'proc_compiler_flags')
++    print("Current proc_compiler_flags: " + proc_compiler_flags['value'])
++
++    proc_extra_compiler_flags = domain_object.get_config(option = 'proc', param = 'proc_extra_compiler_flags')
++    print("Current proc_extra_compiler_flags: " + proc_compiler_flags['value'])
++
++# main
++client = vitis.create_client()
++xsa = os.path.join(os.getcwd(), "./build/system_top.xsa")
++workspace = os.path.join(os.getcwd(), "./build/sdk")
++client.set_workspace(workspace)
++
++metadata = get_metadata(xsa=xsa, open_xsa="1")
++arch = metadata['arch']
++target_proc = metadata['target_proc']
++print("Info: Detected arch: " + arch)
++print("Info: Using target processor: " + target_proc)
++
++platform = client.create_platform_component(name = "fsbl",
++    hw_design = xsa,os = "standalone",compiler = "gcc",
++    cpu = target_proc, template = "zynq_fsbl")
++
++get_domain_info(platform)
++
++platform = client.get_component(name="fsbl")
++status = platform.build()
+\ No newline at end of file
+-- 
+2.54.0
+
