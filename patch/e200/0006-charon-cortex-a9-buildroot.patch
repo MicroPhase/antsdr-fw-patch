@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 21 Aug 2026 00:00:00 +0800
+Subject: [PATCH] e200: target Charon DSP code to Cortex-A9
+
+Prevent VFPv4 fused instructions from entering Charon or liquid-dsp; the
+Zynq-7020 Cortex-A9 raises SIGILL on those instructions.  liquid-dsp 1.4.0
+overrides package CFLAGS with Cortex-A7/neon-vfpv4 flags, so patch that
+upstream default while retaining its optimized NEON dot products.
+---
+diff --git a/package/liquid-dsp/0001-armv7-use-cortex-a9-neon.patch b/package/liquid-dsp/0001-armv7-use-cortex-a9-neon.patch
+new file mode 100644
+index 0000000000..bf15012000
+--- /dev/null
++++ b/package/liquid-dsp/0001-armv7-use-cortex-a9-neon.patch
+@@ -0,0 +1,31 @@
++From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
++From: Codex <codex@openai.com>
++Date: Fri, 21 Aug 2026 00:00:00 +0800
++Subject: [PATCH] armv7: use Cortex-A9 compatible NEON flags
++
++The upstream ARMv7 default selects Cortex-A7 with neon-vfpv4.  Zynq-7020
++uses Cortex-A9 and does not implement VFPv4 fused multiply-add, so binaries
++built with the upstream flags terminate with SIGILL on ANTSDR E200.
++
++Keep the optimized NEON dot products, but target the actual Cortex-A9/VFPv3
++instruction set.
++---
++ configure.ac | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/configure.ac b/configure.ac
++index 29eac6d..bf15012 100644
++--- a/configure.ac
+++++ b/configure.ac
++@@ -229,7 +229,7 @@ else
++         *)
++             # TODO: check these flags
++             #ARCH_OPTION="-ffast-math -mcpu=cortex-a8 -mfloat-abi=softfp -mfpu=neon";;
++-            ARCH_OPTION="-ffast-math -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4";;
+++            ARCH_OPTION="-ffast-math -mcpu=cortex-a9 -mfloat-abi=hard -mfpu=neon";;
++         esac;;
++     *)
++         # unknown architecture : use portable C version
++-- 
++2.34.1
++
+diff --git a/package/charon/charon.mk b/package/charon/charon.mk
+index 3f51882f8b..6431b2a761 100644
+--- a/package/charon/charon.mk
++++ b/package/charon/charon.mk
+@@ -27,7 +27,11 @@ CHARON_POST_EXTRACT_HOOKS += CHARON_EXTRACT_TUNTAP
+ # libtuntap declares its callback as a tentative definition in tuntap.h.
+ # GCC 10 defaults to -fno-common, so retain the behavior expected by this
+ # pinned libtuntap revision until its public header is fixed upstream.
+-CHARON_CFLAGS = $(TARGET_CFLAGS) -fcommon -D_DEFAULT_SOURCE=1 -pthread
++# The E200 Zynq-7020 has NEON but not ARMv8 fused floating-point
++# instructions.  Explicitly target Cortex-A9 so the Charon binary and its
++# liquid-dsp calls remain executable on the board.
++CHARON_CFLAGS = $(TARGET_CFLAGS) -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard \
++	-fcommon -D_DEFAULT_SOURCE=1 -pthread
+ 
+ define CHARON_BUILD_CMDS
+ 	$(TARGET_MAKE_ENV) $(TARGET_CC) $(CHARON_CFLAGS) -std=c99 -O3 \
+diff --git a/package/liquid-dsp/liquid-dsp.mk b/package/liquid-dsp/liquid-dsp.mk
+index fcdf572532..510b37f3d6 100644
+--- a/package/liquid-dsp/liquid-dsp.mk
++++ b/package/liquid-dsp/liquid-dsp.mk
+@@ -21,7 +21,7 @@ LIQUID_DSP_CONF_ENV = \
+ 	ax_cv_have_sse42_ext=$(if $(BR2_X86_CPU_HAS_SSE42),yes,no) \
+ 	ax_cv_have_avx_ext=$(if $(BR2_X86_CPU_HAS_AVX),yes,no)
+ 
+-LIQUID_DSP_CFLAGS = $(TARGET_CFLAGS)
++LIQUID_DSP_CFLAGS = $(TARGET_CFLAGS) -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard
+ LIQUID_DSP_LDFLAGS = $(TARGET_LDFLAGS)
+ 
+ # Speed over accuracy trade off

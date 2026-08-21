@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 21 Aug 2026 00:00:00 +0800
+Subject: [PATCH] e200: initialize persistent Charon defaults
+
+Install a pre-network service which writes common Charon defaults once.
+Per-device MAC addresses remain explicitly configured in SD uEnv.txt.
+---
+diff --git a/package/charon/S39charon-e200-defaults b/package/charon/S39charon-e200-defaults
+new file mode 100644
+index 0000000000..32de119d0b
+--- /dev/null
++++ b/package/charon/S39charon-e200-defaults
+@@ -0,0 +1,27 @@
++#!/bin/sh
++# One-time persistent Charon defaults.  The per-radio MAC is set in uEnv.txt.
++
++CONFIG_VERSION=1
++
++install_charon_defaults() {
++	installed_version=$(/usr/sbin/fw_printenv -n charon_e200_config_version 2>/dev/null || true)
++	[ "$installed_version" = "$CONFIG_VERSION" ] && return 0
++
++	/usr/sbin/fw_setenv enable_charon 1
++	/usr/sbin/fw_setenv freq_rxtx_hz 915000000
++	/usr/sbin/fw_setenv rf_bandwidth 250000
++	/usr/sbin/fw_setenv tx_output_power_minus_dbm 10
++	/usr/sbin/fw_setenv ref_correction_ppm 5.0
++	# Write the marker last so a partial update is retried on the next boot.
++	/usr/sbin/fw_setenv charon_e200_config_version "$CONFIG_VERSION"
++}
++
++case "$1" in
++	start)
++		install_charon_defaults
++		;;
++	stop) ;;
++	*) echo "Usage: $0 {start|stop}"; exit 1 ;;
++esac
++
++exit 0
+diff --git a/package/charon/charon.mk b/package/charon/charon.mk
+index 5a05ce4fcc..3f51882f8b 100644
+--- a/package/charon/charon.mk
++++ b/package/charon/charon.mk
+@@ -56,7 +56,8 @@ endef
+ 
+ define CHARON_INSTALL_TARGET_CMDS
+ 	$(INSTALL) -D -m 0755 $(@D)/charon $(TARGET_DIR)/usr/bin/charon
+-	$(INSTALL) -D -m 0755 $(CHARON_PKGDIR)/S100-start_charon $(TARGET_DIR)/etc/init.d/S100-start_charon
++	$(INSTALL) -D -m 0755 $(CHARON_PKGDIR)/S39charon-e200-defaults $(TARGET_DIR)/etc/init.d/S39charon-e200-defaults
++	$(INSTALL) -D -m 0755 $(CHARON_PKGDIR)/S100-start_charon $(TARGET_DIR)/etc/init.d/S99start_charon
+ endef
+ 
+ $(eval $(generic-package))
+

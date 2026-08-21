@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 21 Aug 2026 00:00:00 +0800
+Subject: [PATCH] charon: use liquid-dsp public framesync API
+
+Install package/charon/0004-use-liquid-public-framesync-api.patch for the ANTSDR E200 Charon integration.
+---
+diff --git a/package/charon/0004-use-liquid-public-framesync-api.patch b/package/charon/0004-use-liquid-public-framesync-api.patch
+new file mode 100644
+index 0000000000..1111111111
+--- /dev/null
++++ b/package/charon/0004-use-liquid-public-framesync-api.patch
+@@ -0,0 +1,82 @@
++From: Codex <codex@openai.com>
++Subject: [PATCH] ofdm: use liquid-dsp public framesync API
++
++Charon copied liquid-dsp's private OFDM synchronizer structures from an
++older release and dereferenced them to read the state and carrier offset.
++The structure layout changed by liquid-dsp 1.4.0, making the first state
++read dereference an invalid pointer and crash with SIGSEGV.
++
++Use the public query/set functions provided by liquid-dsp instead.  The
++frame-open result preserves the only distinction Charon needs: whether the
++receiver is seeking a frame and therefore may transmit.
++
++--- a/ofdm_rx.c
+++++ b/ofdm_rx.c
++@@ -91,7 +91,5 @@ static int total_bad_frames=0;
++ static int64_t total_bytes=0;
++ 
++-static struct ofdmflexframesync_s *_q;
++-static struct ofdmframesync_s *_qq;
++ static uint8_t frame_buffer[2346];
++ static int frame_len;
++ 
++@@ -129,12 +126,7 @@ void do_ofdm_mix_down(float complex sample, float complex *y) {
++ ////////////////////////////////////////////////////////////////////////////////////////////////////////
++ int ofdm_rx_state() {
++ 
++-  if(_q == NULL) {
++-    _q = fs;
++-    _qq = _q->fs;
++-  }
++-
++-  return _qq->state; 
+++  return ofdmflexframesync_is_frame_open(fs);
++ }
++ 
++ ////////////////////////////////////////////////////////////////////////////////////////////////////////
++@@ -228,12 +220,6 @@ is_accept=0;
++ 
++   }
++ 
++-  if(_q == NULL) {
++-    _q = fs;
++-    _qq = _q->fs;
++-  }
++-
++-
++   if(time_start==0) {
++     time_start = time(NULL);
++   }
++@@ -282,6 +268,6 @@ is_accept=0;
++     //we didn't transmit this and it is an ack frame,  cancel tx retries
++     if( is_ack ) {
++-      last_good_nco_freq = nco_crcf_get_frequency(_qq->nco_rx);
+++      last_good_nco_freq = ofdmflexframesync_get_cfo(fs);
++       fprintf(stderr, "\nRF_IN-> GOT ACK, %02x:%02x:%02x:%02x:%02x:%02x",
++           rec_ack[0],
++           rec_ack[1],
++@@ -299,6 +285,6 @@ is_accept=0;
++       if( !is_broadcast && is_dup(in_pid) ) {
++         fprintf(stderr, "\nRF_IN->dropping duplicate.  sending ACK, gain: %lld", rx_gain);
++-        last_good_nco_freq = nco_crcf_get_frequency(_qq->nco_rx);
+++        last_good_nco_freq = ofdmflexframesync_get_cfo(fs);
++         if(!is_broadcast) do_send_ack(ack_mac);
++         return 0;
++       }
++@@ -310,6 +296,6 @@ is_accept=0;
++       if( write_tap_dev(frame_buffer, frame_len) == frame_len) {
++         fprintf(stderr, "\nRF_IN->TAPDEV_OUT_, len=%d, rssi: %3.1f dBm, rx EVM %3.1f dB, in-gain: %lld dB, d-rate %d Kbps, ", frame_len, rssi_dbm, _stats.evm, rx_gain, data_rate_kbps);
++         fprintf(stderr,"#sub-carriers=%d, mod: %s", OFDM_M, modulation_types[_stats.mod_scheme].name);
++-        last_good_nco_freq = nco_crcf_get_frequency(_qq->nco_rx);
+++        last_good_nco_freq = ofdmflexframesync_get_cfo(fs);
++       }
++       rx_timeout = RX_TIMEOUT;
++@@ -345,7 +331,7 @@ is_accept=0;
++ 
++   }
++   else {
++-    nco_crcf_set_frequency(_qq->nco_rx, last_good_nco_freq);
+++    ofdmflexframesync_set_cfo(fs, last_good_nco_freq);
++ 
++     did_rx_ok=0;
++     total_bad_frames++;
+-- 
+2.34.1
+

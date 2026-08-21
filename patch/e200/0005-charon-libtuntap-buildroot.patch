@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 21 Aug 2026 00:00:00 +0800
+Subject: [PATCH] e200: fix Charon TAP creation on E200 kernel
+
+Add the libtuntap fix required for the E200 kernel's TUNSETIFF behavior.
+---
+diff --git a/package/charon/0003-fix-libtuntap-ifname.patch b/package/charon/0003-fix-libtuntap-ifname.patch
+new file mode 100644
+index 0000000000..78dfe82e8a
+--- /dev/null
++++ b/package/charon/0003-fix-libtuntap-ifname.patch
+@@ -0,0 +1,18 @@
++From: Codex <codex@openai.com>
++Subject: [PATCH] libtuntap: retain the name returned by TUNSETIFF
++
++The pinned libtuntap calls SIOCSIFNAME before initializing dev->if_name.
++E200's kernel rejects the rename with ENODEV even though TUNSETIFF has
++already created the requested ofdm0 device.  TUNSETIFF already assigned
++the desired name, so retain it directly.
++
++--- a/third_party/libtuntap/tuntap-unix-linux.c
+++++ b/third_party/libtuntap/tuntap-unix-linux.c
++@@ -107,7 +107,9 @@ tuntap_sys_start(struct device *dev, int mode, int tun) {
++ 		return -1;
++ 	}
++ 
++-  tuntap_sys_set_ifname(dev, "ofdm0\0", 6);
+++	/* TUNSETIFF already created the requested name.  Do not issue a
+++	 * second SIOCSIFNAME using the uninitialized dev->if_name. */
+++	(void)memcpy(dev->if_name, ifr.ifr_name, sizeof(dev->if_name));
+

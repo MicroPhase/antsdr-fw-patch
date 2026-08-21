@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 21 Aug 2026 00:00:00 +0800
+Subject: [PATCH] charon: validate nonblocking TAP reads
+
+Install package/charon/0005-check-tap-read-before-copy.patch for the ANTSDR E200 Charon integration.
+---
+diff --git a/package/charon/0005-check-tap-read-before-copy.patch b/package/charon/0005-check-tap-read-before-copy.patch
+new file mode 100644
+index 0000000000..2222222222
+--- /dev/null
++++ b/package/charon/0005-check-tap-read-before-copy.patch
+@@ -0,0 +1,25 @@
++From: Codex <codex@openai.com>
++Subject: [PATCH] tap: validate nonblocking read before copying
++
++ofdm0 is opened nonblocking, so read() normally returns -1/EAGAIN when no
++frame is queued.  The old code converted that -1 to a huge size_t in memcpy
++before checking it, eventually crashing in libc.  Check the result first and
++also honor the caller's buffer size.
++
++--- a/tap_device.c
+++++ b/tap_device.c
++@@ -166,8 +166,12 @@ int read_tap_dev(char *buffer, int max_len, char *dst_mac, char *is_broadcast) {
++  uint8_t *payload = (uint8_t *) tcp->payload;
++ 
++- nbytes = read(dev->tun_fd, _buffer, 2342);//is this source of memory leak, try copy 
++- memcpy(buffer,_buffer,nbytes);
+++ if (max_len <= 0)
+++   return 0;
+++
+++ nbytes = read(dev->tun_fd, _buffer,
+++               max_len < (int)sizeof(_buffer) ? max_len : (int)sizeof(_buffer));
++ 
++  if(nbytes<=0) return 0;
+++ memcpy(buffer,_buffer,nbytes);
++ 
++   memcpy(dst_mac, mac_all_zero, 6);
+-- 
+2.34.1
+

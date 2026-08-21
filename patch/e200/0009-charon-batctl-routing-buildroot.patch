@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 21 Aug 2026 00:00:00 +0800
+Subject: [PATCH] charon: resolve routes using batctl netlink output
+
+Install package/charon/0006-use-batctl-originators.patch for the ANTSDR E200 Charon integration.
+---
+diff --git a/package/charon/0006-use-batctl-originators.patch b/package/charon/0006-use-batctl-originators.patch
+new file mode 100644
+index 0000000000..3333333333
+--- /dev/null
++++ b/package/charon/0006-use-batctl-originators.patch
+@@ -0,0 +1,106 @@
++From: Codex <codex@openai.com>
++Subject: [PATCH] routing: query originators through modern batctl
++
++The batman-adv debugfs originators file used by Charon is not available with
++the E200 kernel/batman-adv combination.  batctl obtains the same table through
++netlink, so parse its headerless output to resolve an originator to the
++selected next hop.
++
++--- a/util.c
+++++ b/util.c
++@@ -130,73 +130,32 @@ int is_batman_route(const char*org_dest_mac_a, uint8_t *dst_route){
++ 
++ FILE * fp;
++ char line[1024];
++-char *ptr;
++-char *tok1;
++-char *tok2;
++-char *tok3;
++-char *tok4;
++-char *tok5;
++-char *tok6;
++-char *tok7;
++-char *tok8;
+++char originator[18];
+++char next_hop[18];
++ 
++   memset(line,0x00,sizeof(line));
++-  if((fp = fopen("/sys/kernel/debug/batman_adv/bat0/originators","r")) != NULL){
++-    if(fp==NULL) return 0;
++-
++-    while(fgets(line,sizeof(line),fp)!=NULL){
++-      if(line[0]==' ') {
++-        memset(line,0x00,sizeof(line));
++-        continue;
++-      }
++-
++-      if( strncmp(org_dest_mac_a, &line[0], strlen(org_dest_mac_a))==0 ) {
++-        ptr = &line[strlen(org_dest_mac_a)];
++-
++-        tok1 = strtok(ptr, " ");
++-        if(tok1==NULL) goto clean;
++-          //fprintf(stderr, "\ntok1: %s", tok1);
++-
++-        tok2 = strtok(NULL, ")");
++-        if(tok2==NULL) goto clean;
++-
++-        tok3 = strtok(NULL, " "); //this is the next hop for this originator
++-        if(tok3==NULL) goto clean;
++-
++-        tok4 = strtok(NULL, " "); 
++-        if(tok4==NULL) goto clean;
++-        tok5 = strtok(NULL, " "); 
++-        if(tok5==NULL) goto clean;
++-        tok6 = strtok(NULL, " "); 
++-        if(tok6==NULL) goto clean;  //next potential hop
++-
++-          if( strlen(tok3) < 17 ) goto clean;
++-
++-          fprintf(stderr, "\nnext hop-> %s", tok3);
++-          tok3[2] = 0;
++-          tok3[5] = 0;
++-          tok3[8] = 0;
++-          tok3[11] = 0;
++-          tok3[14] = 0;
++-          dst_route[0] = strtol(&tok3[0],NULL,16);
++-          dst_route[1] = strtol(&tok3[3],NULL,16);
++-          dst_route[2] = strtol(&tok3[6],NULL,16);
++-          dst_route[3] = strtol(&tok3[9],NULL,16);
++-          dst_route[4] = strtol(&tok3[12],NULL,16);
++-          dst_route[5] = strtol(&tok3[15],NULL,16);
++-
++-        fclose(fp);
++-        return 1;
++-      }
++-      memset(line,0x00,sizeof(line));
+++  if((fp = popen("/usr/sbin/batctl originators -H", "r")) == NULL){
+++    perror("batctl originators:popen:");
+++    return 0;
+++  }
+++
+++  while(fgets(line,sizeof(line),fp)!=NULL){
+++    memset(originator, 0, sizeof(originator));
+++    memset(next_hop, 0, sizeof(next_hop));
+++    if(sscanf(line, " %*c %17[0-9A-Fa-f:] %*[^)]) %17[0-9A-Fa-f:]",
+++              originator, next_hop) != 2)
+++      continue;
+++    if(strcmp(originator, org_dest_mac_a) != 0)
+++      continue;
+++
+++    if(sscanf(next_hop, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx",
+++              &dst_route[0], &dst_route[1], &dst_route[2],
+++              &dst_route[3], &dst_route[4], &dst_route[5]) == 6) {
+++      pclose(fp);
+++      return 1;
++     }
++-    goto clean; 
++-  } else {                    
++-    perror("read_config:fopen:");
++-    goto clean; 
++   }
++ 
++-clean:
++-if(fp!=NULL) fclose(fp);
+++  pclose(fp);
++   return 0;
++ }
+-- 
+2.34.1
+

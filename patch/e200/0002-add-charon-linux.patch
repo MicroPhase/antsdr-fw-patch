@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 21 Aug 2026 00:00:00 +0800
+Subject: [PATCH] e200: enable TUN and bridge networking for Charon
+
+Charon carries Ethernet frames through a TAP device and bridges the
+batman-adv interface with usb0.  Keep these core interfaces built in so the
+SD-card image does not depend on a separate module load for TUN/bridge.
+---
+ arch/arm/configs/zynq_e200_defconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm/configs/zynq_e200_defconfig b/arch/arm/configs/zynq_e200_defconfig
+index 000000000000..111111111111 100644
+--- a/arch/arm/configs/zynq_e200_defconfig
++++ b/arch/arm/configs/zynq_e200_defconfig
+@@ -63,6 +63,12 @@ CONFIG_NET=y
+ CONFIG_PACKET=y
+ CONFIG_UNIX=y
+ CONFIG_INET=y
++CONFIG_TUN=y
++CONFIG_BRIDGE=y
++CONFIG_BATMAN_ADV=y
++CONFIG_BATMAN_ADV_BATMAN_V=y
++CONFIG_BATMAN_ADV_BLA=y
++CONFIG_BATMAN_ADV_DAT=y
+ CONFIG_IP_MULTICAST=y
+ CONFIG_IP_PNP=y
+ CONFIG_IP_PNP_DHCP=y
+-- 
+2.43.0

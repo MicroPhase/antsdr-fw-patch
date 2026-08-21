@@ -1,0 +1,288 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 21 Aug 2026 00:00:00 +0800
+Subject: [PATCH] e200: adapt Charon networking and startup
+
+Keep eth0 as the management interface, derive a unique RF mesh address,
+and make the service restart-safe.
+---
+diff --git a/package/charon/0002-add-antsdr-e200-network-mode.patch b/package/charon/0002-add-antsdr-e200-network-mode.patch
+new file mode 100644
+index 0000000000..1e74e03ed4
+--- /dev/null
++++ b/package/charon/0002-add-antsdr-e200-network-mode.patch
+@@ -0,0 +1,164 @@
++From: Codex <codex@openai.com>
++Subject: [PATCH] config: add ANTSDR E200 standalone mesh networking
++
++The ANTSDR E200 uses eth0 for management and does not expose the Pluto
++usb0 gadget interface.  Keep eth0 outside the RF mesh to avoid creating a
++layer-2 loop when two E200s share an Ethernet switch.  Put only bat0 in a
++local mesh-bridge and derive its 192.168.10.x address from eth0's last
++octet.  A mesh_ipaddr U-Boot variable may be used to override the derived
++address.
++
++Also bound the U-Boot environment value copy to the actual token length.
++
++--- a/config.c
+++++ b/config.c
++@@ -251,12 +251,36 @@ void read_config() {
++     fprintf(stderr, "\ncould not find max_tcp_share_backoff in u-boot env.  setting to default of %d", max_tcp_share_backoff);
++   }
++ 
++-  //pluto ip address for mesh-bridge (normally usb0)
++-  usb_ip32 = get_netif_ip("usb0", usb_ip);
+++  /*
+++   * ANTSDR E200 network layout:
+++   *
+++   *   eth0          management only (192.168.1.x)
+++   *   ofdm0 -> bat0 RF mesh
+++   *   bat0 -> mesh-bridge (192.168.10.x)
+++   *
+++   * Do not bridge eth0: two E200s normally share an Ethernet switch and
+++   * bridging that path to RF would create a layer-2 loop.
+++   */
+++  memset(usb_ip, 0x00, sizeof(usb_ip));
+++  usb_ip32 = get_netif_ip("eth0", usb_ip);
++   memset(cmd_str, 0x00, sizeof(cmd_str));
++-  if( read_fw_attr_value("ipaddr", cmd_str, 128) == 0) {  
++-    inet_pton( AF_INET, cmd_str, &usb_ip32 ); 
++-    fprintf(stderr, "\nfound ipaddr in u-boot environment");
++-  }
+++  if( read_fw_attr_value("mesh_ipaddr", cmd_str, 128) == 0 &&
+++      inet_pton(AF_INET, cmd_str, &usb_ip32) == 1) {
+++    fprintf(stderr, "\nfound mesh_ipaddr in u-boot environment");
+++  }
+++  else {
+++    struct in_addr management_addr;
+++    unsigned char *octets;
+++
+++    if (usb_ip32 == 0xffffffff &&
+++        read_fw_attr_value("ipaddr_eth", cmd_str, 128) == 0)
+++      inet_pton(AF_INET, cmd_str, &usb_ip32);
+++
+++    management_addr.s_addr = usb_ip32;
+++    octets = (unsigned char *)&management_addr.s_addr;
+++    snprintf(usb_ip, sizeof(usb_ip), "192.168.10.%u", octets[3]);
+++    inet_pton(AF_INET, usb_ip, &usb_ip32);
+++    fprintf(stderr, "\nderived mesh address %s from eth0", usb_ip);
+++  }
++ 
++   sleep(1);
++@@ -279,76 +303,28 @@ void read_config() {
++     ofdm0_mac[4], 
++     ofdm0_mac[5] );
++ 
++-  //this option allows for non-batman aware clients to use the mesh network.  it has the advantage of less OGM traffic, but
++-  //has the disadvantage that the client will have to wait to discover other nodes in the network via ARP after the local ARP tables
++-  //expire.
++-  if(usb_batman_if==0) {
++-
++-      system("/sbin/ip link set down dev ofdm0");
++-      system("/sbin/ip link set down dev usb0");
++-      system("/sbin/ip link set down dev mesh-bridge");
++-      sleep(1);
++-
++-      system("/sbin/ifconfig ofdm0 0.0.0.0 mtu 2342");
++-      system("/sbin/ifconfig usb0 0.0.0.0 mtu 2342");
++-
++-      system("/usr/sbin/batctl if add ofdm0");
++-      system("/sbin/ip link set up dev ofdm0");
++-      sleep(1);
++-
++-      system("/sbin/ip link add name mesh-bridge type bridge");
++-      system("/sbin/ip link set dev usb0 master mesh-bridge");
++-      system("/sbin/ip link set dev bat0 master mesh-bridge");
++-
++-      system("/sbin/ifconfig mesh-bridge 0.0.0.0 mtu 2342");
++-
++-      sleep(1);
++-      system("/sbin/ip link set up dev usb0");
++-      sleep(1);
++-      system("/sbin/ip link set up dev bat0");
++-      sleep(1);
++-      system("/sbin/ip link set up dev mesh-bridge");
++-      sleep(1);
++-      sprintf( cmd_str, "/sbin/ifconfig mesh-bridge %s up\0", usb_ip); 
++-      system(cmd_str);
++-      sleep(1);
++-  }
++-  else {
++-      system("/sbin/ip link set down dev ofdm0");
++-      system("/sbin/ip link set down dev usb0");
++-      system("/sbin/ip link set down dev mesh-bridge");
++-      sleep(1);
++-
++-      system("/sbin/ifconfig ofdm0 0.0.0.0 mtu 2342");
++-      system("/sbin/ifconfig usb0 0.0.0.0 mtu 2342");
++-
++-      system("/usr/sbin/batctl if add ofdm0");
++-      system("/sbin/ip link set up dev ofdm0");
++-      sleep(1);
++-
++-      system("/usr/sbin/brctl addbr mesh-bridge");
++-      system("/usr/sbin/brctl addif mesh-bridge bat0");
++-      system("/usr/sbin/brctl addif mesh-bridge ofdm0");
++-      system("/usr/sbin/brctl addif mesh-bridge usb0");
++-
++-      system("/sbin/ifconfig mesh-bridge 0.0.0.0 mtu 2342");
++-
++-      sleep(1);
++-      system("/sbin/ip link set up dev usb0");
++-      sleep(1);
++-      system("/sbin/ip link set up dev bat0");
++-      sleep(1);
++-      system("/sbin/ip link set up dev mesh-bridge");
++-      sleep(1);
++-      sprintf( cmd_str, "/sbin/ifconfig mesh-bridge %s up\0", usb_ip); 
++-      system(cmd_str);
++-      sleep(1);
++-  }
+++  system("/sbin/ip link set down dev ofdm0");
+++  system("/sbin/ip link set down dev mesh-bridge 2>/dev/null");
+++  system("/sbin/ifconfig ofdm0 0.0.0.0 mtu 2342");
+++
+++  system("/usr/sbin/batctl if add ofdm0");
+++  system("/sbin/ip link set up dev ofdm0");
+++  sleep(1);
+++
+++  system("/sbin/ip link add name mesh-bridge type bridge");
+++  system("/sbin/ip link set dev bat0 master mesh-bridge");
+++  system("/sbin/ifconfig mesh-bridge 0.0.0.0 mtu 2342");
+++  system("/sbin/ip link set up dev bat0");
+++  system("/sbin/ip link set up dev mesh-bridge");
+++  snprintf(cmd_str, sizeof(cmd_str),
+++           "/sbin/ifconfig mesh-bridge %s netmask 255.255.255.0 up", usb_ip);
+++  system(cmd_str);
+++  sleep(1);
++ 
++-  sprintf( cmd_str, "/usr/sbin/batctl it %d\0", bat_ogm_interval); 
+++  snprintf(cmd_str, sizeof(cmd_str), "/usr/sbin/batctl it %d", bat_ogm_interval);
++   system(cmd_str); //originator frame interval in ms 
++ 
++   fprintf(stderr,"\ngiving charon a cpu core to itself.");
++-  sprintf( cmd_str, "/usr/bin/taskset -p 02 %d", getpid());   //give charon a cpu core to itself
+++  snprintf(cmd_str, sizeof(cmd_str), "/usr/bin/taskset -p 02 %d", getpid());
++   system(cmd_str);
++ }
++--- a/util.c
+++++ b/util.c
++@@ -105,7 +105,7 @@ char *tok1;
++       if( strncmp(config_key, &line[0], strlen(config_key))==0 ) {
++         ptr = &line[strlen(config_key)];
++         tok1 = strtok(ptr, " =\r\n");
++-        memcpy(value, tok1, max_len-1);
+++        snprintf(value, max_len, "%s", tok1);
++ 
++         fprintf(stderr, "\nfound %s key:  value:->%s<-", config_key, value);
++ 
+diff --git a/package/charon/Config.in b/package/charon/Config.in
+index 7aa49f1815..883d3ad2a8 100644
+--- a/package/charon/Config.in
++++ b/package/charon/Config.in
+@@ -15,8 +15,8 @@ config BR2_PACKAGE_CHARON
+ 	  network daemon for AD936x SDRs.  It creates an ofdm0 TAP device
+ 	  and exchanges Ethernet frames over a 64-subcarrier OFDM link.
+ 
+-	  This ANTSDR port is intended for E200 SD-card boot first; set the
+-	  U-Boot maxcpus variable to 2 before enabling the service.
++	  The E200 SD-card image enables the service and both CPU cores by
++	  default.  eth0 remains a dedicated management interface.
+ 
+ comment "charon needs a toolchain w/ threads"
+ 	depends on !BR2_TOOLCHAIN_HAS_THREADS
+diff --git a/package/charon/S100-start_charon b/package/charon/S100-start_charon
+index 3be94e7cb1..b7e106d208 100755
+--- a/package/charon/S100-start_charon
++++ b/package/charon/S100-start_charon
+@@ -1,25 +1,82 @@
+ #!/bin/sh
+-# Start Charon after the normal E200 network and USB services.
++# Start Charon after the E200 management network is configured.
+ 
+-[ -x /usr/bin/charon ] || exit 0
++DAEMON=/usr/bin/charon
++PIDFILE=/var/run/charon.pid
++LOGFILE=/var/log/charon.log
++
++[ -x "$DAEMON" ] || exit 0
++
++is_running() {
++	[ -s "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
++}
++
++cleanup_mesh() {
++	/usr/sbin/batctl if del ofdm0 2>/dev/null || true
++	/sbin/ip link set mesh-bridge down 2>/dev/null || true
++	/sbin/ip link del mesh-bridge type bridge 2>/dev/null || true
++	/sbin/ip link del ofdm0 2>/dev/null || true
++}
+ 
+ start() {
+ 	printf "Starting Charon OFDM mesh: "
+-	# batman-adv is built into the E200 kernel configuration.
++	if is_running; then
++		echo "already running"
++		return 0
++	fi
++	rm -f "$PIDFILE"
++
++	enable_charon=$(/usr/sbin/fw_printenv -n enable_charon 2>/dev/null || echo 1)
++	if [ "$enable_charon" = 0 ]; then
++		echo "disabled"
++		return 0
++	fi
++
++	# S40network normally creates eth0 before this S100 service.
++	wait_count=0
++	while [ ! -d /sys/class/net/eth0 ] && [ "$wait_count" -lt 10 ]; do
++		sleep 1
++		wait_count=$((wait_count + 1))
++	done
++	if [ ! -d /sys/class/net/eth0 ]; then
++		echo "FAIL (eth0 missing)"
++		return 1
++	fi
++
+ 	modprobe batman_adv 2>/dev/null || true
+-	# mdev normally creates this node; create it for boards with a minimal mdev setup.
+ 	if [ ! -c /dev/net/tun ]; then
+ 		mkdir -p /dev/net
+ 		mknod /dev/net/tun c 10 200 2>/dev/null || true
+ 	fi
+-	start-stop-daemon -S -b -q -m -p /var/run/charon.pid -x /usr/bin/charon
+-	[ -f /var/run/charon.pid ] && echo "OK" || echo "FAIL"
++	cleanup_mesh
++
++	: > "$LOGFILE"
++	"$DAEMON" >> "$LOGFILE" 2>&1 &
++	echo $! > "$PIDFILE"
++	sleep 2
++	if is_running; then
++		echo "OK"
++	else
++		echo "FAIL (see $LOGFILE)"
++		rm -f "$PIDFILE"
++		return 1
++	fi
+ }
+ 
+ stop() {
+ 	printf "Stopping Charon: "
+-	start-stop-daemon -K -q -p /var/run/charon.pid 2>/dev/null || true
+-	 rm -f /var/run/charon.pid
++	if is_running; then
++		pid=$(cat "$PIDFILE")
++		kill "$pid" 2>/dev/null || true
++		wait_count=0
++		while kill -0 "$pid" 2>/dev/null && [ "$wait_count" -lt 5 ]; do
++			sleep 1
++			wait_count=$((wait_count + 1))
++		done
++		kill -9 "$pid" 2>/dev/null || true
++	fi
++	rm -f "$PIDFILE"
++	cleanup_mesh
+ 	echo "OK"
+ }
+ 

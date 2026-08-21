@@ -88,21 +88,10 @@ cd antsdr-fw-patch
 
    
 
-If you patch is successfully applied, you can see the following information.
+If the patches are successfully applied, the command ends with:
 
 ```txt
-jcc@jcc:~/work/Git/mp/antsdr-fw-patch$ sh patch.sh e200
-Patch check...
- ...
- ...
- Makefile               |   29 +++++++-
- scripts/antsdre200.its |  174 ++++++++++++++++++++++++++++++++++++++++++++++++
- scripts/antsdre200.mk  |   10 +++
- 3 files changed, 211 insertions(+), 2 deletions(-)
-Patch...
-...
-...
-patch finish
+Patch application finished successfully
 
 ```
 
@@ -112,8 +101,17 @@ Then you can make firmware.
 
 ```sh
 cd plutosdr-fw
-make
+env -u LD_LIBRARY_PATH LC_ALL=C LANGUAGE=C make TARGET=e200
+
+# For SD-card boot, after the firmware build completes:
+env -u LD_LIBRARY_PATH LC_ALL=C LANGUAGE=C make TARGET=e200 sdimg
 ```
+
+The SD-card files are written to `build_sdimg/`.  The generated `uEnv.txt`
+contains the Charon defaults and `maxcpus=2`; edit only `ethaddr` there to give
+each board a unique management MAC address.  The build requires Vivado 2022.2
+and an ARM hard-float toolchain; `LC_ALL=C LANGUAGE=C` avoids a locale parsing
+bug in this older Buildroot release.
 
 After the firmware building finished, you will see below file in the build folder. These files are used for flash updating.(This is e200 device)
 

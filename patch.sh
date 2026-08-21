@@ -1,62 +1,47 @@
-target=$1
+#!/bin/sh
 
-cp ./patch/*v0.38.patch ./plutosdr-fw/hdl
-cp ./patch/${target}/*linux.patch	./plutosdr-fw/linux
-cp ./patch/${target}/*buildroot.patch	./plutosdr-fw/buildroot
-cp ./patch/${target}/*scripts.patch ./plutosdr-fw/
-cp ./patch/${target}/*uboot.patch	./plutosdr-fw/u-boot-xlnx
+# Apply the firmware patches in filename order. Stop at the first failure so
+# a successful exit always means that every requested patch was applied.
+set -eu
 
-echo "Patch check..."
-cd ./plutosdr-fw/hdl
-git apply --stat *.patch
-git apply --check *.patch
-cd ../..
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+target=${1-}
 
-cd ./plutosdr-fw/u-boot-xlnx
-git apply --stat *.patch
-git apply --check *.patch
-cd ../..
+if [ -z "$target" ] || [ ! -d "$SCRIPT_DIR/patch/$target" ]; then
+	echo "Usage: $0 <target>" >&2
+	exit 2
+fi
 
-cd ./plutosdr-fw/linux
-git apply --stat *.patch
-git apply --check *.patch
-cd ../..
+apply_patch_group() {
+	repository=$1
+	shift
+	found=0
 
-cd ./plutosdr-fw/buildroot
-git apply --stat *.patch
-git apply --check *.patch
-cd ../..
+	for patch in "$@"; do
+		[ -f "$patch" ] || continue
+		found=1
+		echo "Checking $(basename "$patch")"
+		git -C "$repository" apply --check "$patch"
+		git -C "$repository" apply --stat "$patch"
+		git -C "$repository" apply "$patch"
+	done
 
-cd ./plutosdr-fw/
-git apply --stat *.patch
-git apply --check *.patch
-cd ../
+	if [ "$found" -eq 0 ]; then
+		echo "No patches found for $repository" >&2
+		exit 1
+	fi
+}
 
-echo "Patch..."
-cd ./plutosdr-fw/hdl
-git apply *.patch
-rm -rf *.patch
-cd ../..
+echo "Applying patches for $target..."
+apply_patch_group "$SCRIPT_DIR/plutosdr-fw/hdl" \
+	"$SCRIPT_DIR"/patch/*v0.38.patch
+apply_patch_group "$SCRIPT_DIR/plutosdr-fw/u-boot-xlnx" \
+	"$SCRIPT_DIR"/patch/"$target"/*uboot.patch
+apply_patch_group "$SCRIPT_DIR/plutosdr-fw/linux" \
+	"$SCRIPT_DIR"/patch/"$target"/*linux.patch
+apply_patch_group "$SCRIPT_DIR/plutosdr-fw/buildroot" \
+	"$SCRIPT_DIR"/patch/"$target"/*buildroot.patch
+apply_patch_group "$SCRIPT_DIR/plutosdr-fw" \
+	"$SCRIPT_DIR"/patch/"$target"/*scripts.patch
 
-cd ./plutosdr-fw/u-boot-xlnx
-git apply *.patch
-rm -rf *.patch
-cd ../..
-
-cd ./plutosdr-fw/linux
-git apply *.patch
-rm -rf *.patch
-cd ../..
-
-cd ./plutosdr-fw/buildroot
-git apply *.patch
-rm -rf *.patch
-cd ../..
-
-cd ./plutosdr-fw/
-git apply *.patch
-rm -rf *.patch
-cd ../
-
-echo "patch finish"
-
+echo "Patch application finished successfully"

@@ -1,0 +1,83 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 21 Aug 2026 00:00:00 +0800
+Subject: [PATCH] tools: prefer bundled libfdt headers
+
+Recent build hosts may install a newer libfdt in /usr/include.  The old
+U-Boot tools must consistently use their bundled libfdt API; otherwise the
+two versions are included together and host tool compilation fails.
+---
+ include/image.h                          | 2 +-
+ include/libfdt.h                         | 4 ++--
+ tools/Makefile                           | 1 +
+ host-libfdt-include/fdt.h                | 1 +
+ host-libfdt-include/libfdt.h             | 1 +
+ host-libfdt-include/libfdt_env.h         | 1 +
+ 6 files changed, 7 insertions(+), 3 deletions(-)
+ create mode 100644 host-libfdt-include/fdt.h
+ create mode 100644 host-libfdt-include/libfdt.h
+ create mode 100644 host-libfdt-include/libfdt_env.h
+
+diff --git a/include/image.h b/include/image.h
+index d788c260e30..873d13055a5 100644
+--- a/include/image.h
++++ b/include/image.h
+@@ -50,7 +50,7 @@ struct lmb;
+ 
+ #if IMAGE_ENABLE_FIT
+ #include <hash.h>
+-#include <libfdt.h>
++#include "libfdt.h"
+ #include <fdt_support.h>
+ # ifdef CONFIG_SPL_BUILD
+ #  ifdef CONFIG_SPL_CRC32_SUPPORT
+diff --git a/include/libfdt.h b/include/libfdt.h
+index 74b1d149c2d..35a70f2a999 100644
+--- a/include/libfdt.h
++++ b/include/libfdt.h
+@@ -51,8 +51,8 @@
+  *     EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
+ 
+-#include <libfdt_env.h>
+-#include <fdt.h>
++#include "libfdt_env.h"
++#include "fdt.h"
+ 
+ #define FDT_FIRST_SUPPORTED_VERSION	0x10
+ #define FDT_LAST_SUPPORTED_VERSION	0x11
+diff --git a/tools/Makefile b/tools/Makefile
+index f72294a98a5..055ff8021bb 100644
+--- a/tools/Makefile
++++ b/tools/Makefile
+@@ -222,6 +222,7 @@ LICENSE-$(CONFIG_CMD_LICENSE) += $(LICENSE_H)
+ # Define _GNU_SOURCE to obtain the getline prototype from stdio.h
+ #
+ HOST_EXTRACFLAGS += -include $(srctree)/include/libfdt_env.h \
++		-I$(srctree)/host-libfdt-include \
+ 		$(patsubst -I%,-idirafter%, $(filter -I%, $(UBOOTINCLUDE))) \
+ 		-I$(srctree)/lib/libfdt \
+ 		-I$(srctree)/tools \
+diff --git a/host-libfdt-include/fdt.h b/host-libfdt-include/fdt.h
+new file mode 100644
+index 0000000..92fcfd1
+--- /dev/null
++++ b/host-libfdt-include/fdt.h
+@@ -0,0 +1 @@
++#include "../include/fdt.h"
+diff --git a/host-libfdt-include/libfdt.h b/host-libfdt-include/libfdt.h
+new file mode 100644
+index 0000000..f238a53
+--- /dev/null
++++ b/host-libfdt-include/libfdt.h
+@@ -0,0 +1 @@
++#include "../include/libfdt.h"
+diff --git a/host-libfdt-include/libfdt_env.h b/host-libfdt-include/libfdt_env.h
+new file mode 100644
+index 0000000..22e71f0
+--- /dev/null
++++ b/host-libfdt-include/libfdt_env.h
+@@ -0,0 +1 @@
++#include "../include/libfdt_env.h"
+-- 
+2.25.1

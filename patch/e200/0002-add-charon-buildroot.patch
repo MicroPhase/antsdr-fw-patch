@@ -1,0 +1,222 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 21 Aug 2026 00:00:00 +0800
+Subject: [PATCH] e200: add Charon OFDM mesh application
+
+Build Charon from its MIT-licensed upstream source and install it as an
+optional init service.  The package uses the existing ANTSDR libiio/AD936x
+stack and builds libtuntap as a private static dependency.
+---
+ package/Config.in                              |  1 +
+ package/charon/0001-fix-index-name-conflict.patch | 16 ++++++
+ package/charon/Config.in                       | 22 ++++++++
+ package/charon/charon.mk                       | 62 +++++++++++++++++++++++
+ package/charon/S100-start_charon               | 33 +++++++++++++
+ configs/zynq_e200_defconfig                    |  9 +++-
+ 6 files changed, 141 insertions(+), 1 deletion(-)
+ create mode 100644 package/charon/0001-fix-index-name-conflict.patch
+ create mode 100644 package/charon/Config.in
+ create mode 100644 package/charon/charon.mk
+ create mode 100755 package/charon/S100-start_charon
+---
+diff --git a/package/Config.in b/package/Config.in
+index 0000000000..1111111111 100644
+--- a/package/Config.in
++++ b/package/Config.in
+@@ -2286,6 +2286,7 @@ menu "Networking applications"
+ 	source "package/boinc/Config.in"
+ 	source "package/brcm-patchram-plus/Config.in"
+ 	source "package/bridge-utils/Config.in"
++	source "package/charon/Config.in"
+ 	source "package/bwm-ng/Config.in"
+ 	source "package/c-icap/Config.in"
+ 	source "package/c-icap-modules/Config.in"
+diff --git a/package/charon/0001-fix-index-name-conflict.patch b/package/charon/0001-fix-index-name-conflict.patch
+new file mode 100644
+index 0000000000..1111111112
+--- /dev/null
++++ b/package/charon/0001-fix-index-name-conflict.patch
+@@ -0,0 +1,16 @@
++From: Codex <codex@openai.com>
++Subject: [PATCH] pluto: remove unused index variable
++
++glibc exposes the legacy index() function when _DEFAULT_SOURCE is enabled,
++so the file-scope variable of the same name fails to compile.  The variable
++is unused and can be removed.
++
++--- a/pluto.c
+++++ b/pluto.c
++@@ -86,7 +86,6 @@ static float complex y[DECIMATE_INTERPOLATE_FACTOR];
++ static int nbytes_tx;
++ static int llen;
++-static int index=0;
++ static int tx_mod=0;
++ static int ii=0;
++ static int jj=0;
+diff --git a/package/charon/Config.in b/package/charon/Config.in
+new file mode 100644
+index 0000000000..2222222222
+--- /dev/null
++++ b/package/charon/Config.in
+@@ -0,0 +1,22 @@
++config BR2_PACKAGE_CHARON
++	bool "charon"
++	depends on BR2_TOOLCHAIN_HAS_THREADS
++	select BR2_PACKAGE_FFTW
++	select BR2_PACKAGE_FFTW_SINGLE
++	select BR2_PACKAGE_LIQUID_DSP
++	select BR2_PACKAGE_LIBAD9361_IIO
++	select BR2_PACKAGE_IPROUTE2
++	select BR2_PACKAGE_BRIDGE_UTILS
++	select BR2_PACKAGE_BATCTL
++	select BR2_PACKAGE_UTIL_LINUX
++	select BR2_PACKAGE_UTIL_LINUX_SCHEDUTILS
++	help
++	  Charon is a narrow-band OFDM transceiver and batman-adv mesh
++	  network daemon for AD936x SDRs.  It creates an ofdm0 TAP device
++	  and exchanges Ethernet frames over a 64-subcarrier OFDM link.
++
++	  This ANTSDR port is intended for E200 SD-card boot first; set the
++	  U-Boot maxcpus variable to 2 before enabling the service.
++
++comment "charon needs a toolchain w/ threads"
++	depends on !BR2_TOOLCHAIN_HAS_THREADS
+diff --git a/package/charon/charon.mk b/package/charon/charon.mk
+new file mode 100644
+index 0000000000..3333333333
+--- /dev/null
++++ b/package/charon/charon.mk
+@@ -0,0 +1,62 @@
++################################################################################
++#
++# charon
++#
++################################################################################
++
++CHARON_VERSION = 7638892d3b9c2c55f534d2c0c7b714812aeb5818
++CHARON_SITE = https://github.com/tvelliott/charon.git
++CHARON_SITE_METHOD = git
++CHARON_GIT_SUBMODULES = NO
++CHARON_LICENSE = MIT
++CHARON_LICENSE_FILES = LICENSE
++CHARON_DEPENDENCIES = fftw-single liquid-dsp libiio libad9361-iio iproute2 bridge-utils batctl util-linux
++
++CHARON_TUNTAP_VERSION = bf8e0fe078018b291dfe9df4d00c3d9e57d968c1
++CHARON_TUNTAP_SITE = https://github.com/tvelliott/libtuntap/archive
++CHARON_TUNTAP_SOURCE = $(CHARON_TUNTAP_VERSION).tar.gz
++CHARON_EXTRA_DOWNLOADS = $(CHARON_TUNTAP_SITE)/$(CHARON_TUNTAP_SOURCE)
++
++define CHARON_EXTRACT_TUNTAP
++	mkdir -p $(@D)/third_party/libtuntap
++	$(call suitable-extractor,$(CHARON_TUNTAP_SOURCE)) $(CHARON_DL_DIR)/$(CHARON_TUNTAP_SOURCE) | \
++		$(TAR) --strip-components=1 -C $(@D)/third_party/libtuntap $(TAR_OPTIONS) -
++endef
++CHARON_POST_EXTRACT_HOOKS += CHARON_EXTRACT_TUNTAP
++
++# libtuntap declares its callback as a tentative definition in tuntap.h.
++# GCC 10 defaults to -fno-common, so retain the behavior expected by this
++# pinned libtuntap revision until its public header is fixed upstream.
++CHARON_CFLAGS = $(TARGET_CFLAGS) -fcommon -D_DEFAULT_SOURCE=1 -pthread
++
++define CHARON_BUILD_CMDS
++	$(TARGET_MAKE_ENV) $(TARGET_CC) $(CHARON_CFLAGS) -std=c99 -O3 \
++		-I$(@D)/third_party/libtuntap -I$(@D) \
++		-c $(@D)/third_party/libtuntap/tuntap.c -o $(@D)/tuntap.o
++	$(TARGET_MAKE_ENV) $(TARGET_CC) $(CHARON_CFLAGS) -std=c99 -O3 \
++		-I$(@D)/third_party/libtuntap -I$(@D) \
++		-c $(@D)/third_party/libtuntap/tuntap_log.c -o $(@D)/tuntap_log.o
++	$(TARGET_MAKE_ENV) $(TARGET_CC) $(CHARON_CFLAGS) -std=c99 -O3 \
++		-I$(@D)/third_party/libtuntap -I$(@D) \
++		-c $(@D)/third_party/libtuntap/tuntap-unix.c -o $(@D)/tuntap-unix.o
++	$(TARGET_MAKE_ENV) $(TARGET_CC) $(CHARON_CFLAGS) -std=c99 -O3 \
++		-I$(@D)/third_party/libtuntap -I$(@D) \
++		-c $(@D)/third_party/libtuntap/tuntap-unix-linux.c -o $(@D)/tuntap-unix-linux.o
++	$(TARGET_AR) rcs $(@D)/libtuntap.a $(@D)/tuntap.o $(@D)/tuntap_log.o \
++		$(@D)/tuntap-unix.o $(@D)/tuntap-unix-linux.o
++	$(TARGET_MAKE_ENV) $(TARGET_CC) $(CHARON_CFLAGS) -std=c99 -O3 \
++		-D_DEFAULT_SOURCE=1 -I$(@D)/third_party/libtuntap -I$(@D) \
++		-I$(STAGING_DIR)/usr/include \
++		$(@D)/charon.c $(@D)/config.c $(@D)/crc.c $(@D)/ofdm_rx.c \
++		$(@D)/ofdm_tx.c $(@D)/pluto.c $(@D)/tap_device.c $(@D)/tcp_subs.c \
++		$(@D)/timers.c $(@D)/util.c $(@D)/libtuntap.a \
++		$(TARGET_LDFLAGS) -Wl,--start-group -liio -lad9361 -lliquid \
++		-lfftw3f -lm -lpthread -Wl,--end-group -o $(@D)/charon
++endef
++
++define CHARON_INSTALL_TARGET_CMDS
++	$(INSTALL) -D -m 0755 $(@D)/charon $(TARGET_DIR)/usr/bin/charon
++	$(INSTALL) -D -m 0755 $(CHARON_PKGDIR)/S100-start_charon $(TARGET_DIR)/etc/init.d/S100-start_charon
++endef
++
++$(eval $(generic-package))
+diff --git a/package/charon/S100-start_charon b/package/charon/S100-start_charon
+new file mode 100755
+index 0000000000..5555555555
+--- /dev/null
++++ b/package/charon/S100-start_charon
+@@ -0,0 +1,33 @@
++#!/bin/sh
++# Start Charon after the normal E200 network and USB services.
++
++[ -x /usr/bin/charon ] || exit 0
++
++start() {
++	printf "Starting Charon OFDM mesh: "
++	# batman-adv is built into the E200 kernel configuration.
++	modprobe batman_adv 2>/dev/null || true
++	# mdev normally creates this node; create it for boards with a minimal mdev setup.
++	if [ ! -c /dev/net/tun ]; then
++		mkdir -p /dev/net
++		mknod /dev/net/tun c 10 200 2>/dev/null || true
++	fi
++	start-stop-daemon -S -b -q -m -p /var/run/charon.pid -x /usr/bin/charon
++	[ -f /var/run/charon.pid ] && echo "OK" || echo "FAIL"
++}
++
++stop() {
++	printf "Stopping Charon: "
++	start-stop-daemon -K -q -p /var/run/charon.pid 2>/dev/null || true
++	 rm -f /var/run/charon.pid
++	echo "OK"
++}
++
++case "$1" in
++	start) start ;;
++	stop) stop ;;
++	restart|reload) stop; start ;;
++	*) echo "Usage: $0 {start|stop|restart|reload}"; exit 1 ;;
++esac
++
++exit 0
+diff --git a/configs/zynq_e200_defconfig b/configs/zynq_e200_defconfig
+index 0000000000..6666666666 100644
+--- a/configs/zynq_e200_defconfig
++++ b/configs/zynq_e200_defconfig
+@@ -4,7 +4,7 @@ BR2_ARM_ENABLE_NEON=y
+ BR2_ARM_ENABLE_VFP=y
+ BR2_ARM_FPU_NEON=y
+ BR2_TOOLCHAIN_EXTERNAL=y
+-BR2_TOOLCHAIN_EXTERNAL_LINARO_ARM=y
++BR2_TOOLCHAIN_EXTERNAL_ARM_ARM=y
+ BR2_OPTIMIZE_2=y
+ BR2_TARGET_GENERIC_HOSTNAME="ant"
+ BR2_TARGET_GENERIC_ISSUE="Welcome to ANTSDR"
+@@ -39,9 +39,16 @@ BR2_PACKAGE_INPUT_EVENT_DAEMON=y
+ BR2_PACKAGE_UBOOT_TOOLS=y
+ BR2_PACKAGE_ZLIB=y
++BR2_PACKAGE_CHARON=y
++BR2_PACKAGE_FFTW=y
++BR2_PACKAGE_FFTW_SINGLE=y
++BR2_PACKAGE_LIQUID_DSP=y
++BR2_PACKAGE_BATCTL=y
++BR2_PACKAGE_BRIDGE_UTILS=y
++BR2_PACKAGE_IPROUTE2=y
+ BR2_PACKAGE_LIBAD9361_IIO=y
+ BR2_PACKAGE_LIBGPIOD=y
+ BR2_PACKAGE_LIBGPIOD_TOOLS=y
+ BR2_PACKAGE_LIBIIO_IIOD_USBD=y
+ BR2_PACKAGE_LIBIIO_TESTS=y
+ BR2_PACKAGE_LIBINI=y
+ BR2_PACKAGE_AVAHI=y
+ BR2_PACKAGE_AVAHI_DAEMON=y
+ BR2_PACKAGE_AVAHI_LIBDNSSD_COMPATIBILITY=y

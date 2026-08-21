@@ -1,21 +1,25 @@
 From 17b34403cd1f76d0781838ede94f0ddf31b8f5b7 Mon Sep 17 00:00:00 2001
 From: jcc <995586238@qq.com>
 Date: Thu, 14 Dec 2023 18:28:09 +0800
-Subject: [PATCH] add support makefile scripts
+Subject: [PATCH] e200: add build and preconfigured SD image support
 
+Add E200 targets and generate an SD-card boot directory.  The generated
+uEnv.txt enables both CPU cores and includes baseline Charon settings, so
+the image does not require manual post-build editing.
 ---
- Makefile         |  31 ++++++++-
- scripts/e200.its | 174 +++++++++++++++++++++++++++++++++++++++++++++++
- scripts/e200.mk  |  10 +++
- 3 files changed, 213 insertions(+), 2 deletions(-)
- create mode 100644 scripts/e200.its
- create mode 100644 scripts/e200.mk
-
 diff --git a/Makefile b/Makefile
-index 0dc9c4b..12e7045 100644
+index 0dc9c4b..3303f69 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -27,8 +27,8 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
+@@ -15,6 +15,7 @@ LATEST_TAG=$(shell git describe --abbrev=0 --tags)
+ UBOOT_VERSION=$(shell echo -n "PlutoSDR " && cd u-boot-xlnx && git describe --abbrev=0 --dirty --always --tags)
+ HAVE_VIVADO= $(shell bash -c "source $(VIVADO_SETTINGS) > /dev/null 2>&1 && vivado -version > /dev/null 2>&1 && echo 1 || echo 0")
+ XSA_URL ?= http://github.com/analogdevicesinc/plutosdr-fw/releases/download/${LATEST_TAG}/system_top.xsa
++XSA_BUILD_PATH ?= hdl/projects/$(TARGET)/$(TARGET).sdk/system_top.xsa
+ 
+ ifeq (1, ${HAVE_VIVADO})
+ 	VIVADO_INSTALL= $(shell bash -c "source $(VIVADO_SETTINGS) > /dev/null 2>&1 && vivado -version | head -1 | awk '{print $2}'")
+@@ -27,8 +28,8 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
  	endif
  endif
  
@@ -26,7 +30,7 @@ index 0dc9c4b..12e7045 100644
  
  # Include target specific constants
  include scripts/$(TARGET).mk
-@@ -91,13 +91,20 @@ build/uboot-env.bin: build/uboot-env.txt
+@@ -91,13 +92,20 @@ build/uboot-env.bin: build/uboot-env.txt
  linux/arch/arm/boot/zImage: TOOLCHAIN
  	$(TOOLS_PATH) make -C linux ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zynq_$(TARGET)_defconfig
  	$(TOOLS_PATH) make -C linux -j $(NCORES) ARCH=arm CROSS_COMPILE=$(CROSS_COMPILE) zImage UIMAGE_LOADADDR=0x8000
@@ -47,19 +51,32 @@ index 0dc9c4b..12e7045 100644
  ### Device Tree ###
  
  linux/arch/arm/boot/dts/%.dtb: TOOLCHAIN linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
-@@ -186,6 +193,26 @@ clean:
+@@ -131,7 +139,7 @@ build/$(TARGET).itb: u-boot-xlnx/tools/mkimage build/zImage build/rootfs.cpio.gz
+ 
+ build/system_top.xsa:  | build
+ ifeq (1, ${HAVE_VIVADO})
+-	bash -c "source $(VIVADO_SETTINGS) && make -C hdl/projects/$(TARGET) && cp hdl/projects/$(TARGET)/$(TARGET).sdk/system_top.xsa $@"
++	bash -c "source $(VIVADO_SETTINGS) && make -C hdl/projects/$(TARGET) && cp $(XSA_BUILD_PATH) $@"
+ 	unzip -l $@ | grep -q ps7_init || cp hdl/projects/$(TARGET)/$(TARGET).srcs/sources_1/bd/system/ip/system_sys_ps7_0/ps7_init* build/
+ else ifneq ($(XSA_FILE),)
+ 	cp $(XSA_FILE) $@
+@@ -186,6 +194,30 @@ clean:
  	rm -f $(notdir $(wildcard build/*))
  	rm -rf build/*
  
 +SDIMGDIR = $(CURDIR)/build_sdimg
-+sdimg: build/
-+	mkdir $(SDIMGDIR)
++sdimg: build/sdk/fsbl/Release/fsbl.elf build/system_top.bit build/u-boot.elf \
++	linux/arch/arm/boot/uImage build/zynq-$(TARGET).dtb build/uboot-env.txt \
++	build/rootfs.cpio.gz
++	mkdir -p $(SDIMGDIR)
 +	cp build/sdk/fsbl/Release/fsbl.elf 	$(SDIMGDIR)/fsbl.elf  
 +	cp build/system_top.bit 	$(SDIMGDIR)/system_top.bit
 +	cp build/u-boot.elf 			$(SDIMGDIR)/u-boot.elf
 +	cp $(CURDIR)/linux/arch/arm/boot/uImage	$(SDIMGDIR)/uImage
 +	cp build/zynq-$(TARGET).dtb 	$(SDIMGDIR)/devicetree.dtb
 +	cp build/uboot-env.txt  		$(SDIMGDIR)/uEnv.txt
++	sed -i 's/^maxcpus=.*/maxcpus=2/' $(SDIMGDIR)/uEnv.txt
++	$(foreach setting,$(SDIMG_ENV_OVERRIDES),printf '%s\n' '$(setting)' >> $(SDIMGDIR)/uEnv.txt;)
 +	cp build/rootfs.cpio.gz  		$(SDIMGDIR)/ramdisk.image.gz
 +	mkimage -A arm -T ramdisk -C gzip -d $(SDIMGDIR)/ramdisk.image.gz $(SDIMGDIR)/uramdisk.image.gz
 +	touch 	$(SDIMGDIR)/boot.bif
@@ -256,13 +273,16 @@ index 0000000..ab039fd
 +};
 diff --git a/scripts/e200.mk b/scripts/e200.mk
 new file mode 100644
-index 0000000..9d81348
+index 0000000..2868146
 --- /dev/null
 +++ b/scripts/e200.mk
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,15 @@
 +
 +# Target specific constants go here
 +
++# Arm GNU 2021.07 uses this canonical target prefix.
++CROSS_COMPILE:=arm-none-linux-gnueabihf-
++XSA_BUILD_PATH:=hdl/projects/e200/TARGETe200/e200.sdk/system_top.xsa
 +HDF_URL:=http://github.com/analogdevicesinc/plutosdr-fw/releases/download/${LATEST_TAG}/system_top.hdf
 +TARGET_DTS_FILES:= zynq-e200.dtb
 +COMPLETE_NAME:=ANTSDR
@@ -270,6 +290,5 @@ index 0000000..9d81348
 +DEVICE_VID:=0x0456
 +DEVICE_PID:=0xb673
 +
--- 
-2.25.1
-
++# Settings copied into uEnv.txt by the SD-image recipe.
++SDIMG_ENV_OVERRIDES:=enable_charon=1 freq_rxtx_hz=915000000 rf_bandwidth=250000 tx_output_power_minus_dbm=10 ref_correction_ppm=5.0
