@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Tue, 1 Sep 2026 18:31:00 +0800
+Subject: [PATCH] e200: disable Charon in generated SD images
+
+ADS-B is the default E200 application on this branch.  Keep the legacy
+Charon environment switch disabled when generating uEnv.txt.
+---
+diff --git a/scripts/e200.mk b/scripts/e200.mk
+index 365fc20000..365fc20001 100644
+--- a/scripts/e200.mk
++++ b/scripts/e200.mk
+@@ -12,3 +12,3 @@ DEVICE_PID:=0xb673
+ 
+ # Settings copied into uEnv.txt by the SD-image recipe.
+-SDIMG_ENV_OVERRIDES:=enable_charon=1 freq_rxtx_hz=915000000 rf_bandwidth=250000 tx_output_power_minus_dbm=10 ref_correction_ppm=5.0
++SDIMG_ENV_OVERRIDES:=enable_charon=0 freq_rxtx_hz=915000000 rf_bandwidth=250000 tx_output_power_minus_dbm=10 ref_correction_ppm=5.0
+-- 
+2.34.1

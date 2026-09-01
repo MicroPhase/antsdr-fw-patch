@@ -1,0 +1,378 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Tue, 1 Sep 2026 18:30:00 +0800
+Subject: [PATCH] e200: add on-board readsb ADS-B decoder
+
+Disable Charon in the E200 image and add a headless readsb package using
+the local Pluto/IIO backend. Decode E200 S12/16 I/Q samples on the ARM
+CPU and expose Beast, HTTP API and JSON services over Ethernet. Keep
+iiod from competing for the local IIO buffer and handle refill errors
+without corrupting sample accounting. Keep ADS-B disabled after boot;
+the user can switch between ADS-B and the normal iiod service with
+adsb-control.
+---
+diff --git a/package/Config.in b/package/Config.in
+index 69c6ed0000..69c6ed0001 100644
+--- a/package/Config.in
++++ b/package/Config.in
+@@ -2287,6 +2287,7 @@ endif
+ 	source "package/brcm-patchram-plus/Config.in"
+ 	source "package/bridge-utils/Config.in"
+ 	source "package/charon/Config.in"
++	source "package/readsb/Config.in"
+ 	source "package/bwm-ng/Config.in"
+ 	source "package/c-icap/Config.in"
+ 	source "package/c-icap-modules/Config.in"
+diff --git a/configs/zynq_e200_defconfig b/configs/zynq_e200_defconfig
+index 7d4a2f0000..7d4a2f0001 100644
+--- a/configs/zynq_e200_defconfig
++++ b/configs/zynq_e200_defconfig
+@@ -39,6 +39,6 @@ BR2_PACKAGE_INPUT_EVENT_DAEMON=y
+ BR2_PACKAGE_UBOOT_TOOLS=y
+ BR2_PACKAGE_ZLIB=y
+-BR2_PACKAGE_CHARON=y
++# BR2_PACKAGE_CHARON is not set
+ BR2_PACKAGE_FFTW=y
+ BR2_PACKAGE_FFTW_SINGLE=y
+ BR2_PACKAGE_LIQUID_DSP=y
+@@ -47,6 +47,7 @@ BR2_PACKAGE_BATCTL=y
+ BR2_PACKAGE_BRIDGE_UTILS=y
+ BR2_PACKAGE_IPROUTE2=y
+ BR2_PACKAGE_LIBAD9361_IIO=y
++BR2_PACKAGE_READSB=y
+ BR2_PACKAGE_LIBGPIOD=y
+ BR2_PACKAGE_LIBGPIOD_TOOLS=y
+ BR2_PACKAGE_LIBIIO_IIOD_USBD=y
+diff --git a/package/readsb/Config.in b/package/readsb/Config.in
+new file mode 100644
+index 0000000000..121e2decd3
+--- /dev/null
++++ b/package/readsb/Config.in
+@@ -0,0 +1,14 @@
++config BR2_PACKAGE_READSB
++	bool "readsb ADS-B decoder"
++	depends on BR2_TOOLCHAIN_HAS_THREADS
++	select BR2_PACKAGE_LIBIIO
++	select BR2_PACKAGE_LIBAD9361_IIO
++	select BR2_PACKAGE_ZSTD
++	help
++	  readsb Mode-S/ADS-B decoder using the local AD936x IIO device.
++	  The E200 image runs it on the board and exposes Beast TCP on port
++	  30005, JSON position events on port 8081, and the readsb HTTP API
++	  on port 8080 over Ethernet.
++
++comment "readsb needs a toolchain w/ threads"
++	depends on !BR2_TOOLCHAIN_HAS_THREADS
+diff --git a/package/readsb/readsb.mk b/package/readsb/readsb.mk
+new file mode 100644
+index 0000000000..acfa65c5d6
+--- /dev/null
++++ b/package/readsb/readsb.mk
+@@ -0,0 +1,44 @@
++################################################################################
++#
++# readsb ADS-B decoder
++#
++################################################################################
++
++READSB_VERSION = d9a4c62655490e70d07704e207738bb9c6cffde1
++READSB_SITE = https://github.com/wiedehopf/readsb.git
++READSB_SITE_METHOD = git
++READSB_GIT_SUBMODULES = NO
++READSB_LICENSE = GPL-3.0+
++READSB_LICENSE_FILES = COPYING
++READSB_DEPENDENCIES = libiio libad9361-iio zstd
++
++# This upstream revision stores sdr_plutosdr.c with CRLF line endings.
++# Normalize it so the E200 patch is reproducible through the parent patch set.
++define READSB_NORMALIZE_PLUTOSDR_LINE_ENDINGS
++	$(SED) 's/\r$$//' $(@D)/sdr_plutosdr.c
++endef
++READSB_POST_EXTRACT_HOOKS += READSB_NORMALIZE_PLUTOSDR_LINE_ENDINGS
++
++# The upstream Makefile has no configure step.  Disable the interactive
++# ncurses UI because the E200 image is headless, and select the Pluto/IIO
++# backend.  Keep only CPU/ABI flags in OPTIMIZE: TARGET_CFLAGS also contains
++# Buildroot's _FORTIFY_SOURCE definition, while readsb sets its own value.
++READSB_CPU_FLAGS = -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard
++define READSB_BUILD_CMDS
++	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) \
++		CC="$(TARGET_CC)" AR="$(TARGET_AR)" \
++		PLUTOSDR=yes DISABLE_INTERACTIVE=yes \
++		OPTIMIZE="$(READSB_CPU_FLAGS)"
++endef
++
++define READSB_INSTALL_TARGET_CMDS
++	$(INSTALL) -D -m 0755 $(@D)/readsb $(TARGET_DIR)/usr/bin/readsb
++	rm -f $(TARGET_DIR)/etc/init.d/S90readsb
++	$(INSTALL) -D -m 0755 $(READSB_PKGDIR)/readsb-service $(TARGET_DIR)/usr/sbin/readsb-service
++	$(INSTALL) -D -m 0755 $(READSB_PKGDIR)/adsb-control $(TARGET_DIR)/usr/sbin/adsb-control
++	$(INSTALL) -D -m 0755 $(READSB_PKGDIR)/readsb-watchdog $(TARGET_DIR)/usr/sbin/readsb-watchdog
++	$(INSTALL) -D -m 0644 $(READSB_PKGDIR)/readsb.default $(TARGET_DIR)/etc/default/readsb
++	mkdir -p $(TARGET_DIR)/var/run/readsb
++endef
++
++$(eval $(generic-package))
+diff --git a/package/readsb/readsb.default b/package/readsb/readsb.default
+new file mode 100644
+index 0000000000..fb24e050e3
+--- /dev/null
++++ b/package/readsb/readsb.default
+@@ -0,0 +1,14 @@
++# E200 on-board ADS-B decoder defaults.
++# Override this file in /mnt/jffs2/readsb.default for a persistent setup.
++READSB_FREQ="1090000000"
++READSB_GAIN="50"
++READSB_PREAMBLE_THRESHOLD="58"
++READSB_LAT=""
++READSB_LON=""
++READSB_STALE_AFTER="20"
++READSB_WATCH_INTERVAL="5"
++READSB_BEAST_PORT="30005"
++READSB_API_PORT="8080"
++READSB_JSON_PORT="8081"
++READSB_EXCLUSIVE_IIO="1"
++READSB_EXTRA_ARGS=""
+diff --git a/package/readsb/readsb-service b/package/readsb/readsb-service
+new file mode 100644
+index 0000000000..fd8a192400
+--- /dev/null
++++ b/package/readsb/readsb-service
+@@ -0,0 +1,79 @@
++#!/bin/sh
++
++DAEMON=/usr/sbin/readsb-watchdog
++PIDFILE=/var/run/readsb-watchdog.pid
++
++[ -r /etc/default/readsb ] && . /etc/default/readsb
++
++stop_iiod() {
++	[ "${READSB_EXCLUSIVE_IIO:-1}" = 1 ] || return 0
++	if [ -s /var/run/iiod.pid ]; then
++		start-stop-daemon -K -q -p /var/run/iiod.pid -x /usr/sbin/iiod 2>/dev/null || true
++		for _wait in 1 2 3 4 5; do
++			kill -0 "$(cat /var/run/iiod.pid)" 2>/dev/null || break
++			sleep 1
++		done
++		rm -f /var/run/iiod.pid
++	fi
++}
++
++start_iiod() {
++	[ "${READSB_EXCLUSIVE_IIO:-1}" = 1 ] || return 0
++	if [ -s /var/run/iiod.pid ] && kill -0 "$(cat /var/run/iiod.pid)" 2>/dev/null; then
++		return 0
++	fi
++	[ -r /etc/device_config ] && . /etc/device_config
++	start-stop-daemon -S -b -q -m -p /var/run/iiod.pid -x /usr/sbin/iiod -- \
++		-D -n "${ENDPOINTS:-1}" -F /dev/iio_ffs
++}
++
++adsb_running() {
++	[ -s "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
++}
++
++case "$1" in
++	start)
++		printf 'Starting E200 ADS-B decoder: '
++		if adsb_running; then
++			echo already running
++			exit 0
++		fi
++		stop_iiod
++		start-stop-daemon -S -q -b -m -p "$PIDFILE" -x "$DAEMON"
++		sleep 1
++		if adsb_running; then echo OK; else echo FAIL; start_iiod; exit 1; fi
++		;;
++	stop)
++		printf 'Stopping E200 ADS-B decoder: '
++		if adsb_running; then
++			pid=$(cat "$PIDFILE")
++			kill "$pid" 2>/dev/null || true
++			for _wait in 1 2 3 4 5; do
++				kill -0 "$pid" 2>/dev/null || break
++				sleep 1
++			done
++			kill -KILL "$pid" 2>/dev/null || true
++		fi
++		rm -f "$PIDFILE"
++		start_iiod
++		echo OK
++		;;
++	status)
++		if adsb_running; then
++			echo "ADS-B: on (readsb watchdog PID $(cat "$PIDFILE"))"
++			exit 0
++		fi
++		if [ -s /var/run/iiod.pid ] && kill -0 "$(cat /var/run/iiod.pid)" 2>/dev/null; then
++			echo "ADS-B: off (iiod PID $(cat /var/run/iiod.pid))"
++		else
++			echo "ADS-B: off (iiod is not running)"
++		fi
++		exit 3
++		;;
++	restart|reload)
++		"$0" stop
++		sleep 1
++		"$0" start
++		;;
++	*) echo "Usage: $0 {start|stop|status|restart|reload}"; exit 1 ;;
++esac
+diff --git a/package/readsb/adsb-control b/package/readsb/adsb-control
+new file mode 100644
+index 0000000000..e3bdee6e63
+--- /dev/null
++++ b/package/readsb/adsb-control
+@@ -0,0 +1,23 @@
++#!/bin/sh
++
++SERVICE=/usr/sbin/readsb-service
++
++case "${1:-}" in
++	on|start|enable)
++		exec "$SERVICE" start
++		;;
++	off|stop|disable)
++		exec "$SERVICE" stop
++		;;
++	status)
++		exec "$SERVICE" status
++		;;
++	restart)
++		exec "$SERVICE" restart
++		;;
++	*)
++		echo "Usage: adsb-control {on|off|status|restart}"
++		echo "ADS-B is off after every boot and must be started manually."
++		exit 1
++		;;
++esac
+diff --git a/package/readsb/readsb-watchdog b/package/readsb/readsb-watchdog
+new file mode 100644
+index 0000000000..7aadfb84e3
+--- /dev/null
++++ b/package/readsb/readsb-watchdog
+@@ -0,0 +1,54 @@
++#!/bin/sh
++set -eu
++
++PIDFILE=/var/run/readsb-watchdog.pid
++RUNTIME=/var/run/readsb
++LOGFILE=/var/log/readsb.log
++
++[ -r /etc/default/readsb ] && . /etc/default/readsb
++[ -r /mnt/jffs2/readsb.default ] && . /mnt/jffs2/readsb.default
++
++mkdir -p "$RUNTIME"
++echo $$ > "$PIDFILE"
++
++readsb_args="--device-type plutosdr --net --net-bind-address=0.0.0.0"
++readsb_args="$readsb_args --freq=$READSB_FREQ --gain=$READSB_GAIN"
++readsb_args="$readsb_args --preamble-threshold=$READSB_PREAMBLE_THRESHOLD"
++readsb_args="$readsb_args --net-bo-port=$READSB_BEAST_PORT --net-api-port=$READSB_API_PORT"
++readsb_args="$readsb_args --net-json-port=$READSB_JSON_PORT --write-json=$RUNTIME --write-json-every=1"
++[ -n "${READSB_LAT:-}" ] && readsb_args="$readsb_args --lat=$READSB_LAT"
++[ -n "${READSB_LON:-}" ] && readsb_args="$readsb_args --lon=$READSB_LON"
++readsb_args="$readsb_args ${READSB_EXTRA_ARGS:-}"
++
++child=""
++cleanup() {
++	[ -n "$child" ] && kill "$child" 2>/dev/null || true
++	rm -f "$PIDFILE"
++}
++terminate() {
++	cleanup
++	trap - EXIT
++	exit 0
++}
++trap cleanup EXIT
++trap terminate INT TERM
++
++while :; do
++	: > "$LOGFILE"
++	# shellcheck disable=SC2086
++	/usr/bin/readsb $readsb_args >>"$LOGFILE" 2>&1 &
++	child=$!
++	while kill -0 "$child" 2>/dev/null; do
++		sleep "${READSB_WATCH_INTERVAL:-5}"
++		mtime=$(stat -c %Y "$RUNTIME/aircraft.json" 2>/dev/null || echo 0)
++		now=$(date +%s)
++		if [ "$mtime" -gt 0 ] && [ $((now - mtime)) -gt "${READSB_STALE_AFTER:-20}" ]; then
++			echo "readsb watchdog: stale aircraft.json, restarting" >>"$LOGFILE"
++			kill -TERM "$child" 2>/dev/null || true
++			break
++		fi
++	done
++	wait "$child" 2>/dev/null || true
++	child=""
++	sleep 1
++done
+diff --git a/package/readsb/0001-e200-s12-iq-format.patch b/package/readsb/0001-e200-s12-iq-format.patch
+new file mode 100644
+index 0000000000..cb8c337f0a
+--- /dev/null
++++ b/package/readsb/0001-e200-s12-iq-format.patch
+@@ -0,0 +1,61 @@
++diff --git a/sdr_plutosdr.c b/sdr_plutosdr.c
++index 7805a3b..e200ad5 100644
++--- a/sdr_plutosdr.c
+++++ b/sdr_plutosdr.c
++@@ -138,6 +138,24 @@
++     if (!PLUTOSDR.rx0_q)
++         PLUTOSDR.rx0_q = iio_device_find_channel(PLUTOSDR.dev, "altvoltage1", false);
++ 
+++    if (!PLUTOSDR.rx0_i || !PLUTOSDR.rx0_q) {
+++        fprintf(stderr, "plutosdr: RX I/Q channels not found\n");
+++        plutosdrClose();
+++        return false;
+++    }
+++
+++    // ANTSDR/E200 exposes signed 12-bit samples in 16-bit containers
+++    // (libiio format le:S12/16). Use the Q11 converter so ADC full-scale is
+++    // interpreted correctly; ordinary Pluto SC16 remains supported.
+++    const struct iio_data_format *fmt = iio_channel_get_data_format(PLUTOSDR.rx0_i);
+++    if (fmt && fmt->is_signed && fmt->bits == 12) {
+++        PLUTOSDR.input_format = INPUT_SC16Q11;
+++        fprintf(stderr, "plutosdr: detected S12/%u format, using SC16Q11 converter\n", fmt->length);
+++    } else {
+++        PLUTOSDR.input_format = INPUT_SC16;
+++        fprintf(stderr, "plutosdr: detected SC16 format, using SC16 converter\n");
+++    }
+++
++     ad9361_set_bb_rate(iio_context_find_device(PLUTOSDR.ctx, "ad9361-phy"), Modes.sample_rate);
++ 
++     iio_channel_enable(PLUTOSDR.rx0_i);
++@@ -155,7 +173,7 @@
++         return false;
++     }
++ 
++-    PLUTOSDR.converter = init_converter(INPUT_SC16,
+++    PLUTOSDR.converter = init_converter(PLUTOSDR.input_format,
++             Modes.sample_rate,
++             Modes.dc_filter,
++             &PLUTOSDR.converter_state);
++@@ -269,7 +287,21 @@
++ 
++     while (!Modes.exit) {
++         int16_t *p = PLUTOSDR.readbuf;
++-        uint32_t len = (uint32_t) iio_buffer_refill(PLUTOSDR.rxbuf) / 2;
+++        ssize_t refill = iio_buffer_refill(PLUTOSDR.rxbuf);
+++        if (refill < 0) {
+++            static int64_t antiSpam;
+++            if (mstime() > antiSpam) {
+++                char error[128];
+++                antiSpam = mstime() + 10 * SECONDS;
+++                iio_strerror((int) -refill, error, sizeof(error));
+++                fprintf(stderr, "plutosdr: IIO refill failed: %s (%d), retrying\n", error, (int) refill);
+++            }
+++            usleep(10000);
+++            continue;
+++        }
+++        if (refill == 0)
+++            continue;
+++        uint32_t len = (uint32_t) refill / 2;
++         p_inc = iio_buffer_step(PLUTOSDR.rxbuf);
++         p_end = iio_buffer_end(PLUTOSDR.rxbuf);
++         p_dat = iio_buffer_first(PLUTOSDR.rxbuf, PLUTOSDR.rx0_i);
+-- 
+2.34.1
