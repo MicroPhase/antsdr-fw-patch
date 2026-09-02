@@ -107,11 +107,29 @@ env -u LD_LIBRARY_PATH LC_ALL=C LANGUAGE=C make TARGET=e200
 env -u LD_LIBRARY_PATH LC_ALL=C LANGUAGE=C make TARGET=e200 sdimg
 ```
 
-The SD-card files are written to `build_sdimg/`.  The generated `uEnv.txt`
-contains the Charon defaults and `maxcpus=2`; edit only `ethaddr` there to give
-each board a unique management MAC address.  The build requires Vivado 2022.2
+The SD-card files are written to `build_sdimg/`. The generated E200 `uEnv.txt`
+disables Charon and sets `maxcpus=2`; edit only `ethaddr` there to give each
+board a unique management MAC address. The build requires Vivado 2022.2
 and an ARM hard-float toolchain; `LC_ALL=C LANGUAGE=C` avoids a locale parsing
 bug in this older Buildroot release.
+
+### E200 ADS-B firmware
+
+The E200 ADS-B image starts the on-board `readsb` decoder automatically at
+every boot. It stops `iiod` while decoding so both processes do not compete for
+the local IIO receive buffer. The decoder can still be controlled manually:
+
+```sh
+adsb-control status
+adsb-control off
+adsb-control on
+adsb-control restart
+```
+
+After `adsb-control off`, `iiod` is restored. This manual off state is not
+persistent: ADS-B starts again after the next reboot. The web map is available
+at `http://<e200-ip>/tar1090/`; decoded NDJSON is exposed on TCP port 8081 and
+Beast binary data on TCP port 30005.
 
 After the firmware building finished, you will see below file in the build folder. These files are used for flash updating.(This is e200 device)
 

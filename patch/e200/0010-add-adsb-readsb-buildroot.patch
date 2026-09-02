@@ -7,19 +7,20 @@ Disable Charon in the E200 image and add a headless readsb package using
 the local Pluto/IIO backend. Decode E200 S12/16 I/Q samples on the ARM
 CPU and expose Beast, HTTP API and JSON services over Ethernet. Keep
 iiod from competing for the local IIO buffer and handle refill errors
-without corrupting sample accounting. Keep ADS-B disabled after boot;
-the user can switch between ADS-B and the normal iiod service with
+without corrupting sample accounting. Start ADS-B automatically at boot;
+the user can still switch between ADS-B and the normal iiod service with
 adsb-control.
 ---
 diff --git a/package/Config.in b/package/Config.in
 index 69c6ed0000..69c6ed0001 100644
 --- a/package/Config.in
 +++ b/package/Config.in
-@@ -2287,6 +2287,7 @@ endif
+@@ -2287,6 +2287,8 @@ endif
  	source "package/brcm-patchram-plus/Config.in"
  	source "package/bridge-utils/Config.in"
  	source "package/charon/Config.in"
 +	source "package/readsb/Config.in"
++	source "package/tar1090/Config.in"
  	source "package/bwm-ng/Config.in"
  	source "package/c-icap/Config.in"
  	source "package/c-icap-modules/Config.in"
@@ -35,11 +36,12 @@ index 7d4a2f0000..7d4a2f0001 100644
  BR2_PACKAGE_FFTW=y
  BR2_PACKAGE_FFTW_SINGLE=y
  BR2_PACKAGE_LIQUID_DSP=y
-@@ -47,6 +47,7 @@ BR2_PACKAGE_BATCTL=y
+@@ -47,6 +47,8 @@ BR2_PACKAGE_BATCTL=y
  BR2_PACKAGE_BRIDGE_UTILS=y
  BR2_PACKAGE_IPROUTE2=y
  BR2_PACKAGE_LIBAD9361_IIO=y
 +BR2_PACKAGE_READSB=y
++BR2_PACKAGE_TAR1090=y
  BR2_PACKAGE_LIBGPIOD=y
  BR2_PACKAGE_LIBGPIOD_TOOLS=y
  BR2_PACKAGE_LIBIIO_IIOD_USBD=y
@@ -104,15 +106,41 @@ index 0000000000..acfa65c5d6
 +
 +define READSB_INSTALL_TARGET_CMDS
 +	$(INSTALL) -D -m 0755 $(@D)/readsb $(TARGET_DIR)/usr/bin/readsb
-+	rm -f $(TARGET_DIR)/etc/init.d/S90readsb
++	$(INSTALL) -D -m 0755 $(READSB_PKGDIR)/S90readsb $(TARGET_DIR)/etc/init.d/S90readsb
 +	$(INSTALL) -D -m 0755 $(READSB_PKGDIR)/readsb-service $(TARGET_DIR)/usr/sbin/readsb-service
 +	$(INSTALL) -D -m 0755 $(READSB_PKGDIR)/adsb-control $(TARGET_DIR)/usr/sbin/adsb-control
++	$(INSTALL) -D -m 0755 $(READSB_PKGDIR)/S22adsb-storage $(TARGET_DIR)/etc/init.d/S22adsb-storage
 +	$(INSTALL) -D -m 0755 $(READSB_PKGDIR)/readsb-watchdog $(TARGET_DIR)/usr/sbin/readsb-watchdog
 +	$(INSTALL) -D -m 0644 $(READSB_PKGDIR)/readsb.default $(TARGET_DIR)/etc/default/readsb
 +	mkdir -p $(TARGET_DIR)/var/run/readsb
 +endef
 +
 +$(eval $(generic-package))
+diff --git a/package/readsb/S90readsb b/package/readsb/S90readsb
+new file mode 100755
+index 0000000000..9090909090
+--- /dev/null
++++ b/package/readsb/S90readsb
+@@ -0,0 +1,19 @@
++#!/bin/sh
++
++SERVICE=/usr/sbin/readsb-service
++
++case "$1" in
++	start)
++		"$SERVICE" start
++		;;
++	stop)
++		"$SERVICE" stop
++		;;
++	restart|reload)
++		"$SERVICE" restart
++		;;
++	*)
++		echo "Usage: $0 {start|stop|restart|reload}"
++		exit 1
++		;;
++esac
 diff --git a/package/readsb/readsb.default b/package/readsb/readsb.default
 new file mode 100644
 index 0000000000..fb24e050e3
@@ -132,6 +160,9 @@ index 0000000000..fb24e050e3
 +READSB_API_PORT="8080"
 +READSB_JSON_PORT="8081"
 +READSB_EXCLUSIVE_IIO="1"
++READSB_LOGFILE="/mnt/sdcard/adsb/readsb.log"
++READSB_LOG_MAX_BYTES="8388608"
++READSB_LOG_BACKUPS="4"
 +READSB_EXTRA_ARGS=""
 diff --git a/package/readsb/readsb-service b/package/readsb/readsb-service
 new file mode 100644
@@ -243,7 +274,7 @@ index 0000000000..e3bdee6e63
 +		;;
 +	*)
 +		echo "Usage: adsb-control {on|off|status|restart}"
-+		echo "ADS-B is off after every boot and must be started manually."
++		echo "ADS-B starts automatically at boot and can be controlled manually."
 +		exit 1
 +		;;
 +esac
@@ -252,21 +283,26 @@ new file mode 100644
 index 0000000000..7aadfb84e3
 --- /dev/null
 +++ b/package/readsb/readsb-watchdog
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,78 @@
 +#!/bin/sh
 +set -eu
 +
 +PIDFILE=/var/run/readsb-watchdog.pid
 +RUNTIME=/var/run/readsb
-+LOGFILE=/var/log/readsb.log
 +
 +[ -r /etc/default/readsb ] && . /etc/default/readsb
 +[ -r /mnt/jffs2/readsb.default ] && . /mnt/jffs2/readsb.default
 +
++LOGFILE=${READSB_LOGFILE:-/var/log/readsb.log}
++if ! mkdir -p "$(dirname "$LOGFILE")" 2>/dev/null; then
++	LOGFILE=/var/log/readsb.log
++	mkdir -p "$(dirname "$LOGFILE")"
++fi
++
 +mkdir -p "$RUNTIME"
 +echo $$ > "$PIDFILE"
 +
-+readsb_args="--device-type plutosdr --net --net-bind-address=0.0.0.0"
++readsb_args="--device-type plutosdr --quiet --net --net-bind-address=0.0.0.0"
 +readsb_args="$readsb_args --freq=$READSB_FREQ --gain=$READSB_GAIN"
 +readsb_args="$readsb_args --preamble-threshold=$READSB_PREAMBLE_THRESHOLD"
 +readsb_args="$readsb_args --net-bo-port=$READSB_BEAST_PORT --net-api-port=$READSB_API_PORT"
@@ -288,14 +324,33 @@ index 0000000000..7aadfb84e3
 +trap cleanup EXIT
 +trap terminate INT TERM
 +
-+while :; do
++rotate_log() {
++	max_bytes=${READSB_LOG_MAX_BYTES:-8388608}
++	backups=${READSB_LOG_BACKUPS:-4}
++	[ -f "$LOGFILE" ] || return 0
++	size=$(wc -c < "$LOGFILE" 2>/dev/null || echo 0)
++	[ "$size" -ge "$max_bytes" ] || return 0
++	[ "$backups" -ge 1 ] || { : > "$LOGFILE"; return 0; }
++	index=$backups
++	while [ "$index" -gt 1 ]; do
++		previous=$((index - 1))
++		[ -f "${LOGFILE}.${previous}" ] && mv -f "${LOGFILE}.${previous}" "${LOGFILE}.${index}"
++		index=$previous
++	done
++	cp -f "$LOGFILE" "${LOGFILE}.1"
 +	: > "$LOGFILE"
++}
++
++while :; do
++	rotate_log
++	: >> "$LOGFILE"
 +	# shellcheck disable=SC2086
 +	/usr/bin/readsb $readsb_args >>"$LOGFILE" 2>&1 &
 +	child=$!
 +	while kill -0 "$child" 2>/dev/null; do
 +		sleep "${READSB_WATCH_INTERVAL:-5}"
-+		mtime=$(stat -c %Y "$RUNTIME/aircraft.json" 2>/dev/null || echo 0)
++		rotate_log
++		mtime=$(date -r "$RUNTIME/aircraft.json" +%s 2>/dev/null || echo 0)
 +		now=$(date +%s)
 +		if [ "$mtime" -gt 0 ] && [ $((now - mtime)) -gt "${READSB_STALE_AFTER:-20}" ]; then
 +			echo "readsb watchdog: stale aircraft.json, restarting" >>"$LOGFILE"
@@ -307,6 +362,91 @@ index 0000000000..7aadfb84e3
 +	child=""
 +	sleep 1
 +done
+diff --git a/package/readsb/S22adsb-storage b/package/readsb/S22adsb-storage
+new file mode 100644
+index 0000000000..6666666666
+--- /dev/null
++++ b/package/readsb/S22adsb-storage
+@@ -0,0 +1,31 @@
++#!/bin/sh
++
++MOUNTPOINT=/mnt/sdcard
++DEVICE=/dev/mmcblk0p1
++
++mounted() {
++	grep -qs " $MOUNTPOINT " /proc/mounts
++}
++
++case "$1" in
++	start)
++		mkdir -p "$MOUNTPOINT"
++		if ! mounted && [ -b "$DEVICE" ]; then
++			mount -t vfat -o rw "$DEVICE" "$MOUNTPOINT" 2>/dev/null || \
++			mount "$DEVICE" "$MOUNTPOINT" 2>/dev/null || true
++		fi
++		if mounted; then
++			mkdir -p "$MOUNTPOINT/adsb"
++			chmod 0755 "$MOUNTPOINT/adsb"
++			echo "ADS-B storage mounted at $MOUNTPOINT"
++		else
++			echo "ADS-B storage: $DEVICE is not available; using volatile log fallback"
++		fi
++		;;
++	stop|restart|reload)
++		;;
++	*)
++		echo "Usage: $0 {start|stop|restart|reload}"
++		exit 1
++		;;
++esac
+diff --git a/package/tar1090/Config.in b/package/tar1090/Config.in
+new file mode 100644
+index 0000000000..3333333333
+--- /dev/null
++++ b/package/tar1090/Config.in
+@@ -0,0 +1,6 @@
++config BR2_PACKAGE_TAR1090
++	bool "tar1090 ADS-B web map"
++	help
++	  Install the tar1090 static aircraft tracking web interface for the
++	  E200 on-board readsb decoder. The page is served by the existing
++	  BusyBox httpd at /tar1090/ and reads live files from /var/run/readsb.
+diff --git a/package/tar1090/tar1090.mk b/package/tar1090/tar1090.mk
+new file mode 100644
+index 0000000000..4444444444
+--- /dev/null
++++ b/package/tar1090/tar1090.mk
+@@ -0,0 +1,22 @@
++################################################################################
++#
++# tar1090 static ADS-B web interface
++#
++################################################################################
++
++TAR1090_VERSION = 0895bdbc9fce8e3876fab504d42ab15faade4092
++TAR1090_SITE = https://github.com/wiedehopf/tar1090.git
++TAR1090_SITE_METHOD = git
++TAR1090_GIT_SUBMODULES = NO
++TAR1090_LICENSE = GPL-3.0+
++TAR1090_LICENSE_FILES = LICENSE
++
++define TAR1090_INSTALL_TARGET_CMDS
++	rm -rf $(TARGET_DIR)/www/tar1090
++	mkdir -p $(TARGET_DIR)/www/tar1090
++	cp -a $(@D)/html/. $(TARGET_DIR)/www/tar1090/
++	rm -rf $(TARGET_DIR)/www/tar1090/data
++	ln -s /var/run/readsb $(TARGET_DIR)/www/tar1090/data
++endef
++
++$(eval $(generic-package))
+diff --git a/package/tar1090/tar1090.hash b/package/tar1090/tar1090.hash
+new file mode 100644
+index 0000000000..5555555555
+--- /dev/null
++++ b/package/tar1090/tar1090.hash
+@@ -0,0 +1,2 @@
++# Locally calculated from the fixed tar1090 commit archive.
++sha256  9114976e8e3a49c65f3a36cc191998fb6eed28b73a5d482e3ffc1c54a43e444d  tar1090-0895bdbc9fce8e3876fab504d42ab15faade4092-br1.tar.gz
 diff --git a/package/readsb/0001-e200-s12-iq-format.patch b/package/readsb/0001-e200-s12-iq-format.patch
 new file mode 100644
 index 0000000000..cb8c337f0a
