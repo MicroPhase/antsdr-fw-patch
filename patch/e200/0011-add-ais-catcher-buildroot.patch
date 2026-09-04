@@ -1,0 +1,501 @@
+diff --git a/package/Config.in b/package/Config.in
+--- a/package/Config.in
++++ b/package/Config.in
+@@ -2287,6 +2287,7 @@
+ 	source "package/brcm-patchram-plus/Config.in"
+ 	source "package/bridge-utils/Config.in"
+ 	source "package/charon/Config.in"
++	source "package/ais-catcher/Config.in"
+ 	source "package/readsb/Config.in"
+ 	source "package/tar1090/Config.in"
+ 	source "package/bwm-ng/Config.in"
+diff --git a/configs/zynq_e200_defconfig b/configs/zynq_e200_defconfig
+--- a/configs/zynq_e200_defconfig
++++ b/configs/zynq_e200_defconfig
+@@ -47,8 +47,9 @@
+ BR2_PACKAGE_BRIDGE_UTILS=y
+ BR2_PACKAGE_IPROUTE2=y
+ BR2_PACKAGE_LIBAD9361_IIO=y
+-BR2_PACKAGE_READSB=y
+-BR2_PACKAGE_TAR1090=y
++BR2_PACKAGE_AIS_CATCHER=y
++# BR2_PACKAGE_READSB is not set
++# BR2_PACKAGE_TAR1090 is not set
+ BR2_PACKAGE_LIBGPIOD=y
+ BR2_PACKAGE_LIBGPIOD_TOOLS=y
+ BR2_PACKAGE_LIBIIO_IIOD_USBD=y
+diff --git a/package/ais-catcher/Config.in b/package/ais-catcher/Config.in
+new file mode 100644
+--- /dev/null
++++ b/package/ais-catcher/Config.in
+@@ -0,0 +1,13 @@
++config BR2_PACKAGE_AIS_CATCHER
++	bool "AIS-catcher with native E200/libiio input"
++	depends on BR2_INSTALL_LIBSTDCPP
++	depends on BR2_TOOLCHAIN_HAS_THREADS
++	select BR2_PACKAGE_LIBIIO
++	select BR2_PACKAGE_ZLIB
++	help
++	  AIS receiver and decoder for ANTSDR E200. It reads the local
++	  cf-ad9361-lpc RX DMA directly through libiio, decodes AIS-A and
++	  AIS-B, serves NMEA on TCP 10110 and its vessel map on HTTP 8100.
++
++comment "AIS-catcher needs C++ and threads"
++	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS
+diff --git a/package/ais-catcher/ais-catcher.mk b/package/ais-catcher/ais-catcher.mk
+new file mode 100644
+--- /dev/null
++++ b/package/ais-catcher/ais-catcher.mk
+@@ -0,0 +1,30 @@
++################################################################################
++#
++# AIS-catcher - E200 native libiio AIS receiver
++#
++################################################################################
++
++AIS_CATCHER_VERSION = 5d57fff1
++AIS_CATCHER_SITE = https://github.com/jvde-github/AIS-catcher.git
++AIS_CATCHER_SITE_METHOD = git
++AIS_CATCHER_GIT_SUBMODULES = NO
++AIS_CATCHER_LICENSE = GPL-3.0+
++AIS_CATCHER_LICENSE_FILES = LICENSE
++AIS_CATCHER_DEPENDENCIES = libiio zlib
++
++AIS_CATCHER_CONF_OPTS = \
++	-DRTLSDR=OFF -DAIRSPY=OFF -DSDRPLAY=OFF -DAIRSPYHF=OFF \
++	-DHACKRF=OFF -DHYDRASDR=OFF -DSOAPYSDR=OFF -DSOXR=OFF \
++	-DSAMPLERATE=OFF -DZMQ=OFF -DPSQL=OFF -DSQLITE=OFF \
++	-DOPENSSL=OFF -DNMEA2000=OFF -DZLIB=ON -DWEBVIEWER=ON
++
++define AIS_CATCHER_INSTALL_INIT_SYSV
++	$(INSTALL) -D -m 0755 $(AIS_CATCHER_PKGDIR)/S90ais-catcher $(TARGET_DIR)/etc/init.d/S90ais-catcher
++	$(INSTALL) -D -m 0755 $(AIS_CATCHER_PKGDIR)/ais-service $(TARGET_DIR)/usr/sbin/ais-service
++	$(INSTALL) -D -m 0755 $(AIS_CATCHER_PKGDIR)/ais-watchdog $(TARGET_DIR)/usr/sbin/ais-watchdog
++	$(INSTALL) -D -m 0755 $(AIS_CATCHER_PKGDIR)/ais-control $(TARGET_DIR)/usr/sbin/ais-control
++	$(INSTALL) -D -m 0644 $(AIS_CATCHER_PKGDIR)/ais-catcher.default $(TARGET_DIR)/etc/default/ais-catcher
++	mkdir -p $(TARGET_DIR)/var/run/ais
++endef
++
++$(eval $(cmake-package))
+diff --git a/package/ais-catcher/S90ais-catcher b/package/ais-catcher/S90ais-catcher
+new file mode 100644
+--- /dev/null
++++ b/package/ais-catcher/S90ais-catcher
+@@ -0,0 +1,2 @@
++#!/bin/sh
++exec /usr/sbin/ais-service "$@"
+diff --git a/package/ais-catcher/ais-catcher.default b/package/ais-catcher/ais-catcher.default
+new file mode 100644
+--- /dev/null
++++ b/package/ais-catcher/ais-catcher.default
+@@ -0,0 +1,13 @@
++# E200 on-board AIS receiver defaults. Override persistently with
++# /mnt/jffs2/ais-catcher.default.
++AIS_URI="local:"
++# AB listens to AIS 1 (161.975 MHz) and AIS 2 (162.025 MHz), centered at
++# 162.000 MHz by AIS-catcher.
++AIS_SAMPLE_RATE="3840000"
++AIS_RF_BANDWIDTH="1000000"
++AIS_GAIN="50"
++AIS_CHANNELS="AB"
++AIS_NMEA_PORT="10110"
++AIS_WEB_PORT="8100"
++AIS_EXCLUSIVE_IIO="1"
++AIS_EXTRA_ARGS=""
+diff --git a/package/ais-catcher/ais-watchdog b/package/ais-catcher/ais-watchdog
+new file mode 100644
+--- /dev/null
++++ b/package/ais-catcher/ais-watchdog
+@@ -0,0 +1,24 @@
++#!/bin/sh
++set -u
++. /etc/default/ais-catcher
++[ -r /mnt/jffs2/ais-catcher.default ] && . /mnt/jffs2/ais-catcher.default
++child_pid=""
++stop_child() {
++	trap - TERM INT
++	if [ -n "$child_pid" ] && kill -0 "$child_pid" 2>/dev/null; then
++		kill "$child_pid" 2>/dev/null || true
++		wait "$child_pid" 2>/dev/null || true
++	fi
++	exit 0
++}
++trap stop_child TERM INT
++while :; do
++	/usr/bin/AIS-catcher \
++		-j "$AIS_URI" -s "$AIS_SAMPLE_RATE" -a "$AIS_RF_BANDWIDTH" \
++		-c "$AIS_CHANNELS" -gI GAIN "$AIS_GAIN" \
++		-S "$AIS_NMEA_PORT" -N "$AIS_WEB_PORT" -o 1 $AIS_EXTRA_ARGS &
++	child_pid=$!
++	wait "$child_pid" || true
++	child_pid=""
++	sleep 1
++done
+diff --git a/package/ais-catcher/ais-service b/package/ais-catcher/ais-service
+new file mode 100644
+--- /dev/null
++++ b/package/ais-catcher/ais-service
+@@ -0,0 +1,41 @@
++#!/bin/sh
++DAEMON=/usr/sbin/ais-watchdog
++PIDFILE=/var/run/ais-watchdog.pid
++. /etc/default/ais-catcher
++[ -r /mnt/jffs2/ais-catcher.default ] && . /mnt/jffs2/ais-catcher.default
++stop_iiod() {
++	[ "${AIS_EXCLUSIVE_IIO:-1}" = 1 ] || return 0
++	[ -s /var/run/iiod.pid ] || return 0
++	start-stop-daemon -K -q -p /var/run/iiod.pid -x /usr/sbin/iiod 2>/dev/null || true
++	rm -f /var/run/iiod.pid
++}
++start_iiod() {
++	[ "${AIS_EXCLUSIVE_IIO:-1}" = 1 ] || return 0
++	[ -s /var/run/iiod.pid ] && kill -0 "$(cat /var/run/iiod.pid)" 2>/dev/null && return 0
++	[ -r /etc/device_config ] && . /etc/device_config
++	start-stop-daemon -S -b -q -m -p /var/run/iiod.pid -x /usr/sbin/iiod -- -D -n "${ENDPOINTS:-1}" -F /dev/iio_ffs
++}
++running() { [ -s "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
++case "${1:-}" in
++	start)
++		printf 'Starting E200 AIS decoder: '
++		running && { echo already running; exit 0; }
++		stop_iiod
++		start-stop-daemon -S -q -b -m -p "$PIDFILE" -x "$DAEMON"
++		sleep 1
++		running && { echo OK; exit 0; }
++		echo FAIL; start_iiod; exit 1 ;;
++	stop)
++		printf 'Stopping E200 AIS decoder: '
++		if running; then
++			start-stop-daemon -K -q -p "$PIDFILE" 2>/dev/null || true
++			n=0
++			while running && [ "$n" -lt 5 ]; do sleep 1; n=$((n + 1)); done
++		fi
++		rm -f "$PIDFILE"; start_iiod; echo OK ;;
++	status)
++		running && { echo "AIS: on (PID $(cat "$PIDFILE"), NMEA $AIS_NMEA_PORT, web $AIS_WEB_PORT)"; exit 0; }
++		echo "AIS: off"; exit 3 ;;
++	restart|reload) "$0" stop; sleep 1; "$0" start ;;
++	*) echo "Usage: $0 {start|stop|status|restart|reload}"; exit 1 ;;
++esac
+diff --git a/package/ais-catcher/ais-control b/package/ais-catcher/ais-control
+new file mode 100644
+--- /dev/null
++++ b/package/ais-catcher/ais-control
+@@ -0,0 +1,8 @@
++#!/bin/sh
++case "${1:-}" in
++	on) exec /usr/sbin/ais-service start ;;
++	off) exec /usr/sbin/ais-service stop ;;
++	status) exec /usr/sbin/ais-service status ;;
++	restart) exec /usr/sbin/ais-service restart ;;
++	*) echo "Usage: ais-control {on|off|status|restart}"; exit 1 ;;
++esac
+diff --git a/package/ais-catcher/0001-e200-native-libiio.patch b/package/ais-catcher/0001-e200-native-libiio.patch
+new file mode 100644
+--- /dev/null
++++ b/package/ais-catcher/0001-e200-native-libiio.patch
+@@ -0,0 +1,304 @@
++diff --git a/CMakeLists.txt b/CMakeLists.txt
++index f4f13d7d..f6f5801a 100644
++--- a/CMakeLists.txt
+++++ b/CMakeLists.txt
++@@ -6,6 +6,11 @@ cmake_minimum_required(VERSION 3.2...4.0)
++ 
++ project(AIS-catcher)
++ 
+++find_library(IIO_LIBRARY iio)
+++if(IIO_LIBRARY)
+++    add_compile_definitions(HASE200IIO)
+++endif()
+++
++ # Get version from header file
++ file(STRINGS "${PROJECT_SOURCE_DIR}/Source/Application/AIS-catcher.h" VERSION_LINE REGEX "^#define VERSION[ \t]+\".*\"")
++ string(REGEX REPLACE "^#define VERSION[ \t]+\"(.*)\".*" "\\1" VERSION_BASE "${VERSION_LINE}")
++@@ -347,6 +352,7 @@ set(CPP
++     Source/Utilities/Helper.cpp
++     Source/Utilities/TemplateString.cpp
++     Source/Utilities/StreamHelpers.cpp
+++    Source/Device/E200.cpp
++ )
++ 
++ # Optional device sources: only compile when their backing library was found.
++@@ -407,7 +413,7 @@ set(HEADER
++     Source/Device/Device.h Source/Device/FileWAV.h Source/Device/RTLTCP.h Source/Device/UDP.h Source/DSP/Demod.h Source/DSP/Filters.h Source/Marine/AIS.h Source/Marine/Message.h Source/Marine/MessageHistory.h Source/Marine/NMEA.h Source/Library/ZIP.h Source/Library/Signals.h Source/Device/SoapySDR.h Source/JSON/JSONAIS.h Source/JSON/JSON.h Source/Aviation/Basestation.h Source/Aviation/ADSB.h
++     Source/Device/AIRSPY.h Source/Library/FIFO.h Source/Device/N2KsktCAN.h Source/Device/HACKRF.h Source/Device/HYDRASDR.h Source/Device/SDRPLAY.h Source/DSP/DSP.h Source/DSP/Model.h Source/Tracking/History.h Source/Tracking/Statistics.h Source/Library/Common.h Source/Library/Stream.h Source/Library/SWAR.h Source/Device/SpyServer.h Source/JSON/Keys.h Source/JSON/Writer.h Source/JSON/Parser.h Source/Tracking/PlaneDB.h
++     Source/Device/Serial.h Source/IO/N2KInterface.h Source/Marine/N2K.h Source/IO/N2KStream.h Source/Device/AIRSPYHF.h Source/Device/FileRAW.h Source/Device/RTLSDR.h Source/Device/ZMQ.h Source/DSP/FFT.h Source/IO/MsgOut.h Source/IO/Screen.h Source/IO/File.h Source/IO/StreamCounter.h Source/IO/Network.h Source/IO/HTTPServer.h Source/Utilities/StreamHelpers.h Source/IO/TCPServer.h Source/IO/Protocol.h
++-    Source/Utilities/Parse.h Source/Utilities/Convert.h Source/Utilities/Helper.h Source/Utilities/PackedInt.h Source/Utilities/TemplateString.h Source/IO/OutputStats.h)
+++    Source/Utilities/Parse.h Source/Utilities/Convert.h Source/Utilities/Helper.h Source/Utilities/PackedInt.h Source/Utilities/TemplateString.h Source/IO/OutputStats.h Source/Device/E200.h)
++ 
++ set(APP_INCLUDES . ./Source ./Source/Tracking ./Source/DBMS ./Source/Library ./Source/Marine ./Source/Aviation ./Source/DSP ./Source/Application ./Source/Web ./Source/Control ./Source/IO ./Source/JSON ./Source/Utilities)
++ 
++@@ -427,7 +433,7 @@ include_directories(
++ 
++ target_link_libraries(AIS-catcher
++     ${DL_LIBRARY} ${AIRSPY_LIBRARIES} ${NMEA2000_LIBRARIES} ${OPENSSL_LIBRARIES} ${AIRSPYHF_LIBRARIES} ${RTLSDR_LIBRARIES} ${HACKRF_LIBRARIES} ${HYDRASDR_LIBRARIES} ${ZMQ_LIBRARIES} ${PQ_LIBRARIES} ${SQLITE_LIBRARIES} ${PQXX_LIBRARIES} ${SDRPLAY_LIBRARIES} ${SOXR_LIBRARIES} ${SOAPYSDR_LIBRARIES} ${SAMPLERATE_LIBRARIES} ${ZLIB_LIBRARIES}
++-    ${ADDITIONAL_LIBRARIES} Threads::Threads)
+++    ${ADDITIONAL_LIBRARIES} Threads::Threads ${IIO_LIBRARY})
++ 
++ 
++ # Copying DLLs to final location if needed
++diff --git a/Source/Application/CommandLine.cpp b/Source/Application/CommandLine.cpp
++index dd69159e..6fc06ffd 100644
++--- a/Source/Application/CommandLine.cpp
+++++ b/Source/Application/CommandLine.cpp
++@@ -65,6 +65,7 @@ static void Usage()
++ 	Info() << "\t[-h display this message and terminate (default: false)]";
++ 	Info() << "\t[-H [optional: url] - send messages via HTTP, for options see documentation]";
++ 	Info() << "\t[-i [interface] - read NMEA2000 data from socketCAN interface - Linux only]";
+++	Info() << "\t[-j [optional: URI] - receive from ANTSDR E200 via libiio]";
++ 	Info() << "\t[-I [interface] - push messages as NMEA2000 data to a socketCAN interface - Linux only]";
++ 	Info() << "\t[-m xx - run specific decoding model (default: 2), see README for more details]";
++ 	Info() << "\t[-M xxx - set additional meta data to generate: T = NMEA timestamp, D = decoder related (signal power, ppm) (default: none)]";
++@@ -510,6 +511,14 @@ static void parseCLI(int argc, char *argv[], Engine &engine, Config &c, int &cb)
++ 				setDeviceArgs(dm.N2KSCAN(), {}, argv, ptr, count, argc);
++ 		}
++ 		break;
+++		case 'j':
+++		{
+++			Assert(count <= 1, param, "takes zero or one parameter [libiio URI].");
+++			DeviceManager &dm = newDevice(Type::E200);
+++			if (count == 1)
+++				dm.E200().SetKey(AIS::KEY_SETTING_DEVICE, arg1);
+++		}
+++		break;
++ 
++ 		case 'w':
++ 		{
++diff --git a/Source/Application/DeviceManager.cpp b/Source/Application/DeviceManager.cpp
++index 66048e1a..a771b98f 100644
++--- a/Source/Application/DeviceManager.cpp
+++++ b/Source/Application/DeviceManager.cpp
++@@ -51,6 +51,7 @@ namespace
++ 		{0, AIS::KEY_SETTING_NMEA2000, Type::N2K, true, [](DeviceManager &d) -> Device::Device & { return d.N2KSCAN(); }},
++ 		{'e', AIS::KEY_SETTING_SERIALPORT, Type::SERIALPORT, true, [](DeviceManager &d) -> Device::Device & { return d.SerialPort(); }},
++ 		{'d', AIS::KEY_SETTING_HYDRASDR, Type::HYDRASDR, true, [](DeviceManager &d) -> Device::Device & { return d.HYDRASDR(); }},
+++		{'I', AIS::KEY_SETTING_DEVICE, Type::E200, true, [](DeviceManager &d) -> Device::Device & { return d.E200(); }},
++ 		{'a', AIS::KEY_SETTING_FILE, Type::RAWFILE, false, [](DeviceManager &d) -> Device::Device & { return d.RAW(); }},
++ 		{'w', AIS::KEY_SETTING_WAVFILE, Type::WAVFILE, false, [](DeviceManager &d) -> Device::Device & { return d.WAV(); }},
++ 		{'t', AIS::KEY_SETTING_RTLTCP, Type::RTLTCP, false, [](DeviceManager &d) -> Device::Device & { return d.RTLTCP(); }},
++@@ -72,6 +73,7 @@ namespace
++ 		case Type::HACKRF:
++ 		case Type::SOAPYSDR:
++ 		case Type::HYDRASDR:
+++		case Type::E200:
++ 			return true;
++ 		default:
++ 			return false;
++diff --git a/Source/Application/DeviceManager.h b/Source/Application/DeviceManager.h
++index 9ec3b8ec..3bb646f3 100644
++--- a/Source/Application/DeviceManager.h
+++++ b/Source/Application/DeviceManager.h
++@@ -36,6 +36,7 @@
++ #include "Device/UDP.h"
++ #include "Device/N2KsktCAN.h"
++ #include "Device/HYDRASDR.h"
+++#include "Device/E200.h"
++ 
++ class DeviceManager
++ {
++@@ -58,6 +59,7 @@ class DeviceManager
++     Device::ZMQ _ZMQ;
++     Device::UDP _UDP;
++     Device::N2KSCAN _N2KSCAN;
+++    Device::E200 _E200;
++ 
++     Device::Device *getDeviceByType(Type type);
++     void printAvailableDevices_locked();
++@@ -89,6 +91,7 @@ public:
++     Device::ZMQ &ZMQ() { return _ZMQ; }
++     Device::UDP &UDP() { return _UDP; }
++     Device::N2KSCAN &N2KSCAN() { return _N2KSCAN; }
+++    Device::E200 &E200() { return _E200; }
++ 
++     // The device Setting a "-g<flag>" switch or a config file key names,
++     // nullptr when it names no device.
++diff --git a/Source/Device/Device.h b/Source/Device/Device.h
++index 6b421bf6..a7973a49 100644
++--- a/Source/Device/Device.h
+++++ b/Source/Device/Device.h
++@@ -107,7 +107,7 @@ namespace Device {
++ 				setSampleRate((Util::Parse::Integer(arg, 0, 20000000)));
++ 				break;
++ 			case AIS::KEY_SETTING_BANDWIDTH:
++-				tuner_bandwidth = Util::Parse::Integer(arg, 0, 1000000);
+++				tuner_bandwidth = Util::Parse::Integer(arg, 0, 56000000);
++ 				break;
++ 			case AIS::KEY_SETTING_FREQOFFSET:
++ 				freq_offset = Util::Parse::Float(arg, -150, 150);
++@@ -188,4 +188,4 @@ namespace Device {
++ 		std::string Get() override { return "(not compiled in: rebuild with -D" + build_flag + "=ON)"; }
++ 		std::string getProduct() override { return device_name + " [not compiled in]"; }
++ 	};
++-}
++\ No newline at end of file
+++}
++diff --git a/Source/Library/Common.h b/Source/Library/Common.h
++index 66a40ac1..098d1108 100644
++--- a/Source/Library/Common.h
+++++ b/Source/Library/Common.h
++@@ -140,6 +140,7 @@ enum class Type
++ 	SPYSERVER = 13,
++ 	N2K = 14,
++ 	HYDRASDR = 15
+++	, E200 = 16
++ };
++ 
++ enum class MessageFormat
++diff --git a/Source/Utilities/Parse.cpp b/Source/Utilities/Parse.cpp
++index 57c36000..97c1669f 100644
++--- a/Source/Utilities/Parse.cpp
+++++ b/Source/Utilities/Parse.cpp
++@@ -227,6 +227,8 @@ namespace Util
++ 			type = Type::SPYSERVER;
++ 		else if (str == "NMEA2000")
++ 			type = Type::N2K;
+++		else if (str == "E200" || str == "E200IIO" || str == "LIBIIO")
+++			type = Type::E200;
++ 		else
++ 			return false;
++ 
++@@ -387,6 +389,8 @@ namespace Util
++ 			return "SPYSERVER";
++ 		case Type::N2K:
++ 			return "NMEA2000";
+++		case Type::E200:
+++			return "E200/libiio";
++ 		default:
++ 			return "";
++ 		}
++diff --git a/Source/Device/E200.h b/Source/Device/E200.h
++new file mode 100644
++index 00000000..d7e030c0
++--- /dev/null
+++++ b/Source/Device/E200.h
++@@ -0,0 +1,41 @@
+++#pragma once
+++
+++#include "Device.h"
+++
+++#ifdef HASE200IIO
+++#include <iio.h>
+++
+++namespace Device {
+++class E200 : public Device {
+++    iio_context *ctx = nullptr;
+++    iio_device *phy = nullptr;
+++    iio_device *rxdev = nullptr;
+++    iio_channel *ich = nullptr;
+++    iio_channel *qch = nullptr;
+++    iio_buffer *buffer = nullptr;
+++    std::thread run_thread;
+++    std::string uri = "ip:192.168.10.122";
+++    int gain = 50;
+++    std::vector<CFLOAT32> samples;
+++    void Run();
+++    void attr(iio_channel *c, const char *name, const std::string &v);
+++public:
+++    E200() : Device(Format::CF32, 3840000, Type::E200, "E200/libiio") {}
+++    ~E200() { try { Close(); } catch (...) {} }
+++    void Open(uint64_t) override;
+++    void Play() override;
+++    void Stop() override;
+++    void Close() override;
+++    bool isCallback() override { return true; }
+++    void getDeviceList(std::vector<Description> &list) override;
+++    std::string getProduct() override { return "ANTSDR E200"; }
+++    std::string getVendor() override { return "Analog Devices"; }
+++    std::string getSerial() override { return uri; }
+++    std::string getIdentity() override { return uri; }
+++    Setting &SetKey(AIS::Keys key, const std::string &arg) override;
+++    std::string Get() override;
+++};
+++}
+++#else
+++namespace Device { class E200 : public Unavailable { public: E200() : Unavailable("E200/libiio", "HASE200IIO", Type::E200) {} }; }
+++#endif
++diff --git a/Source/Device/E200.cpp b/Source/Device/E200.cpp
++new file mode 100644
++index 00000000..fd060629
++--- /dev/null
+++++ b/Source/Device/E200.cpp
++@@ -0,0 +1,80 @@
+++#include "E200.h"
+++#ifdef HASE200IIO
+++#include "Logger.h"
+++#include "Parse.h"
+++#include <stdexcept>
+++#include <cstring>
+++
+++namespace Device {
+++void E200::attr(iio_channel *c, const char *name, const std::string &v) {
+++    if (!c || iio_channel_attr_write(c, name, v.c_str()) < 0)
+++        throw std::runtime_error(std::string("E200: cannot set ") + name);
+++}
+++void E200::Open(uint64_t) {
+++    ctx = iio_create_context_from_uri(uri.c_str());
+++    if (!ctx) throw std::runtime_error("E200: cannot create libiio context for " + uri);
+++    phy = iio_context_find_device(ctx, "ad9361-phy");
+++    rxdev = iio_context_find_device(ctx, "cf-ad9361-lpc");
+++    if (!phy || !rxdev) throw std::runtime_error("E200: missing AD9361 IIO devices");
+++    ich = iio_device_find_channel(rxdev, "voltage0", false);
+++    qch = iio_device_find_channel(rxdev, "voltage1", false);
+++    if (!ich || !qch) throw std::runtime_error("E200: missing RX I/Q channels");
+++    iio_channel_enable(ich); iio_channel_enable(qch);
+++    Device::Open(0);
+++}
+++void E200::Play() {
+++    attr(iio_device_find_channel(phy, "voltage0", false), "sampling_frequency", std::to_string(sample_rate));
+++    if (tuner_bandwidth) attr(iio_device_find_channel(phy, "voltage0", false), "rf_bandwidth", std::to_string(tuner_bandwidth));
+++    attr(iio_device_find_channel(phy, "voltage0", false), "gain_control_mode", "manual");
+++    attr(iio_device_find_channel(phy, "voltage0", false), "hardwaregain", std::to_string(gain));
+++    attr(iio_device_find_channel(phy, "voltage0", false), "rf_port_select", "A_BALANCED");
+++    iio_channel *lo = iio_device_find_channel(phy, "altvoltage0", true);
+++    if (lo) attr(lo, "frequency", std::to_string(frequency));
+++    buffer = iio_device_create_buffer(rxdev, 32768, false);
+++    if (!buffer) throw std::runtime_error("E200: cannot create RX buffer");
+++    Device::Play();
+++    run_thread = std::thread(&E200::Run, this);
+++}
+++void E200::Run() {
+++    try {
+++        while (isStreaming()) {
+++            ssize_t n = iio_buffer_refill(buffer);
+++            if (n < 0) {
+++                // Network IIO contexts can return transient EPIPE while TX and
+++                // RX buffers are armed concurrently. Keep the receiver alive.
+++                if (n == -EPIPE || n == -EBADF || n == -EAGAIN || n == -EINTR) {
+++                    if (!isStreaming()) break;
+++                    continue;
+++                }
+++                throw std::runtime_error("libiio refill failed: " + std::to_string((int)-n));
+++            }
+++            ptrdiff_t step = iio_buffer_step(buffer);
+++            char *ip = (char *)iio_buffer_first(buffer, ich);
+++            char *qp = (char *)iio_buffer_first(buffer, qch);
+++            size_t count = step ? (size_t)n / (size_t)step : 0;
+++            samples.resize(count);
+++            for (size_t k = 0; k < count; ++k) {
+++                int16_t i = 0, q = 0; std::memcpy(&i, ip + k*step, 2); std::memcpy(&q, qp + k*step, 2);
+++                samples[k] = CFLOAT32((float)i / 2048.0f, (float)q / 2048.0f);
+++            }
+++            RAW r = {Format::CF32, samples.data(), (int)(samples.size() * sizeof(CFLOAT32))};
+++            Send(&r, 1, tag);
+++        }
+++    } catch (const std::exception &e) { Error() << e.what(); lost = true; }
+++}
+++void E200::Stop() {
+++    if (Device::isStreaming()) { Device::Stop(); if (buffer) iio_buffer_cancel(buffer); if (run_thread.joinable()) run_thread.join(); }
+++}
+++void E200::Close() {
+++    Stop(); if (buffer) { iio_buffer_destroy(buffer); buffer = nullptr; }
+++    if (ctx) { iio_context_destroy(ctx); ctx = nullptr; } phy = rxdev = nullptr; ich = qch = nullptr;
+++}
+++void E200::getDeviceList(std::vector<Description> &list) { list.emplace_back("Analog Devices", "ANTSDR E200 (libiio)", uri, 0, Type::E200); }
+++Setting &E200::SetKey(AIS::Keys key, const std::string &arg) {
+++    if (key == AIS::KEY_SETTING_DEVICE || key == AIS::KEY_SETTING_URL) { uri = arg; return *this; }
+++    if (key == AIS::KEY_SETTING_GAIN) { gain = Util::Parse::Integer(arg, -1, 73); return *this; }
+++    Device::SetKey(key, arg); return *this;
+++}
+++std::string E200::Get() { return Device::Get() + " gain " + std::to_string(gain) + "dB uri " + uri; }
+++}
+++#endif
