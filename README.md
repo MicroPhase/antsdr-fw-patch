@@ -1,273 +1,144 @@
-# antsdr-fw-patch
-This Repository is used to make Microphase software radio device firmware. 
+# ANTSDR E200 ADS-B Firmware and Host Clients
 
+English | [简体中文](README.zh-CN.md)
 
+This branch targets 1090 MHz ADS-B/Mode-S reception on the ANTSDR E200. The E200 performs IQ acquisition, synchronization, decoding, and CRC checking on-board using the AD9361, libiio, and readsb. Host applications consume decoded results only; they do not acquire IQ samples and do not require libiio.
 
-## Build Instructions
+## System Architecture
 
-The Firmware is built with the ([Xilinx Vivado 2022.2](https://account.amd.com/en/forms/downloads/xef.html?filename=Xilinx_Unified_2022.2_1014_8888.tar.gz.))(v0.38) . You need to install the correct Vivado version in you Linux PC, and then,you can follow the instructions below to generate the firmware for [ANTSDR E310](https://item.taobao.com/item.htm?spm=a230r.1.14.16.34e21142YIlxqx&id=647986963313&ns=1&abbucket=2#detail) or [ANTSDR E200](https://item.taobao.com/item.htm?spm=a1z10.3-c-s.w4002-17060615344.9.4f201b9f6YDKU2&id=691394502321) or [ANTSDR E310V2](https://item.taobao.com/item.htm?spm=a21xtw.29178619.product_shelf.8.3b923f77eJKa3u&id=708976727818&) and then. If you want to build other versions, check out the history repository.
-
-
-### Install build requirements
-
-```sh
-sudo apt-get install git build-essential fakeroot libncurses5-dev libssl-dev ccache 
-sudo apt-get install dfu-util u-boot-tools device-tree-compiler mtools
-sudo apt-get install bc python cpio zip unzip rsync file wget 
-sudo apt-get install libtinfo5 device-tree-compiler bison flex u-boot-tools
-sudo apt-get purge gcc-arm-linux-gnueabihf
-sudo apt-get remove libfdt-de
+```text
+E200 AD9361 -> local IIO -> readsb -> ADS-B decode/CRC
+                                      ├─ TCP 8081: line-delimited JSON results
+                                      ├─ TCP 30005: Beast binary results
+                                      ├─ HTTP 8080: readsb API
+                                      └─ HTTP 80 /tar1090/: web map
 ```
 
-### Get source code and setup bash
+When readsb owns the local IIO receive buffer, the firmware temporarily stops `iiod` so the two processes do not compete for the same DMA buffer. The `iiod` service is restored when ADS-B is stopped.
 
-1. get source from git
-	- v0.38
-		```sh
-		git clone -b v0.38 --recursive https://github.com/MicroPhase/antsdr-fw-patch.git
-		```	
-2. Toolchain
+## Build Requirements
 
-   Due to incompatibility between the AMD/Xilinx GCC toolchain supplied with Vivado/Vitis and Buildroot. This project switched to Buildroot external Toolchain: Linaro GCC 7.3-2018.05 7.3.1
-   https://releases.linaro.org/components/toolchain/binaries/7.3-2018.05/arm-linux-gnueabihf/
-
-
-3. setup bash
-	- v0.38
-        ```sh
-        export CROSS_COMPILE=arm-linux-gnueabihf-
-        export PATH=$PATH:/Toolchain-PATH/gcc-linaro-7.3.1-2018.05-i686_arm-linux-gnueabihf/bin
-        export VIVADO_SETTINGS=/opt/Xilinx/Vivado/2022.2/settings64.sh
-        ```
-### Export target
-
-1. ant e310
-
-   ```sh
-   export TARGET=ant
-   ```
-
-2. ant e200
-	```sh
-	export TARGET=e200
-	```
-	
-3. ant e310v2
-
-   ```sh
-   export TARGET=e310v2
-   ```
-
-  
-
-### Patch
-
-After completing the above steps, start to Patch.
+You need Linux, Vivado/Vitis 2022.2, and the Buildroot host tools. The E200 configuration selects the ARM GNU external toolchain through Buildroot (`BR2_TOOLCHAIN_EXTERNAL_ARM_ARM`); the firmware build downloads or reuses that toolchain and exposes its wrappers under `buildroot/output/host/bin/`. You do not need to install a separate host ARM cross compiler. On Debian/Ubuntu:
 
 ```sh
+sudo apt-get install git build-essential fakeroot libncurses5-dev libssl-dev ccache \
+  dfu-util u-boot-tools device-tree-compiler mtools bc python3 cpio zip unzip \
+  rsync file wget libtinfo5 bison flex
+```
+
+Set the Vivado environment (adjust the path as needed). Do not set `CROSS_COMPILE` or add an external cross-compiler directory to `PATH`; the Makefile selects the E200 prefix `arm-none-linux-gnueabihf-` and prepends Buildroot's host-tool directory for each sub-build.
+
+```sh
+export VIVADO_SETTINGS=/opt/Xilinx/Vivado/2022.2/settings64.sh
+```
+
+## Get the Source and Apply the E200 ADS-B Patches
+
+```sh
+git clone -b adsb --recursive https://github.com/MicroPhase/antsdr-fw-patch.git
 cd antsdr-fw-patch
+sh patch.sh e200
 ```
 
-1. ant e310
+`patch.sh e200` applies the E200 patches to the `plutosdr-fw` HDL, U-Boot, Linux, Buildroot, and firmware scripts. The patches add readsb, tar1090, and support for the E200 `S12/16` IQ format. Before applying the patches again, make sure the submodule does not already contain the same changes.
 
-   ```sh
-   sh patch.sh ant
-   ```
-
-2. ant e200
-
-   ```sh
-   sh patch.sh e200
-   ```
-   
-3. ant e310v2
-
-   ```sh
-   sh patch.sh e310v2
-   ```
-
-   
-
-If the patches are successfully applied, the command ends with:
-
-```txt
-Patch application finished successfully
-
-```
-
-### Build
-
-Then you can make firmware.
+## Build the Firmware
 
 ```sh
 cd plutosdr-fw
 env -u LD_LIBRARY_PATH LC_ALL=C LANGUAGE=C make TARGET=e200
-
-# For SD-card boot, after the firmware build completes:
 env -u LD_LIBRARY_PATH LC_ALL=C LANGUAGE=C make TARGET=e200 sdimg
 ```
 
-The SD-card files are written to `build_sdimg/`. The generated E200 `uEnv.txt`
-disables Charon and sets `maxcpus=2`; edit only `ethaddr` there to give each
-board a unique management MAC address. The build requires Vivado 2022.2
-and an ARM hard-float toolchain; `LC_ALL=C LANGUAGE=C` avoids a locale parsing
-bug in this older Buildroot release.
+`LC_ALL=C LANGUAGE=C` avoids a locale parsing issue in this older Buildroot release. Normal artifacts are placed in `plutosdr-fw/build/`; SD-card files are placed in `plutosdr-fw/build_sdimg/`, including `BOOT.bin`, `uImage`, `uramdisk.image.gz`, `devicetree.dtb`, and `uEnv.txt`.
 
-### E200 ADS-B firmware
+Copy `build_sdimg/` to a FAT SD card, set the E200 to SD boot, and power it on. The `sdimg` target sets `maxcpus=2`. To assign a unique management MAC address, edit only `ethaddr` in `uEnv.txt`.
 
-The E200 ADS-B image starts the on-board `readsb` decoder automatically at
-every boot. It stops `iiod` while decoding so both processes do not compete for
-the local IIO receive buffer. The decoder can still be controlled manually:
+> SD-card boot is recommended for the E200 ADS-B image. Confirm the target device and boot media before writing files.
 
-```sh
-adsb-control status
-adsb-control off
-adsb-control on
-adsb-control restart
-```
+## Firmware Installation and Boot
 
-After `adsb-control off`, `iiod` is restored. This manual off state is not
-persistent: ADS-B starts again after the next reboot. The web map is available
-at `http://<e200-ip>/tar1090/`; decoded NDJSON is exposed on TCP port 8081 and
-Beast binary data on TCP port 30005.
+Power the board off, copy `build_sdimg/` to the FAT partition, insert the card, select the SD-boot position, and power on. After booting, log in through SSH or the serial console and check `adsb-control status` and the network address.
 
-After the firmware building finished, you will see below file in the build folder. These files are used for flash updating.(This is e200 device)
+This branch does not use the E310 DFU workflow for the E200. Do not apply E310-specific `dfu-util` commands to an E200 ADS-B image. If your hardware revision has a separate QSPI procedure, follow that revision's hardware manual.
 
-```txt
-jcc@jcc:~/work/Git/mp/antsdr-fw-patch/plutosdr-fw$ ls -AGhl build
-总用量 319M
--rw-rw-r-- 1 jcc  12M 12月 26 11:06 antsdre200.dfu
--rw-rw-r-- 1 jcc  12M 12月 26 11:06 antsdre200.frm
--rw-rw-r-- 1 jcc   33 12月 26 11:06 antsdre200.frm.md5
--rw-rw-r-- 1 jcc  12M 12月 26 11:06 antsdre200.itb
--rw-rw-r-- 1 jcc  20M 12月 26 11:06 antsdr-fw-v0.34-dirty.zip
--rw-rw-r-- 1 jcc 670K 12月 26 11:06 antsdr-jtag-bootstrap-v0.34-dirty.zip
--rw-rw-r-- 1 jcc   69 12月 26 11:06 boot.bif
--rw-rw-r-- 1 jcc 508K 12月 26 11:06 boot.bin
--rw-rw-r-- 1 jcc 508K 12月 26 11:06 boot.dfu
--rw-rw-r-- 1 jcc 637K 12月 26 11:06 boot.frm
--rw-rw-r-- 1 jcc 245M 12月 26 11:06 legal-info-v0.34-dirty.tar.gz
--rw-rw-r-- 1 jcc 527K 12月 26 10:51 LICENSE.html
--rw-rw-r-- 1 jcc 524K 12月 26 11:05 ps7_init.c
--rw-rw-r-- 1 jcc 524K 12月 26 11:05 ps7_init_gpl.c
--rw-rw-r-- 1 jcc 4.2K 12月 26 11:05 ps7_init_gpl.h
--rw-rw-r-- 1 jcc 4.8K 12月 26 11:05 ps7_init.h
--rw-rw-r-- 1 jcc 2.8M 12月 26 11:05 ps7_init.html
--rw-rw-r-- 1 jcc  35K 12月 26 11:05 ps7_init.tcl
--rw-r--r-- 1 jcc 5.4M 12月 26 10:56 rootfs.cpio.gz
-drwxrwxr-x 6 jcc 4.0K 12月 26 11:06 sdk
--rw-rw-r-- 1 jcc 2.3M 12月 26 11:06 system_top.bit
--rw-rw-r-- 1 jcc 568K 12月 26 11:05 system_top.hdf
--rwxrwxr-x 1 jcc 471K 12月 26 11:06 u-boot.elf
--rw-rw---- 1 jcc 128K 12月 26 11:06 uboot-env.bin
--rw-rw---- 1 jcc 129K 12月 26 11:06 uboot-env.dfu
--rw-rw-r-- 1 jcc 6.8K 12月 26 11:06 uboot-env.txt
--rwxrwxr-x 1 jcc 4.0M 12月 26 10:45 zImage
--rw-rw-r-- 1 jcc  19K 12月 26 10:56 zynq-antsdre200.dtb
-```
+## Board-side Operation
 
-
-
-## Make SD card boot image
-
-After the firmware building finished, you can build the SD card boot image for device. Just type the following command.
+The examples use `192.168.10.122`; replace it with your board address:
 
 ```sh
-make sdimg
+adsb-control status     # show readsb/iiod status
+adsb-control off        # stop ADS-B and restore iiod
+adsb-control on         # start ADS-B (also enabled at boot)
+adsb-control restart    # restart the decoder service
 ```
 
-You will see the SD boot image in the build_sdimg folder. You can just  copy all these files in that folder into a SD card, plug the SD card  into the ANTSDR, set the jumper into SD card boot mode.
-
-## Update Flash by DFU
-
-DFU mode is just for ant e310, e200 is unsupport. If your device is e310, You can update the flash by DFU. Set the jumper into Flash Boot mode.  When device is power up, push the DFU button, and then, you will see the both led in the device will turn green, now it's time to update the  flash. You should change into the build folder first,and plug a micro USB into  the OTG interface. After that, you should run the following command.
+Defaults are 1090 MHz center frequency, gain 50, and preamble threshold 58. Override them in `/mnt/jffs2/readsb.default`:
 
 ```sh
-sudo dfu-util -a firmware.dfu -D ./ant.dfu
-sudo dfu-util -a boot.dfu -D ./boot.dfu
-sudo dfu-util -a uboot-env.dfu -D ./uboot-env.dfu
-sudo dfu-util -a uboot-extra-env.dfu -U ./uboot-extra-env.dfu
+READSB_GAIN="60"
+READSB_PREAMBLE_THRESHOLD="58"
 ```
 
-Now you can repower device.
+Run `adsb-control restart` after changes. Logs are written to `/mnt/sdcard/adsb/readsb.log`, with a volatile fallback when no SD card is mounted.
 
+| Address | Contents |
+| --- | --- |
+| `http://<e200-ip>/tar1090/` | tar1090 live map |
+| `http://<e200-ip>/tar1090/data/aircraft.json` | current aircraft JSON |
+| `<e200-ip>:8080` | readsb HTTP API |
+| `<e200-ip>:8081` | line-delimited JSON ADS-B result stream |
+| `<e200-ip>:30005` | Beast binary stream for aggregators |
 
+Port 8081 is the interface used by the host clients. Each line normally contains `hex`, `flight`, `alt_baro`, `lat`, `lon`, `gs`, and `rssi`. Only results decoded and accepted by board-side readsb are sent through this stream.
 
-## Support 2r2t mode
-If you want to use 2r2t mode, you need to enter the system and run the following command to write the mode configuradion into the nor flash. **But there is a little difference in sd card boot mode and qspi boot mode**
+## Python Host Client
 
-### QSPI mode
-   ```sh
- fw_setenv attr_name compatible
- fw_setenv attr_val ad9361
- fw_setenv compatible ad9361
- fw_setenv mode 2r2t
- reboot
-   ```
-
-After restarting, use the command to detect whether the variable in the flash has been written. If the write is successful, then the 2r2t mode can be used.
-
-Of course, thers is another way to configure the 2r2t mode, and use the command to write to the flash under uboot, such as
+The client is `host/python/adsb_json_client.py`; it uses only standard-library TCP/JSON and does not require libiio:
 
 ```sh
- setenv attr_name compatible
- setenv attr_val ad9361
- setenv compatible ad9361
- setenv mode 2r2t
- saveenv
- reset
+python3 host/python/adsb_json_client.py --host 192.168.10.122 --port 8081
 ```
 
- ### SD mode
- You need to modify some parameters in uEnv.txt file.
+Receive one result and exit:
 
-1. you need to modify the value of **adi_loadvals** as follows:
-
-before fixing:
-```txt
- adi_loadvals=fdt addr ${fit_load_address}......
-```
-after fixing:
- ```txt
- adi_loadvals=fdt addr ${devicetree_load_address}......
- ```
-
-2. you need to modify the value of **mode** as follows:
-
-before fixing:
-```txt
-maxcpus=1
-mode=1r1t
-```
-after fixing:
-```txt
-maxcpus=1
-mode=2r2t
+```sh
+python3 host/python/adsb_json_client.py --once
 ```
 
-3. you need to modify the value of **sdboot( add run adi_loadvals and #{fit_config})** as follows:
+Save complete JSONL records:
 
-before fixing:
-```txt
-sdboot=if mmcinfo; then run uenvboot; echo Copying Linux from SD to RAM... && load mmc 0 ${fit_load_address} ${kernel_image} && load mmc 0 ${devicetree_load_address} ${devicetree_image} && load mmc 0 ${ramdisk_load_address} ${ramdisk_image} bootm ${fit_load_address} ${ramdisk_load_address} ${devicetree_load_address}; fi
-```
-after fixing:
-```txt
-sdboot=if mmcinfo; then run uenvboot; echo Copying Linux from SD to RAM... && load mmc 0 ${fit_load_address} ${kernel_image} && load mmc 0 ${devicetree_load_address} ${devicetree_image} && load mmc 0 ${ramdisk_load_address} ${ramdisk_image} && run adi_loadvals;bootm ${fit_load_address} ${ramdisk_load_address} ${devicetree_load_address}#{fit_config}; fi
+```sh
+python3 host/python/adsb_json_client.py --host 192.168.10.122 --output aircraft.jsonl
 ```
 
-4. you need to **add the following parameters(attr_name attr_val compatible)** in the last line:
+Add `--raw` to print complete JSON objects. The client reconnects every three seconds by default.
 
-before fixing:
-```txt
-usbboot=if usb start; then run uenvboot; echo Copying Linux from USB to RAM... && load usb 0 ${fit_load_address} ${kernel_image} && load usb 0 ${devicetree_load_address} ${devicetree_image} && load usb 0 ${ramdisk_load_address} ${ramdisk_image} && bootm ${fit_load_address} ${ramdisk_load_address} ${devicetree_load_address}; fi
-```
-after fixing:
-```txt
-usbboot=if usb start; then run uenvboot; echo Copying Linux from USB to RAM... && load usb 0 ${fit_load_address} ${kernel_image} && load usb 0 ${devicetree_load_address} ${devicetree_image} && load usb 0 ${ramdisk_load_address} ${ramdisk_image} && bootm ${fit_load_address} ${ramdisk_load_address} ${devicetree_load_address}; fi
-attr_name=compatible
-attr_val=ad9361
-compatible=ad9361
+## C++ Host Client
+
+The client is in `host/cpp/` and requires only POSIX sockets and C++17:
+
+```sh
+make -C host/cpp
+./host/cpp/adsb_json_client 192.168.10.122 8081
 ```
 
-Then you can enjoy the 2r2t mode.
+Or use CMake:
+
+```sh
+cmake -S host/cpp -B host/cpp/build
+cmake --build host/cpp/build
+./host/cpp/build/adsb_json_client 192.168.10.122 8081
+```
+
+The example prints a summary and preserves each original JSON line. It uses a lightweight regular expression for common fields; applications needing every field can pass the original JSON to a full JSON library.
+
+## Troubleshooting
+
+1. Check the service: `ssh root@<e200-ip> 'adsb-control status'`.
+2. Check connectivity: `nc -vz <e200-ip> 8081`. If no results arrive, inspect `tail -f /mnt/sdcard/adsb/readsb.log`.
+3. Port 8081 is text JSON; port 30005 is Beast binary and must not be parsed as plain text.
+4. After changing the antenna, RF gain, or threshold, verify aircraft in tar1090 or `aircraft.json` first.
+5. To release IIO temporarily, run `adsb-control off`; run `adsb-control on` when testing is complete.
+
+The goal is board-side ADS-B decoding with host-side access to final results. The host clients never access E200 IQ data and do not compete with readsb for the IIO buffer.
