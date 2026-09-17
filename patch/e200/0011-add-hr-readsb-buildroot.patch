@@ -1,0 +1,341 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Thu, 17 Sep 2026 13:50:00 +0800
+Subject: [PATCH] e200: add HR customer output to readsb
+
+Add the dedicated CRLF-delimited #1/#2 TCP service on port 8090.
+Enable Mode A/C reception, retain per-aircraft Mode S state for missing
+fields, and expose a calibration offset for the reported signal level.
+---
+diff --git a/package/readsb/0002-hr-protocol.patch b/package/readsb/0002-hr-protocol.patch
+new file mode 100644
+index 0000000..3bde278
+--- /dev/null
++++ b/package/readsb/0002-hr-protocol.patch
+@@ -0,0 +1,296 @@
++diff --git a/demod_2400.c b/demod_2400.c
++index 765328d..7687927 100644
++--- a/demod_2400.c
+++++ b/demod_2400.c
++@@ -468,6 +468,7 @@ after_pre:
++
++             signal_power = scaled_signal_power / 65535.0 / 65535.0;
++             mm->signalLevel = signal_power / signal_len;
+++            mm->noiseLevel = mag->mean_power;
++             Modes.stats_current.signal_power_sum += signal_power;
++             Modes.stats_current.signal_power_count += signal_len;
++             sum_scaled_signal_power += scaled_signal_power;
++@@ -775,6 +776,10 @@ void demodulate2400AC(struct mag_buf *mag) {
++         mm->sysTimestamp = mag->sysTimestamp + receiveclock_ms_elapsed(mag->sampleTimestamp, mm->timestamp);
++
++         decodeModeAMessage(mm, modeac);
+++        double f1_power = f1_level / 65535.0;
+++        double f2_power = f2_level / 65535.0;
+++        mm->signalLevel = (f1_power * f1_power + f2_power * f2_power) / 2.0;
+++        mm->noiseLevel = mag->mean_power;
++
++         // Pass data to the next layer
++         netUseMessage(mm);
++diff --git a/help.h b/help.h
++index bf9e3e4..9bd5eb3 100644
++--- a/help.h
+++++ b/help.h
++@@ -148,6 +148,8 @@ static struct argp_option optionsReadsb[] = {
++     {"net-vrs-port", OptNetVRSPorts, "<ports>", 0, "TCP VRS json output listen port / TCP server (default: 0)", 2},
++     {"net-vrs-interval", OptNetVRSInterval, "<seconds>", 0, "TCP VRS json output interval (default: 5.0)", 2},
++     {"net-json-port", OptNetJsonPorts, "<ports>", 0, "TCP json position output listen port / TCP server, sends one line with a json object containing aircraft details for every position received (default: 0) (consider raising --net-ro-size to 8192 for less fragmentation if this is a concern)", 2},
+++    {"net-hr-port", OptNetHRPorts, "<ports>", 0, "HR customer protocol TCP output listen port (default: 0 / disabled)", 2},
+++    {"hr-rssi-offset", OptHRRssiOffset, "<dB>", 0, "HR RSSI calibration offset applied after dBFS minus receiver gain (default: 0)", 2},
++     {"net-json-port-interval", OptNetJsonPortInterval, "<seconds>", 0, "Set minimum interval between outputs per aircraft for TCP json output, default: 0.0 (every position)", 2},
++     {"net-json-port-include-noposition", OptNetJsonPortNoPos, 0, 0, "TCP json position output: include aircraft without position (state is sent for aircraft for every DF11 with CRC if the aircraft hasn't sent a position in the last 10 seconds and interval allowing)", 2},
++     {"net-json-port-wind-triggered", OptNetJsonPortWindTriggered, 0, 0, "TCP json position output: instead of emitting when a new position is calculated, only emit when the wind was calculated now based on data from the last 2.5 seconds and the position is no older than 2.5 seconds", 2},
++diff --git a/net_io.c b/net_io.c
++index 0835ff7..aecce96 100644
++--- a/net_io.c
+++++ b/net_io.c
++@@ -933,6 +933,7 @@ void modesInitNet(void) {
++     struct net_service *raw_in;
++     struct net_service *vrs_out;
++     struct net_service *json_out;
+++    struct net_service *hr_out;
++     struct net_service *feedmap_out;
++     struct net_service *sbs_out;
++     struct net_service *sbs_out_replay;
++@@ -974,6 +975,9 @@ void modesInitNet(void) {
++     json_out = serviceInit(&Modes.services_out, "Position json output", &Modes.json_out, no_heartbeat, no_heartbeat, READ_MODE_IGNORE, NULL, NULL);
++     serviceListen(json_out, Modes.net_bind_address, Modes.net_output_json_ports, Modes.net_epfd);
++
+++    hr_out = serviceInit(&Modes.services_out, "HR customer protocol output", &Modes.hr_out, no_heartbeat, no_heartbeat, READ_MODE_IGNORE, NULL, NULL);
+++    serviceListen(hr_out, Modes.net_bind_address, Modes.net_output_hr_ports, Modes.net_epfd);
+++
++     feedmap_out = serviceInit(&Modes.services_out, "Forward feed map data", &Modes.feedmap_out, no_heartbeat, no_heartbeat, READ_MODE_IGNORE, NULL, NULL);
++
++     sbs_out = serviceInit(&Modes.services_out, "SBS TCP output ALL", &Modes.sbs_out, sbs_heartbeat, no_heartbeat, READ_MODE_IGNORE, NULL, NULL);
++@@ -3614,6 +3618,135 @@ void jsonPositionOutput(struct modesMessage *mm, struct aircraft *a) {
++     completeWrite(&Modes.json_out, w);
++ }
++
+++static uint8_t hrCrc8(const char *data, size_t length) {
+++    uint8_t crc = 0;
+++    for (size_t i = 0; i < length; ++i) {
+++        crc ^= (uint8_t) data[i];
+++        for (int bit = 0; bit < 8; ++bit)
+++            crc = (crc & 0x80) ? (uint8_t) ((crc << 1) ^ 0x07) : (uint8_t) (crc << 1);
+++    }
+++    return crc;
+++}
+++
+++static void hrFinishAndSend(char *payload) {
+++    size_t payload_len = strlen(payload);
+++    uint8_t crc = hrCrc8(payload, payload_len);
+++    char frame[1024];
+++    int length = snprintf(frame, sizeof(frame), "#%s,%02X#\r\n", payload, crc);
+++    if (length < 0 || length >= (int) sizeof(frame))
+++        return;
+++    char *out = prepareWrite(&Modes.hr_out, length);
+++    if (!out)
+++        return;
+++    memcpy(out, frame, length);
+++    completeWrite(&Modes.hr_out, out + length);
+++}
+++
+++static void modesSendHROutput(struct modesMessage *mm, struct aircraft *a) {
+++    char payload[960];
+++    char *p = payload;
+++    char *end = payload + sizeof(payload);
+++    double signal_dbfs = 0.0;
+++    double signal_dbm = 0.0;
+++    double snr = 0.0;
+++    bool have_signal = mm->signalLevel > 0.0;
+++    bool have_snr = have_signal && mm->noiseLevel > 0.0;
+++
+++    if (have_signal) {
+++        signal_dbfs = 10.0 * log10(fmax(mm->signalLevel, 1e-12));
+++        signal_dbm = signal_dbfs - Modes.gain / 10.0 + Modes.hr_rssi_offset;
+++    }
+++    if (have_snr)
+++        snr = signal_dbfs - 10.0 * log10(fmax(mm->noiseLevel, 1e-12));
+++
+++    if (mm->msgtype == DFTYPE_MODEAC) {
+++        int64_t utc_ms = mm->sysTimestamp % (24 * 60 * 60 * 1000LL);
+++        if (utc_ms < 0)
+++            utc_ms += 24 * 60 * 60 * 1000LL;
+++        p = safe_snprintf(p, end, "1,%" PRId64 ",AC,%02X%02X,", utc_ms,
+++                (unsigned) mm->msg[0], (unsigned) mm->msg[1]);
+++        p = safe_snprintf(p, end, have_signal ? "%.1f," : "-,", signal_dbm);
+++        p = safe_snprintf(p, end, have_snr ? "%.1f" : "-", snr);
+++        *p = '\0';
+++        hrFinishAndSend(payload);
+++        return;
+++    }
+++
+++    if (mm->decodeResult < 0 || mm->msgtype < 0 || mm->msgtype > 31)
+++        return;
+++
+++    char utc[40] = "-";
+++    time_t seconds = mm->sysTimestamp / 1000;
+++    struct tm tm;
+++    if (gmtime_r(&seconds, &tm)) {
+++        snprintf(utc, sizeof(utc), "%04d-%02d-%02dT%02d:%02d:%02d.%03d",
+++                tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+++                tm.tm_hour, tm.tm_min, tm.tm_sec,
+++                (int) (mm->sysTimestamp % 1000));
+++    }
+++
+++    p = safe_snprintf(p, end, "2,%s,", utc);
+++    if (mm->addr != HEX_UNKNOWN && !(mm->addr & MODES_NON_ICAO_ADDRESS))
+++        p = safe_snprintf(p, end, "%06X,", mm->addr & 0xFFFFFF);
+++    else
+++        p = safe_snprintf(p, end, "-,");
+++
+++    char callsign[16] = "";
+++    if (a && trackDataValid(&a->callsign_valid)) {
+++        snprintf(callsign, sizeof(callsign), "%s", a->callsign);
+++        for (int i = (int) strlen(callsign) - 1; i >= 0 && callsign[i] == ' '; --i)
+++            callsign[i] = '\0';
+++    }
+++    p = safe_snprintf(p, end, "%s,", callsign[0] ? callsign : "-");
+++    if (a && trackDataValid(&a->pos_reliable_valid))
+++        p = safe_snprintf(p, end, "%.6f,%.6f,", a->latReliable, a->lonReliable);
+++    else
+++        p = safe_snprintf(p, end, "-,-,");
+++    if (a && altBaroReliable(a))
+++        p = safe_snprintf(p, end, "%ld,", lround(a->baro_alt * 0.3048));
+++    else
+++        p = safe_snprintf(p, end, "-,");
+++    if (a && trackDataValid(&a->gs_valid))
+++        p = safe_snprintf(p, end, "%.2f,", a->gs * 0.514444444);
+++    else
+++        p = safe_snprintf(p, end, "-,");
+++    if (a && trackDataValid(&a->track_valid))
+++        p = safe_snprintf(p, end, "%.2f,", a->track);
+++    else
+++        p = safe_snprintf(p, end, "-,");
+++    if (a && trackDataValid(&a->baro_rate_valid))
+++        p = safe_snprintf(p, end, "%.2f,", a->baro_rate * 0.00508);
+++    else if (a && trackDataValid(&a->geom_rate_valid))
+++        p = safe_snprintf(p, end, "%.2f,", a->geom_rate * 0.00508);
+++    else
+++        p = safe_snprintf(p, end, "-,");
+++    if (a && trackDataValid(&a->squawk_valid))
+++        p = safe_snprintf(p, end, "%04X,", a->squawk);
+++    else
+++        p = safe_snprintf(p, end, "-,");
+++    if (a && trackDataValid(&a->airground_valid) && a->airground == AG_GROUND)
+++        p = safe_snprintf(p, end, "1,");
+++    else if (a && trackDataValid(&a->airground_valid) && a->airground == AG_AIRBORNE)
+++        p = safe_snprintf(p, end, "0,");
+++    else
+++        p = safe_snprintf(p, end, "-,");
+++    if (a && trackDataValid(&a->nac_p_valid))
+++        p = safe_snprintf(p, end, "%u,", a->nac_p);
+++    else
+++        p = safe_snprintf(p, end, "-,");
+++    if (a && trackDataValid(&a->nac_v_valid))
+++        p = safe_snprintf(p, end, "%u,", a->nac_v);
+++    else
+++        p = safe_snprintf(p, end, "-,");
+++    if (a && trackDataValid(&a->pos_reliable_valid))
+++        p = safe_snprintf(p, end, "%u,", a->pos_nic_reliable);
+++    else
+++        p = safe_snprintf(p, end, "-,");
+++    p = safe_snprintf(p, end, "%d", mm->msgtype);
+++    *p = '\0';
+++    hrFinishAndSend(payload);
+++}
+++
++ void sendData(struct net_writer *output, char *data, int len) {
++     char *p;
++
++@@ -6333,6 +6466,9 @@ static void outputMessage(struct modesMessage *mm) {
++         jsonPositionOutput(mm, ac);
++     }
++
+++    if (Modes.hr_out.connections)
+++        modesSendHROutput(mm, ac);
+++
++     if (mm->sbs_in && ac) {
++         if (mm->reduce_forward || !Modes.sbsReduce) {
++             if (Modes.sbs_out.connections) {
++diff --git a/readsb.c b/readsb.c
++index ae6593b..eea8b83 100644
++--- a/readsb.c
+++++ b/readsb.c
++@@ -170,6 +170,7 @@ static void configSetDefaults(void) {
++     Modes.net_output_vrs_ports = strdup("0");
++     Modes.net_output_vrs_interval = 5 * SECONDS;
++     Modes.net_output_json_ports = strdup("0");
+++    Modes.net_output_hr_ports = strdup("0");
++     Modes.net_output_api_ports = strdup("0");
++     Modes.net_input_jaero_ports = strdup("0");
++     Modes.net_output_jaero_ports = strdup("0");
++@@ -277,6 +278,7 @@ static void configSetDefaults(void) {
++
++     Modes.binCraftVersion = 20250403;
++     Modes.messageRateMult = 1.0f;
+++    Modes.hr_rssi_offset = 0.0f;
++
++     Modes.apiShutdownDelay = 0 * SECONDS;
++
++@@ -1451,6 +1453,7 @@ static void cleanup_and_exit(int code) {
++     sfree(Modes.net_input_jaero_ports);
++     sfree(Modes.net_output_jaero_ports);
++     sfree(Modes.net_output_json_ports);
+++    sfree(Modes.net_output_hr_ports);
++     sfree(Modes.net_output_api_ports);
++     sfree(Modes.net_output_asterix_ports);
++     sfree(Modes.garbage_ports);
++@@ -2041,6 +2044,13 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
++             sfree(Modes.net_output_json_ports);
++             Modes.net_output_json_ports = strdup(arg);
++             break;
+++        case OptNetHRPorts:
+++            sfree(Modes.net_output_hr_ports);
+++            Modes.net_output_hr_ports = strdup(arg);
+++            break;
+++        case OptHRRssiOffset:
+++            Modes.hr_rssi_offset = atof(arg);
+++            break;
++         case OptTar1090UseApi:
++             Modes.tar1090_use_api = 1;
++             break;
++diff --git a/readsb.h b/readsb.h
++index 0f17641..8c6b435 100644
++--- a/readsb.h
+++++ b/readsb.h
++@@ -678,6 +678,7 @@ struct _Modes
++     struct net_writer sbs_out_jaero; // SBS-format output
++     struct net_writer sbs_out_prio; // SBS-format output
++     struct net_writer json_out; // SBS-format output
+++    struct net_writer hr_out; // HR customer text protocol output
++     struct net_writer asterix_out; // Asterix output
++     struct net_writer feedmap_out; // SBS-format output
++     struct net_writer vrs_out; // SBS-format output
++@@ -879,6 +880,7 @@ struct _Modes
++     char *net_output_asterix_ports; // List of Asterix output TCP ports
++     char *net_input_asterix_ports; // List of Asterix input TCP ports
++     char *net_output_json_ports;
+++    char *net_output_hr_ports;
++     char *net_output_api_ports;
++     char *garbage_ports;
++     char *net_output_vrs_ports; // List of VRS output TCP ports
++@@ -945,6 +947,7 @@ struct _Modes
++     int trace_hist_only;
++     int sbsOverrideSquawk;
++     float messageRateMult;
+++    float hr_rssi_offset; // Calibration offset applied to dBFS - RX gain
++     uint32_t binCraftVersion; // never change the type for this variable
++     int8_t userLocationValid;
++     int8_t userLocationRef;
++@@ -997,6 +1000,7 @@ struct modesMessage
++     unsigned char msg[MODES_LONG_MSG_BYTES]; // Binary message.
++     unsigned char verbatim[MODES_LONG_MSG_BYTES]; // Binary message, as originally received before correction
++     double signalLevel; // RSSI, in the range [0..1], as a fraction of full-scale power
+++    double noiseLevel; // Noise power in the same normalized units as signalLevel
++     struct client *client; // network client this message came from, NULL otherwise
++     struct aircraft *aircraft; // tracked aircraft associated with this message or NULL
++     struct messageBuffer *messageBuffer;
++@@ -1344,6 +1348,8 @@ enum {
++     OptNetVRSPorts,
++     OptNetVRSInterval,
++     OptNetJsonPorts,
+++    OptNetHRPorts,
+++    OptHRRssiOffset,
++     OptNetJsonPortInterval,
++     OptNetJsonPortNoPos,
++     OptNetJsonPortWindTriggered,
++@@ -1430,4 +1436,3 @@ extern "C"
++ #endif
++
++ #endif // __DUMP1090_H
++-
+diff --git a/package/readsb/readsb.default b/package/readsb/readsb.default
+index 3b3cb6a..5f928a8 100644
+--- a/package/readsb/readsb.default
++++ b/package/readsb/readsb.default
+@@ -10,5 +10,11 @@ READSB_WATCH_INTERVAL="5"
+ READSB_BEAST_PORT="30005"
+ READSB_API_PORT="8080"
+ READSB_JSON_PORT="8081"
++READSB_HR_PORT="8090"
++READSB_HR_RSSI_OFFSET="0"
++READSB_MODEAC="1"
+ READSB_EXCLUSIVE_IIO="1"
+ READSB_LOGFILE="/mnt/sdcard/adsb/readsb.log"
++READSB_LOG_MAX_BYTES="8388608"
++READSB_LOG_BACKUPS="4"
++READSB_EXTRA_ARGS=""
+diff --git a/package/readsb/readsb-watchdog b/package/readsb/readsb-watchdog
+index 1ffb52c..84a783e 100644
+--- a/package/readsb/readsb-watchdog
++++ b/package/readsb/readsb-watchdog
+@@ -21,6 +21,9 @@ readsb_args="$readsb_args --freq=$READSB_FREQ --gain=$READSB_GAIN"
+ readsb_args="$readsb_args --preamble-threshold=$READSB_PREAMBLE_THRESHOLD"
+ readsb_args="$readsb_args --net-bo-port=$READSB_BEAST_PORT --net-api-port=$READSB_API_PORT"
+ readsb_args="$readsb_args --net-json-port=$READSB_JSON_PORT --write-json=$RUNTIME --write-json-every=1"
++[ "${READSB_MODEAC:-1}" = "1" ] && readsb_args="$readsb_args --modeac"
++[ -n "${READSB_HR_PORT:-}" ] && readsb_args="$readsb_args --net-hr-port=$READSB_HR_PORT"
++[ -n "${READSB_HR_RSSI_OFFSET:-}" ] && readsb_args="$readsb_args --hr-rssi-offset=$READSB_HR_RSSI_OFFSET"
+ [ -n "${READSB_LAT:-}" ] && readsb_args="$readsb_args --lat=$READSB_LAT"
+ [ -n "${READSB_LON:-}" ] && readsb_args="$readsb_args --lon=$READSB_LON"
+ readsb_args="$readsb_args ${READSB_EXTRA_ARGS:-}"

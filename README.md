@@ -9,6 +9,7 @@ This branch targets 1090 MHz ADS-B/Mode-S reception on the ANTSDR E200. The E200
 ```text
 E200 AD9361 -> local IIO -> readsb -> ADS-B decode/CRC
                                       ├─ TCP 8081: line-delimited JSON results
+                                      ├─ TCP 8090: HR customer protocol
                                       ├─ TCP 30005: Beast binary results
                                       ├─ HTTP 8080: readsb API
                                       └─ HTTP 80 /tar1090/: web map
@@ -78,6 +79,9 @@ Defaults are 1090 MHz center frequency, gain 50, and preamble threshold 58. Over
 ```sh
 READSB_GAIN="60"
 READSB_PREAMBLE_THRESHOLD="58"
+READSB_HR_PORT="8090"
+READSB_HR_RSSI_OFFSET="0"
+READSB_MODEAC="1"
 ```
 
 Run `adsb-control restart` after changes. Logs are written to `/mnt/sdcard/adsb/readsb.log`, with a volatile fallback when no SD card is mounted.
@@ -88,9 +92,25 @@ Run `adsb-control restart` after changes. Logs are written to `/mnt/sdcard/adsb/
 | `http://<e200-ip>/tar1090/data/aircraft.json` | current aircraft JSON |
 | `<e200-ip>:8080` | readsb HTTP API |
 | `<e200-ip>:8081` | line-delimited JSON ADS-B result stream |
+| `<e200-ip>:8090` | HR `#1` / `#2` customer protocol stream |
 | `<e200-ip>:30005` | Beast binary stream for aggregators |
 
 Port 8081 is the interface used by the host clients. Each line normally contains `hex`, `flight`, `alt_baro`, `lat`, `lon`, `gs`, and `rssi`. Only results decoded and accepted by board-side readsb are sent through this stream.
+
+## HR Customer TCP Service
+
+The customer-specific service listens on TCP port 8090. It emits one CRLF-terminated frame for every accepted Mode A/C or Mode S message. Connect with `nc <e200-ip> 8090`.
+
+```text
+#1,<UTC-ms-of-day>,AC,<raw>,<signal-dBm>,<SNR-dB>,<CRC>#
+#2,<UTC>,<ICAO>,<flight>,<lat>,<lon>,<alt-m>,<speed-m/s>,<track-deg>,<vertical-speed-m/s>,<squawk>,<position-type>,<NACp>,<NACv>,<NIC>,<DF>,<CRC>#
+```
+
+Missing fields use `-`. Mode S fields not present in the current message are completed from the most recent valid state for the same ICAO address. Position type is `0` for airborne and `1` for surface. The checksum is uppercase CRC-8/ATM (`poly=0x07`, `init=0x00`, `refin=false`, `refout=false`, `xorout=0x00`) over the text between the leading `#` and the comma immediately before the CRC.
+
+The Mode A/C signal value is calculated from dBFS, configured receiver gain, and `READSB_HR_RSSI_OFFSET`. Set the offset from a calibrated 1090 MHz signal-generator measurement before treating the field as absolute dBm. The initial value `0` is only nominal.
+
+The following integration details remain provisional until confirmed by the customer: CRC-8/ATM parameters, E200 acting as the TCP server rather than an outbound TCP client, and UTC accuracy. Mode A/C has no message CRC or ICAO address, so its CRC field currently protects only the emitted text frame. UTC is taken from the E200 system clock with millisecond formatting; use NTP, or add a GNSS/RTC time source when operation without network time is required.
 
 ## Python Host Client
 

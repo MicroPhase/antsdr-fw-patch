@@ -11,6 +11,7 @@ readsb 已经解析出的结果，不再采集 IQ，也不需要安装 libiio。
 ```text
 E200 AD9361 -> 本地 IIO -> readsb -> ADS-B 解码/CRC
                                       ├─ TCP 8081：逐行 JSON 结果
+                                      ├─ TCP 8090：HR 定制协议
                                       ├─ TCP 30005：Beast 二进制结果
                                       ├─ HTTP 8080：readsb API
                                       └─ HTTP 80 /tar1090/：网页地图
@@ -93,6 +94,9 @@ adsb-control restart    # 重启解码服务
 ```sh
 READSB_GAIN="60"
 READSB_PREAMBLE_THRESHOLD="58"
+READSB_HR_PORT="8090"
+READSB_HR_RSSI_OFFSET="0"
+READSB_MODEAC="1"
 ```
 
 修改后执行 `adsb-control restart`。日志默认写入
@@ -106,11 +110,38 @@ READSB_PREAMBLE_THRESHOLD="58"
 | `http://<e200-ip>/tar1090/data/aircraft.json` | 当前飞机列表 JSON |
 | `<e200-ip>:8080` | readsb HTTP API |
 | `<e200-ip>:8081` | 每行一个 JSON 的 ADS-B 结果流 |
+| `<e200-ip>:8090` | HR `#1` / `#2` 定制协议流 |
 | `<e200-ip>:30005` | Beast 二进制流，供专业聚合器使用 |
 
 8081 是本项目上位机使用的接口。每一行通常包含 `hex`、`flight`、`alt_baro`、
 `lat`、`lon`、`gs`、`rssi` 等字段；只有已由板端 readsb 解码并通过其校验的
 结果才会出现在这里。
+
+## HR 定制 TCP 服务
+
+HR 专用服务默认监听 TCP 8090 端口，每一条通过接收判定的 Mode A/C 或
+Mode S 报文都会输出一帧，以 CRLF 结束。可使用 `nc <e200-ip> 8090` 接收。
+
+```text
+#1,<当日UTC毫秒>,AC,<原始报文>,<信号dBm>,<信噪比dB>,<CRC>#
+#2,<UTC>,<ICAO>,<航班号>,<纬度>,<经度>,<高度m>,<航速m/s>,<航向deg>,<爬升率m/s>,<应答器编号>,<位置类型>,<NACp>,<NACv>,<NIC>,<DF>,<CRC>#
+```
+
+字段缺失时输出 `-`。当前报文未携带的 Mode S 字段使用同一 ICAO 最近一次
+有效状态补全。位置类型 `0` 表示空中，`1` 表示地面。校验采用大写两位十六
+进制 CRC-8/ATM：`poly=0x07`、`init=0x00`、`refin=false`、
+`refout=false`、`xorout=0x00`；计算范围为起始 `#` 之后、CRC 前逗号之前的
+全部正文。
+
+Mode A/C 的信号值由 dBFS、接收增益和 `READSB_HR_RSSI_OFFSET` 换算。
+产品交付前应使用 1090 MHz 标准信号源标定该偏置；默认值 `0` 只能视为
+名义 dBm，不能作为计量结果。
+
+以下对接细节在客户确认前均为暂定：CRC-8/ATM 参数、由 E200 监听 TCP
+而不是主动连接服务器，以及 UTC 精度。Mode A/C 报文本身没有 CRC 和 ICAO
+地址，因此当前 CRC 只校验输出的文本帧。UTC 取自 E200 系统时钟并格式化到
+毫秒；联网时应配置 NTP，若要求断网后仍保持准确时间，则需增加 GNSS/RTC
+时间源。
 
 ## 上位机：Python
 

@@ -6,13 +6,13 @@ Subject: [PATCH] add support linux
 ---
  arch/arm/boot/dts/zynq-7000.dtsi     |   2 +-
  arch/arm/boot/dts/zynq-e200.dts      |  36 +++
- arch/arm/boot/dts/zynq-e200.dtsi     | 446 +++++++++++++++++++++++++++
- arch/arm/configs/zynq_e200_defconfig | 293 ++++++++++++++++++
+ arch/arm/boot/dts/zynq-e200.dtsi     | 450 +++++++++++++++++++++++++++
+ arch/arm/configs/zynq_e200_defconfig | 294 ++++++++++++++++++
  drivers/iio/adc/Kconfig              |   6 +
  drivers/iio/adc/Makefile             |   1 +
- drivers/iio/adc/ad5660_mp.c          | 272 ++++++++++++++++
+ drivers/iio/adc/ad5660_mp.c          | 262 ++++++++++++++++
  drivers/mtd/spi-nor/core.c           |  30 +-
- 8 files changed, 1083 insertions(+), 3 deletions(-)
+ 8 files changed, 1078 insertions(+), 3 deletions(-)
  create mode 100644 arch/arm/boot/dts/zynq-e200.dts
  create mode 100644 arch/arm/boot/dts/zynq-e200.dtsi
  create mode 100644 arch/arm/configs/zynq_e200_defconfig
@@ -78,7 +78,7 @@ new file mode 100644
 index 000000000000..f123605e5d90
 --- /dev/null
 +++ b/arch/arm/boot/dts/zynq-e200.dtsi
-@@ -0,0 +1,446 @@
+@@ -0,0 +1,450 @@
 +/*
 + * ZYNQ Pluto SDR (Z7020/AD936x)
 + *
@@ -127,10 +127,6 @@ index 000000000000..f123605e5d90
 +		reg = <0xe0002000 0x1000>;
 +		view-port = <0x0170>;
 +		drv-vbus;
-+	};
-+	
-+	mp5660 {
-+		compatible = "microphase,ad5660";
 +	};
 +};
 +
@@ -222,7 +218,7 @@ index 000000000000..f123605e5d90
 +
 +		rx_dma: dma@7c400000 {
 +			compatible = "adi,axi-dmac-1.00.a";
-+			reg = <0x7c400000 0x10000>;
++			reg = <0x7c400000 0x1000>;
 +			#dma-cells = <1>;
 +			interrupts = <0 57 IRQ_TYPE_LEVEL_HIGH>;
 +			clocks = <&clkc 16>;
@@ -243,7 +239,7 @@ index 000000000000..f123605e5d90
 +
 +		tx_dma: dma@7c420000 {
 +			compatible = "adi,axi-dmac-1.00.a";
-+			reg = <0x7c420000 0x10000>;
++			reg = <0x7c420000 0x1000>;
 +			#dma-cells = <1>;
 +			interrupts = <0 56 IRQ_TYPE_LEVEL_HIGH>;
 +			clocks = <&clkc 16>;
@@ -282,10 +278,18 @@ index 000000000000..f123605e5d90
 +			adi,axi-dds-default-scale = <0>;
 +		};
 +
-+		mwipcore@43c00000 {
-+			compatible = "mathworks,mwipcore-axi4lite-v1.00";
-+			reg = <0x43c00000 0xffff>;
++		axi_tdd_0: tdd@7c440000 {
++			compatible = "adi,axi-tdd";
++			reg = <0x7c440000 0x1000>;
++			clocks = <&clkc 15>, <&adc0_ad9364 20>;
++			clock-names = "s_axi_aclk", "intf_clk";
 +		};
++
++		vcxo_ctrl: vcxo-control@43c00000 {
++			compatible = "microphase,ad5660";
++			reg = <0x43c00000 0x1000>;
++		};
++
 +	};
 +};
 +
@@ -530,7 +534,7 @@ new file mode 100644
 index 000000000000..452b8c8ea24d
 --- /dev/null
 +++ b/arch/arm/configs/zynq_e200_defconfig
-@@ -0,0 +1,293 @@
+@@ -0,0 +1,294 @@
 +CONFIG_SYSVIPC=y
 +CONFIG_USELIB=y
 +CONFIG_HIGH_RES_TIMERS=y
@@ -631,6 +635,7 @@ index 000000000000..452b8c8ea24d
 +CONFIG_BLK_DEV_LOOP=y
 +CONFIG_BLK_DEV_RAM=y
 +CONFIG_BLK_DEV_RAM_SIZE=16384
++CONFIG_ADI_AXI_TDD=y
 +CONFIG_SRAM=y
 +# CONFIG_MATHWORKS_IP_CORE is not set
 +CONFIG_SCSI=y
@@ -858,7 +863,7 @@ new file mode 100644
 index 000000000000..0f97c1e815c4
 --- /dev/null
 +++ b/drivers/iio/adc/ad5660_mp.c
-@@ -0,0 +1,272 @@
+@@ -0,0 +1,262 @@
 +/*
 + * AD5660: ad5660 control
 + *
@@ -888,10 +893,7 @@ index 000000000000..0f97c1e815c4
 +#include <linux/iio/iio.h>
 +#include <linux/iio/sysfs.h>
 +#include <linux/gpio/consumer.h>
-+#include <asm/io.h>
-+
-+
-+#define DAC_MEM_ADDR 0x43C00000
++#include <linux/io.h>
 +
 +/* 
 +*   DAC MODE 0 自动设置  1 手动设置
@@ -1071,13 +1073,11 @@ index 000000000000..0f97c1e815c4
 +    ad5660 = iio_priv(indio_dev);
 +    ad5660->dev = &pdev->dev;
 +
-+    ad5660->control_virtualaddr = ioremap(DAC_MEM_ADDR, 0x10000);
-+    if (!ad5660->control_virtualaddr) {
-+		dev_err(&pdev->dev, "unable to IOMAP ad5660mp registers\n");
-+		return -ENOMEM;
-+	}
-+
-+    dev_info(&pdev->dev,"IOMAP ad5660mp registers phyaddr %x virtaddr %x",DAC_MEM_ADDR,ad5660->control_virtualaddr);
++    ad5660->control_virtualaddr = devm_platform_ioremap_resource(pdev, 0);
++    if (IS_ERR(ad5660->control_virtualaddr))
++		return dev_err_probe(&pdev->dev,
++			PTR_ERR(ad5660->control_virtualaddr),
++			"unable to map VCXO control registers\n");
 +
 +    iowrite32(1,ad5660->control_virtualaddr);
 +    iowrite32(23000,ad5660->control_virtualaddr+4);
@@ -1104,14 +1104,9 @@ index 000000000000..0f97c1e815c4
 +
 +static int ad5660_removed(struct platform_device *pdev)
 +{
-+    struct ad5660_data *ad5660;
 +	struct iio_dev *indio_dev;
 +
 +	indio_dev = platform_get_drvdata(pdev);
-+	ad5660 = iio_priv(indio_dev);
-+
-+	if (ad5660->control_virtualaddr)
-+		iounmap(ad5660->control_virtualaddr);
 +
 +	iio_device_unregister(indio_dev);
 +	return 0;
