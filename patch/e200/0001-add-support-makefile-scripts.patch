@@ -3,18 +3,30 @@ From: wjx <3570534440@qq.com>
 Date: Tue, 17 Dec 2024 14:54:06 +0800
 Subject: [PATCH] add-support-makefile-scripts
 
+Local maintenance: restrict the implicit Pluto FPGA download to TARGET=pluto;
+require an explicit board artifact for E200 when Vivado is unavailable.
+
 ---
- Makefile         |  31 ++++++++--
+ Makefile         |  36 +++++++++--
  scripts/e200.its | 158 +++++++++++++++++++++++++++++++++++++++++++++++
  scripts/e200.mk  |  10 +++
- 3 files changed, 194 insertions(+), 5 deletions(-)
+ 3 files changed, 198 insertions(+), 6 deletions(-)
  create mode 100644 scripts/e200.its
  create mode 100644 scripts/e200.mk
 
 diff --git a/Makefile b/Makefile
-index 0b2e57a..f5209c1 100644
+index 0b2e57a..a8eee47 100644
 --- a/Makefile
 +++ b/Makefile
+@@ -14,7 +14,7 @@ VERSION=$(shell git describe --abbrev=4 --dirty --always --tags)
+ LATEST_TAG=$(shell git describe --abbrev=0 --tags)
+ UBOOT_VERSION=$(shell echo -n "PlutoSDR " && cd u-boot-xlnx && git describe --abbrev=0 --dirty --always --tags)
+ HAVE_VIVADO= $(shell bash -c "source $(VIVADO_SETTINGS) > /dev/null 2>&1 && vivado -version > /dev/null 2>&1 && echo 1 || echo 0")
+-XSA_URL ?= http://github.com/analogdevicesinc/plutosdr-fw/releases/download/${LATEST_TAG}/system_top.xsa
++XSA_URL ?= $(if $(filter pluto,$(TARGET)),https://github.com/analogdevicesinc/plutosdr-fw/releases/download/${LATEST_TAG}/system_top.xsa)
+ 
+ ifeq (1, ${HAVE_VIVADO})
+ 	VIVADO_INSTALL= $(shell bash -c "source $(VIVADO_SETTINGS) > /dev/null 2>&1 && vivado -version | head -1 | awk '{print $2}'")
 @@ -27,8 +27,8 @@ $(error "      3] export VIVADO_VERSION=v20xx.x")
  	endif
  endif
@@ -45,7 +57,17 @@ index 0b2e57a..f5209c1 100644
  ### Device Tree ###
  
  linux/arch/arm/boot/dts/%.dtb: TOOLCHAIN linux/arch/arm/boot/dts/%.dts  linux/arch/arm/boot/dts/zynq-pluto-sdr.dtsi
-@@ -187,6 +188,26 @@ clean:
+@@ -138,6 +139,9 @@ else ifneq ($(XSA_FILE),)
+ 	cp $(XSA_FILE) $@
+ else ifneq ($(XSA_URL),)
+ 	wget -T 3 -t 1 -N --directory-prefix build $(XSA_URL)
++else
++	@echo "No FPGA source for TARGET=$(TARGET): install matching Vivado or provide a verified board-specific XSA_FILE." >&2
++	@exit 1
+ endif
+ 
+ ### TODO: Build system_top.xsa from src if dl fails ...
+@@ -187,6 +191,26 @@ clean:
  	rm -f $(notdir $(wildcard build/*))
  	rm -rf build/*
  
