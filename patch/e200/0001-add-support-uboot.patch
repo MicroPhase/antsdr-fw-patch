@@ -8,8 +8,8 @@ Subject: [PATCH] add-support-uboot
  arch/arm/dts/zynq-e200-sdr.dts | 105 +++++++++++++++++++++++++++++++++
  board/xilinx/zynq/board.c      |   4 +-
  configs/zynq_e200_defconfig    |  61 +++++++++++++++++++
- include/configs/zynq-common.h  |  46 +++++++++------
- 5 files changed, 199 insertions(+), 20 deletions(-)
+ include/configs/zynq-common.h  |  48 +++++++++------
+ 5 files changed, 200 insertions(+), 21 deletions(-)
  create mode 100644 arch/arm/dts/zynq-e200-sdr.dts
  create mode 100644 configs/zynq_e200_defconfig
 
@@ -235,6 +235,15 @@ index fd50caf450..32a7303813 100644
  
  
  /* NOR */
+@@ -257,7 +257,7 @@
+ 	"fdt_high=0x20000000\0"	\
+ 	"initrd_high=0x20000000\0"	\
+ 	"bootenv=uEnv.txt\0" \
+-	"maxcpus=1\0" \
++	"maxcpus=2\0" \
+ 	"clear_reset_cause=mw f8000008 df0d && mw f8000258 00400000 && mw f8000004 767b\0" \
+ 	"loadbootenv=load mmc 0 ${loadbootenv_addr} ${bootenv}\0" \
+ 	"importbootenv=echo Importing environment from SD ...; " \
 @@ -280,13 +280,13 @@
  			"setenv refclk_source internal; " \
  			"saveenv; " \
