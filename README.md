@@ -182,6 +182,29 @@ Now you can repower device.
 ## Support 2r2t mode
 If you want to use 2r2t mode, you need to enter the system and run the following command to write the mode configuradion into the nor flash. **But there is a little difference in sd card boot mode and qspi boot mode**
 
+### E200 dual-RX FPGA decimation limitation
+
+For E200 dual-RX capture, keep the optional FPGA RX decimator bypassed. This
+limitation concerns the extra FPGA FIR stage, not the AD936x internal filters.
+
+The E200 `projects/e200/system_bd.tcl` added by the
+[HDL patch](patch/0001-add-three-ant-hdl-support-bump-to-v0.39-v1.patch)
+instantiates `ad_add_decimation_filter "rx_fir_decimator" 8 2 1`: the two
+channels are RX1 I and Q, not two complex receivers. RX2 I/Q connect directly
+to `cpack/fifo_wr_data_2` and `fifo_wr_data_3`; the shared packer write-enable
+comes from `rx_fir_decimator/valid_out_0`.
+
+| FPGA RX mode | RX1 | RX2 |
+| --- | --- | --- |
+| Bypass (/1) | Direct I/Q through the bypass selector | Direct I/Q to the packer |
+| Decimation /8 | FIR-filtered and decimated I/Q | Direct I/Q sampled by the packer using RX1's reduced-rate write-enable |
+
+With /8 enabled, RX2 does not receive the matching FPGA anti-alias filter or
+FIR delay, and the packer does not check RX2's own valid signals. Do not treat
+this configuration as two equivalent filtered, time-aligned RX streams.
+This limitation does not prevent dual-RX operation with the FPGA decimator
+bypassed; bypass alone does not establish RF phase/delay calibration.
+
 ### QSPI mode
    ```sh
  fw_setenv attr_name compatible
