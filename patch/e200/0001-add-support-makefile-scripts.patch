@@ -73,7 +73,7 @@ index 0b2e57a..a8eee47 100644
  
 +SDIMGDIR = $(CURDIR)/build_sdimg
 +sdimg: build/
-+	mkdir $(SDIMGDIR)
++	mkdir -p $(SDIMGDIR)
 +	cp build/sdk/fsbl/Release/fsbl.elf 	$(SDIMGDIR)/fsbl.elf  
 +	cp build/system_top.bit 	$(SDIMGDIR)/system_top.bit
 +	cp build/u-boot.elf 			$(SDIMGDIR)/u-boot.elf
