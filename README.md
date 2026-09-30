@@ -179,6 +179,21 @@ Now you can repower device.
 
 
 
+## E200 CPU default
+
+New E200 builds default to `maxcpus=2`, enabling both Cortex-A9 cores at Linux
+boot. This CPU setting is independent of the `1r1t`/`2r2t` radio mode; other
+board targets retain their existing defaults.
+
+An existing saved U-Boot environment or SD `uEnv.txt` containing `maxcpus=1`
+can override the new default. On E200, use `maxcpus=2` in `uEnv.txt`, including
+when following the SD 2r2t examples below. Keep `maxcpus=1` to opt back into
+single-core boot. The generated E200 `uboot-env.txt` (copied to `uEnv.txt` by
+`make sdimg`) inherits the new default; existing environments are not migrated.
+
+After boot, `cat /sys/devices/system/cpu/online` should report `0-1`.
+Two online cores do not by themselves guarantee a particular I/Q stream rate.
+
 ## Support 2r2t mode
 If you want to use 2r2t mode, you need to enter the system and run the following command to write the mode configuradion into the nor flash. **But there is a little difference in sd card boot mode and qspi boot mode**
 
